@@ -31,6 +31,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.impala.calcite.rel.node.ImpalaCTEConsumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,5 +94,11 @@ public class ImpalaRelMdDistinctRowCount extends RelMdDistinctRowCount {
     // number of distinct rows can never be more than number of total rows
     return Math.min(mq.getRowCount(rel),
         super.getDistinctRowCount(rel, mq, groupKey, predicate));
+  }
+
+  public Double getDistinctRowCount(ImpalaCTEConsumer rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey, RexNode predicate) {
+    // Use the distinct row count of the underlying CTE
+    return mq.getDistinctRowCount(rel.getCTE(), groupKey, predicate);
   }
 }

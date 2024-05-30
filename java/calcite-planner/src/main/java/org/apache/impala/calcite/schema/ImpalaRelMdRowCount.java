@@ -19,7 +19,6 @@ package org.apache.impala.calcite.schema;
 
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.TableScan;
@@ -32,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.impala.calcite.rel.util.PrunedPartitionHelper;
 import org.apache.impala.common.ImpalaException;
-import org.apache.impala.calcite.schema.JoinRelationInfo.EqualityConjunction;
 
 import com.google.common.base.Preconditions;
 
@@ -60,8 +58,9 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
   @Override
   public Double getRowCount(Filter filter, RelMetadataQuery mq) {
     RelNode input = filter.getInput();
-    CalciteTable table = getTable(input);
     RexNode condition = filter.getCondition();
+
+    CalciteTable table = getTable(input);
 
     // If we find a CalciteTable attached, we can be a bit more precise on the row
     // count because partition pruning will give us better stats.
@@ -99,13 +98,7 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
 
   @Override
   public Double getRowCount(TableScan ts, RelMetadataQuery mq) {
-    return ts.getTable().getRowCount();
-  }
-
-  private CalciteTable getTable(RelNode input) {
-    return (input instanceof HepRelVertex)
-        ? (CalciteTable) ((HepRelVertex)input).getCurrentRel().getTable()
-        : (CalciteTable) input.getTable();
+    return ts.estimateRowCount(mq);
   }
 
   private Double getPrunedRowCount(Filter filter, RelMetadataQuery mq,
@@ -127,4 +120,9 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
     return multiply(inputRowCount, selectivity);
   }
 
+  private CalciteTable getTable(RelNode input) {
+    return (input instanceof HepRelVertex)
+        ? (CalciteTable) ((HepRelVertex)input).getCurrentRel().getTable()
+        : (CalciteTable) input.getTable();
+  }
 }

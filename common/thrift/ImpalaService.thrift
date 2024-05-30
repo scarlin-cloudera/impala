@@ -1079,6 +1079,10 @@ enum TImpalaQueryOptions {
   // in testing mode, we don't always want to fallback so we can determine if queries
   // are working or failing in Calcite.
   CALCITE_FALLBACK = 199
+
+  // Occurence threshold for using CTEs. CTEs are only used if occurences are greater
+  // than the threshold. Defaults to -1; negative values disable CTE planning.
+  CTE_THRESHOLD = 200
 }
 
 // The summary of a DML statement.

@@ -826,6 +826,9 @@ struct TQueryOptions {
   199: optional i32 show_create_table_partition_limit = 1000
 
   200: optional TCalciteFallback calcite_fallback = TCalciteFallback.ALL_EXCEPTIONS
+
+  // See comment in ImpalaService.thrift
+  201: optional i32 cte_threshold = -1;
 }
 
 // Impala currently has three types of sessions: Beeswax, HiveServer2 and external

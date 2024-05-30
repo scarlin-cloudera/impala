@@ -149,6 +149,7 @@ DECLARE_string(warmup_tables_config_file);
 DECLARE_bool(keeps_warmup_tables_loaded);
 DECLARE_bool(truncate_external_tables_with_hms);
 DECLARE_bool(disable_hms_sync_by_default);
+DECLARE_string(cte_suggester_class);
 
 // HS2 SAML2.0 configuration
 // Defined here because TAG_FLAG caused issues in global-flags.cc
@@ -598,6 +599,7 @@ Status PopulateThriftBackendGflags(TBackendGflags& cfg) {
   cfg.__set_min_jdbc_scan_cardinality(FLAGS_min_jdbc_scan_cardinality);
   cfg.__set_max_stmt_metadata_loader_threads(FLAGS_max_stmt_metadata_loader_threads);
   cfg.__set_disable_hms_sync_by_default(FLAGS_disable_hms_sync_by_default);
+  cfg.__set_cte_suggester_class(FLAGS_cte_suggester_class);
   return Status::OK();
 }
 

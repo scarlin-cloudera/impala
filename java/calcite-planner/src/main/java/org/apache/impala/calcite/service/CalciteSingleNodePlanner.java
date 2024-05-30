@@ -67,7 +67,7 @@ public class CalciteSingleNodePlanner implements SingleNodePlannerIntf {
 
     // Optimize the query
     CalciteOptimizer optimizer =
-        new CalciteOptimizer(analysisResult_, ctx_.getTimeline());
+        new CalciteOptimizer(analysisResult_, ctx_.getTimeline(), ctx_.getQueryOptions());
     ImpalaPlanRel optimizedPlan = optimizer.optimize(logicalPlan);
 
     returnsMoreThanOneRow_ = returnsMoreThanOneRow(optimizedPlan);

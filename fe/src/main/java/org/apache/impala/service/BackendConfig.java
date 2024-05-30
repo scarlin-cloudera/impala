@@ -632,4 +632,8 @@ public class BackendConfig {
   public void setDisableHmsSyncByDefault(boolean disableHmsSyncByDefault) {
     backendCfg_.disable_hms_sync_by_default = disableHmsSyncByDefault;
   }
+
+  public String getCTESuggesterClass() {
+    return backendCfg_.cte_suggester_class;
+  }
 }

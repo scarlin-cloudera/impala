@@ -44,10 +44,13 @@ public interface ImpalaPlanRel extends RelNode {
    */
   public enum RelNodeType {
     AGGREGATE,
+    CTECONSUMER,
+    CTEPRODUCER,
     FILTER,
     HDFSSCAN,
     JOIN,
     PROJECT,
+    SEQUENCE,
     SORT,
     UNION,
     VALUES
@@ -88,6 +91,15 @@ public interface ImpalaPlanRel extends RelNode {
     }
     if (relNode instanceof Values) {
       return RelNodeType.VALUES;
+    }
+    if (relNode instanceof ImpalaCTEConsumer) {
+      return RelNodeType.CTECONSUMER;
+    }
+    if (relNode instanceof ImpalaCTEProducer) {
+      return RelNodeType.CTEPRODUCER;
+    }
+    if (relNode instanceof ImpalaSequence) {
+      return RelNodeType.SEQUENCE;
     }
     throw new RuntimeException("Unknown RelNode: " +  relNode);
   }
