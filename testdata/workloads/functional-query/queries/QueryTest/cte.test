@@ -75,3 +75,14 @@ UNION SELECT name FROM emps e WHERE salary > 50000;
 '04:CTE CONSUMER [cte_suggestion_0]'
 '   row-size=16B cardinality=1'
 ====
+---- QUERY
+EXPLAIN with d1 as (
+  select id_col from functional.date_tbl where
+    cast('1998-08-04' as date) between date_col and (date_col + INTERVAL 14 days)),
+d2 as (
+  select id_col from functional.date_tbl where
+    cast('1998-08-04' as date) between date_col and (date_col + INTERVAL 14 days))
+select d1.id_col, d2.id_col from d1, d2;
+---- RESULTS: VERIFY_IS_SUBSET
+'00:SEQUENCE'
+====
