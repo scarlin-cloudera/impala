@@ -73,7 +73,7 @@ public class CTEConsumerNode extends PlanNode {
     avgRowSize_ = ctePlan_.avgRowSize_;
     rowPadSize_ = ctePlan_.rowPadSize_;
     getFixedLenRowSize_ = ctePlan_.getFixedLenRowSize_;
-    cardinality_ = ctePlan_.cardinality_;
+    cardinality_ = capCardinalityAtLimit(ctePlan_.cardinality_);
     numNodes_ = ctePlan_.numNodes_;
     numInstances_ = ctePlan_.numInstances_;
   }
@@ -94,6 +94,13 @@ public class CTEConsumerNode extends PlanNode {
         .setMinMemReservationBytes(2 * bufferSize)
         .setMaxMemReservationBytes(2 * bufferSize)
         .setSpillableBufferBytes(bufferSize).setMaxRowBufferBytes(bufferSize).build();
+  }
+
+  @Override
+  public ExecPhaseResourceProfiles computeTreeResourceProfiles(
+      TQueryOptions queryOptions) {
+    // Don't include resources of child in different plan fragment.
+    return new ExecPhaseResourceProfiles(nodeResourceProfile_, nodeResourceProfile_);
   }
 
   @Override

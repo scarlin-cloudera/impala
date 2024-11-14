@@ -115,6 +115,12 @@ struct TPlanFragmentInstanceCtx {
   // Number of backends executing the same fragment plan. Can be used by executors to do
   // some estimations.
   11: optional i32 num_backends;
+
+  // per_fragment_instance_idx of the CTE producer feeding each consumer in this instance
+  12: optional map<Types.TPlanNodeId, i32> cte_consumer_to_producer_idx
+
+  // Number of CTE consumers for a CTE producer instance.
+  13: optional i32 num_cte_consumers
 }
 
 
