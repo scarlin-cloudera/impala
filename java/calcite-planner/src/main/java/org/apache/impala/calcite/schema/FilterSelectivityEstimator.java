@@ -295,7 +295,9 @@ public class FilterSelectivityEstimator {
     RexInputRef inputRef = (RexInputRef) call.getOperands().get(0);
     CalciteTable table = (CalciteTable) t.getTable();
     Column column = table.getColumn(inputRef.getIndex());
-    return column.getStats() != null ? column.getStats().getNumNulls() : 0;
+    return column.getStats() != null
+        ? Math.max(column.getStats().getNumNulls(), 0)
+        : 0;
   }
 
   private Double getMaxNDV(RexCall call) {

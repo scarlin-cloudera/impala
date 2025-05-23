@@ -69,8 +69,7 @@ public class ImpalaHdfsScanRel extends TableScan
 
     CalciteTable table = (CalciteTable) getTable();
 
-    BaseTableRef baseTblRef =
-        table.createBaseTableRef((SimplifiedAnalyzer) context.ctx_.getRootAnalyzer());
+    BaseTableRef baseTblRef = table.createBaseTableRef();
 
     produceSlotDescriptorsForTable(baseTblRef, context);
 
@@ -80,14 +79,12 @@ public class ImpalaHdfsScanRel extends TableScan
     List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots());
 
     Analyzer analyzer = context.ctx_.getRootAnalyzer();
+
     // break up the filter condition (if given) to ones that can be used for
     // partition pruning and ones that cannot.
-    ExprConjunctsConverter converter = new ExprConjunctsConverter(
-        context.filterCondition_, outputExprs, getCluster().getRexBuilder(),
-        analyzer);
-
-    PrunedPartitionHelper pph = new PrunedPartitionHelper(table, converter,
-        tupleDesc, getCluster().getRexBuilder(), context.ctx_.getRootAnalyzer());
+    PrunedPartitionHelper pph = table.createPrunedPartitionHelper(
+        context.filterCondition_, outputExprs, tupleDesc,
+        getCluster().getRexBuilder());
     List<? extends FeFsPartition> impalaPartitions = pph.getPrunedPartitions();
 
     List<Expr> partitionConjuncts = pph.getPartitionedConjuncts();
