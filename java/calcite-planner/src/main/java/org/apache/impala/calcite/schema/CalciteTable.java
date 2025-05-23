@@ -30,7 +30,9 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Statistic;
@@ -62,6 +64,12 @@ import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.HdfsFileFormat;
 import org.apache.impala.catalog.HdfsTable;
 import org.apache.impala.catalog.IcebergTable;
+import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
+import org.apache.impala.calcite.rel.util.ImpalaBaseTableRef;
+import org.apache.impala.calcite.rel.util.PrunedPartitionHelper;
+import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
+import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.Pair;
@@ -85,11 +93,23 @@ public class CalciteTable extends RelOptAbstractTable
 
   private final List<String> qualifiedTableName_;
 
+  // Pruned partition map. The pruned partitions are calculated during join optimization.
+  // Keep them in a cache so they don't have to be recalculated.
+  private final Map<RexNode, PrunedPartitionHelper> prunedPartitionMap = new HashMap<>();
+
   private final List<Column> columns_;
 
   private final SimplifiedAnalyzer analyzer_;
 
-  private final HdfsEstimatedMissingTableStats estimatedMissingStats_;
+  // Not final due to lazy loading
+  private HdfsEstimatedMissingTableStats estimatedMissingStats_;
+
+  // The tuple descriptor which is needed by the partition pruner.
+  private TupleDescriptor tupleDescForPruning_;
+
+  // Output expressions of the tuple descriptor used by the partition pruner
+  // (just a bunch of SlotRefs)
+  private List<Expr> outputExprs_ = null;
 
   public CalciteTable(FeTable table, CalciteCatalogReader reader,
       Analyzer analyzer) throws ImpalaException {
@@ -99,13 +119,6 @@ public class CalciteTable extends RelOptAbstractTable
     this.columns_ = table.getColumnsInHiveOrder();
     this.impalaPositionMap_ = buildPositionMap();
     this.analyzer_ = (SimplifiedAnalyzer) analyzer;
-    // TODO: If table_.getNumRows() is unknown (-1), this logic will load all partitions
-    // to compute estimation using HdfsEstimatedMissingTableStats. This is potentially
-    // expensive and should be avoided in local catalog mode.
-    estimatedMissingStats_ = table_.getNumRows() < 0 ?
-        new HdfsEstimatedMissingTableStats(
-            analyzer.getQueryOptions(), table_, table_.loadAllPartitions(), -1) :
-        null;
 
     checkIfTableIsSupported(table);
   }
@@ -140,15 +153,14 @@ public class CalciteTable extends RelOptAbstractTable
     }
   }
 
-  public BaseTableRef createBaseTableRef(SimplifiedAnalyzer analyzer
-      ) throws ImpalaException {
+  public BaseTableRef createBaseTableRef() throws ImpalaException {
 
     TableRef tblRef = new TableRef(qualifiedTableName_, null);
 
-    Path resolvedPath = analyzer.resolvePath(tblRef.getPath(), Path.PathType.TABLE_REF);
+    Path resolvedPath = analyzer_.resolvePath(tblRef.getPath(), Path.PathType.TABLE_REF);
 
-    BaseTableRef baseTblRef = new ImpalaBaseTableRef(tblRef, resolvedPath, analyzer);
-    baseTblRef.analyze(analyzer);
+    BaseTableRef baseTblRef = new ImpalaBaseTableRef(tblRef, resolvedPath, analyzer_);
+    baseTblRef.analyze(analyzer_);
     return baseTblRef;
   }
 
@@ -237,9 +249,78 @@ public class CalciteTable extends RelOptAbstractTable
       return (double) table_.getNumRows();
     }
 
-    Preconditions.checkNotNull(estimatedMissingStats_);
-    return estimatedMissingStats_.statsNumRows_;
+    if (estimatedMissingStats_ == null) {
+      estimatedMissingStats_ = new HdfsEstimatedMissingTableStats(
+          analyzer_.getQueryOptions(), table_, table_.loadAllPartitions(), -1);
+    }
+    return (estimatedMissingStats_.statsNumRows_ >= 0.0)
+        ? estimatedMissingStats_.statsNumRows_
+        : Double.MAX_VALUE;
+
   }
+
+  /**
+   * Create a pruned partition helper. This is called from join optimization for
+   * retrieving row counts and from the HdfsScanRel when creating the final
+   * pruned partitions to be used at runtime.
+   */
+  public PrunedPartitionHelper createPrunedPartitionHelper(RexNode condition,
+      List<Expr> inputExprs, TupleDescriptor tupleDesc, RexBuilder rexBuilder
+      ) throws ImpalaException {
+    ExprConjunctsConverter converter = new ExprConjunctsConverter(
+        condition, inputExprs, rexBuilder, analyzer_);
+
+    return new PrunedPartitionHelper(this, converter, tupleDesc, rexBuilder, analyzer_);
+  }
+
+  /**
+   * Get the pruned partition helper, creating one if it doesn't exist.
+   */
+  public PrunedPartitionHelper getPrunedPartitionHelper(RexNode condition,
+      RexBuilder rexBuilder) throws ImpalaException {
+    // Check if pruned partition helper is in the cache.
+    if (prunedPartitionMap.get(condition) != null) {
+      return prunedPartitionMap.get(condition);
+    }
+
+    // lazy creation, since this is only needed for pruning.
+    if (tupleDescForPruning_ == null) {
+      tupleDescForPruning_ = createTupleAndSlotDesc(createBaseTableRef(),
+          getRowType().getFieldNames());
+      // the 'output' exprs for the table.  This is needed by the
+      // Expr converter since the conditions will have references
+      // to the SlotExpr for the table.
+      outputExprs_ = createOutputExprs(tupleDescForPruning_.getSlots());
+    }
+
+    PrunedPartitionHelper pph = createPrunedPartitionHelper(condition,
+        outputExprs_, tupleDescForPruning_, rexBuilder);
+
+    prunedPartitionMap.put(condition, pph);
+    return pph;
+  }
+
+  // Create tuple and slot descriptors for this base table
+  private TupleDescriptor createTupleAndSlotDesc(BaseTableRef baseTblRef,
+      List<String> fieldNames) throws ImpalaException {
+    // create the slot descriptors corresponding to this tuple descriptor
+    // by supplying the field names from Calcite's output schema for this node
+    for (String fieldName : fieldNames) {
+      SlotRef slotref =
+          new SlotRef(Path.createRawPath(baseTblRef.getUniqueAlias(), fieldName));
+      slotref.analyze(analyzer_);
+      SlotDescriptor slotDesc = slotref.getDesc();
+      if (slotDesc.getType().isCollectionType()) {
+        throw new AnalysisException(String.format(fieldName + " "
+            + "is a complex type (array/map/struct) column. "
+            + "This is not currently supported."));
+      }
+      slotDesc.setIsMaterialized(true);
+    }
+    TupleDescriptor tupleDesc = baseTblRef.getDesc();
+    return tupleDesc;
+  }
+
 
   public List<Column> getColumns() {
     return columns_;
@@ -249,6 +330,14 @@ public class CalciteTable extends RelOptAbstractTable
     return columns_.get(i);
   }
 
+  private List<Expr> createOutputExprs(List<SlotDescriptor> slotDescs) {
+    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder();
+
+    for (SlotDescriptor slotDesc : slotDescs) {
+      builder.add(new SlotRef(slotDesc));
+    }
+    return builder.build();
+  }
 
   /**
    * Returns a position map from Impala column numbers to Calcite
