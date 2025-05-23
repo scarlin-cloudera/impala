@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,10 @@ import org.slf4j.LoggerFactory;
 public class ExprConjunctsConverter {
   private static final Logger LOG = LoggerFactory.getLogger(ExprConjunctsConverter.class);
 
-  private final List<Expr> allConjuncts_;
+  private final List<CalciteImpalaConjunct> allConjuncts_;
+
+  // lazily evaluated
+  private List<Expr> allImpalaConjuncts_;
 
   public ExprConjunctsConverter(RexNode conjunct, List<Expr> inputExprs,
       RexBuilder rexBuilder, Analyzer analyzer) throws ImpalaException {
@@ -61,7 +65,7 @@ public class ExprConjunctsConverter {
   public ExprConjunctsConverter(RexNode conjunct, List<Expr> inputExprs,
       RexBuilder rexBuilder, Analyzer analyzer, boolean splitAndConjuncts)
       throws ImpalaException {
-    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder();
+    ImmutableList.Builder<CalciteImpalaConjunct> builder = new ImmutableList.Builder();
     if (conjunct != null) {
       CreateExprVisitor visitor =
           new CreateExprVisitor(rexBuilder, inputExprs, analyzer);
@@ -78,15 +82,23 @@ public class ExprConjunctsConverter {
           : Lists.newArrayList(expandedConjunct);
       for (RexNode operand : operands) {
         Expr convertedExpr = CreateExprVisitor.getExpr(visitor, operand);
-        builder.add(convertedExpr);
+        builder.add(new CalciteImpalaConjunct(convertedExpr, operand));
       }
     }
 
     this.allConjuncts_ = builder.build();
   }
 
-  public List<Expr> getImpalaConjuncts() {
+  public List<CalciteImpalaConjunct> getConjuncts() {
     return allConjuncts_;
+  }
+
+  public List<Expr> getImpalaConjuncts() {
+    if (allImpalaConjuncts_ == null) {
+      allImpalaConjuncts_ = allConjuncts_.stream()
+          .map(t -> t.impalaConjunct_).collect(Collectors.toList());
+    }
+    return allImpalaConjuncts_;
   }
 
   /**
@@ -118,5 +130,19 @@ public class ExprConjunctsConverter {
       andOperands.addAll(getAndConjuncts(operand));
     }
     return andOperands;
+  }
+
+  /**
+   * CalciteImpalaConjunct is a small helper "Pair" class that links an
+   * Expr with the equivalent RexNode
+   */
+  public static class CalciteImpalaConjunct {
+    public final Expr impalaConjunct_;
+    public final RexNode calciteConjunct_;
+
+    public CalciteImpalaConjunct(Expr impalaConjunct, RexNode calciteConjunct) {
+      impalaConjunct_ = impalaConjunct;
+      calciteConjunct_ = calciteConjunct;
+    }
   }
 }

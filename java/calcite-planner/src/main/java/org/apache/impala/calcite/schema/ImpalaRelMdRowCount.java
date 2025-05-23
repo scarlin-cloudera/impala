@@ -63,6 +63,17 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
     CalciteTable table = getTable(input);
     RexNode condition = filter.getCondition();
 
+    // If we find a CalciteTable attached, we can be a bit more precise on the row
+    // count because partition pruning will give us better stats.
+    if (table != null) {
+      try {
+        return getPrunedRowCount(filter, mq, table);
+      } catch (ImpalaException e) {
+        LOG.debug("Filter contained an expression that cannot be used for optimization" +
+            " pruning check, using estimate:" + condition);
+      }
+    }
+
     Double inputRowCount = mq.getRowCount(input);
     Preconditions.checkState(inputRowCount >= 0.0);
 
@@ -96,4 +107,24 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
         ? (CalciteTable) ((HepRelVertex)input).getCurrentRel().getTable()
         : (CalciteTable) input.getTable();
   }
+
+  private Double getPrunedRowCount(Filter filter, RelMetadataQuery mq,
+      CalciteTable table) throws ImpalaException {
+    RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+    PrunedPartitionHelper pph =
+        table.getPrunedPartitionHelper(filter.getCondition(), rexBuilder);
+    Double inputRowCount = pph.getPrunedRowCount();
+    Preconditions.checkState(inputRowCount >= 0.0);
+
+    // The PrunedPartitionHelper divides the filter condition into the portion
+    // that can be used for pruning and the portion that cannot.  For the portion
+    // not used for pruning, we do a selectivity estimation.
+    RexNode condition = pph.getNonPartitionedConjunct();
+    FilterSelectivityEstimator estimator =
+        new FilterSelectivityEstimator(filter.getInput(), mq);
+    Double selectivity =
+        condition != null ? estimator.estimateSelectivity(condition) : 1.0;
+    return multiply(inputRowCount, selectivity);
+  }
+
 }

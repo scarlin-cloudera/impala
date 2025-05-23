@@ -344,6 +344,81 @@ public class TestCalciteStats extends PlannerTestBase {
     }
   }
 
+  /**
+   * Test with a query that does filtering on a table with a condition that
+   * will does pruning. Explicitly tests the PrunedPartitionHelper class.
+   */
+  @Test
+  public void testPrunedCondition() {
+    try {
+      RelNode logicalPlan =
+          getRelNodeForQuery("SELECT month from functional.alltypes where month = 2");
+      RelMetadataQuery mq = getMQ();
+      Double cardinality = PARTITIONED_MONTH_ROWS;
+      assertEquals(cardinality, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+      ImmutableBitSet bitSet = ImmutableBitSet.of(0);
+      assertEquals(1.0, (double) mq.getDistinctRowCount(logicalPlan, bitSet,
+          null), DOUBLE_ERR);
+
+      // extra prune tests, make sure pruning was used on table scan level.
+      RexNode condition = getFirstFilterCondition(logicalPlan);
+      RexBuilder rexBuilder = logicalPlan.getCluster().getRexBuilder();
+      CalciteTable table = getTable(logicalPlan);
+      PrunedPartitionHelper helper =
+          table.getPrunedPartitionHelper(condition, rexBuilder);
+      assertEquals(cardinality, helper.getPrunedRowCount());
+      List<? extends FeFsPartition> partitions = helper.getPrunedPartitions();
+      assertEquals(2, partitions.size());
+      List<Expr> partitionedConjuncts = helper.getPartitionedConjuncts();
+      assertEquals(1, partitionedConjuncts.size());
+      assertEquals("functional.alltypes.month = 2", partitionedConjuncts.get(0).toSql());
+      List<Expr> nonPartitionedConjuncts = helper.getNonPartitionedConjuncts();
+      assertEquals(0, nonPartitionedConjuncts.size());
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Test with a query that does filtering on a table with a condition that
+   * will not do any pruning. Explicitly tests the PrunedPartitionHelper class.
+   */
+  @Test
+  public void testPrunedConditionWithNonPrunedCondition() {
+    try {
+      RelNode logicalPlan = getRelNodeForQuery("SELECT month " +
+          "FROM functional.alltypes where month = 2 and bigint_col = 10");
+      RelMetadataQuery mq = getMQ();
+      // pruned row count with extra condition will be 56.0;
+      Double cardinality = PARTITIONED_MONTH_ROWS / BIGINT_NDV;
+      assertEquals(cardinality, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+      ImmutableBitSet bitSet = ImmutableBitSet.of(0);
+      assertEquals(1.0, (double) mq.getDistinctRowCount(logicalPlan, bitSet, null),
+          DOUBLE_ERR);
+
+      // extra prune tests, make sure pruning was used on table scan level.
+      RexNode condition = getFirstFilterCondition(logicalPlan);
+      RexBuilder rexBuilder = logicalPlan.getCluster().getRexBuilder();
+      CalciteTable table = getTable(logicalPlan);
+      PrunedPartitionHelper helper =
+          table.getPrunedPartitionHelper(condition, rexBuilder);
+      // pruned row count will be 560.0;
+      assertEquals(PARTITIONED_MONTH_ROWS, (double) helper.getPrunedRowCount(),
+          DOUBLE_ERR);
+      List<? extends FeFsPartition> partitions = helper.getPrunedPartitions();
+      assertEquals(2, partitions.size());
+      List<Expr> partitionedConjuncts = helper.getPartitionedConjuncts();
+      assertEquals(1, partitionedConjuncts.size());
+      assertEquals("functional.alltypes.month = 2", partitionedConjuncts.get(0).toSql());
+      List<Expr> nonPartitionedConjuncts = helper.getNonPartitionedConjuncts();
+      assertEquals(1, nonPartitionedConjuncts.size());
+      assertEquals("functional.alltypes.bigint_col = 10",
+          nonPartitionedConjuncts.get(0).toSql());
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   // Simple Join test.
   // alltypes has 7300 rows, all unique on id
   // alltypestiny  has 8 rows, all unique on id
