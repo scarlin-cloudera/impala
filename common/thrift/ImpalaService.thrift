@@ -1083,6 +1083,9 @@ enum TImpalaQueryOptions {
   // Occurence threshold for using CTEs. CTEs are only used if occurences are greater
   // than the threshold. Defaults to -1; negative values disable CTE planning.
   CTE_THRESHOLD = 200
+
+  CALCITE_JOIN_TEST_1 = 201
+  CALCITE_JOIN_TEST_2 = 202
 }
 
 // The summary of a DML statement.

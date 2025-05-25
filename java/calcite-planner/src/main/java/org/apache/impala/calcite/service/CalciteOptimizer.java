@@ -62,6 +62,8 @@ import org.apache.impala.calcite.rules.ImpalaCoreRules;
 import org.apache.impala.calcite.rules.ImpalaFilterSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaJoinSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaProjectSimplifyRule;
+import org.apache.impala.calcite.rules.ImpalaLoptOptimizeExtension;
+import org.apache.impala.calcite.rules.ImpalaLoptOptimizeJoinRule;
 import org.apache.impala.calcite.rules.ImpalaRexExecutor;
 import org.apache.impala.calcite.util.LogUtil;
 import org.apache.impala.common.ImpalaException;
@@ -98,6 +100,9 @@ import org.slf4j.LoggerFactory;
 public class CalciteOptimizer implements CompilerStep {
   protected static final Logger LOG =
       LoggerFactory.getLogger(CalciteOptimizer.class.getName());
+
+   public static final ImpalaLoptOptimizeJoinRule IMPALA_MULTI_JOIN_OPTIMIZE =
+        ImpalaLoptOptimizeJoinRule.Config.DEFAULT.toRule();
 
   private final CalciteCatalogReader reader_;
 
@@ -314,9 +319,9 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleInstance(ImpalaCoreRules.JOIN_CONDITION_PUSH);
     builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_MULTI_JOIN);
-    builder.addRuleInstance(CoreRules.MULTI_JOIN_OPTIMIZE);
+    builder.addRuleInstance(IMPALA_MULTI_JOIN_OPTIMIZE);
 
-    return runProgram(plan, builder.build(), simplifier);
+    return runJoinProgram(plan, builder.build(), simplifier);
   }
 
   /**
@@ -364,10 +369,21 @@ public class CalciteOptimizer implements CompilerStep {
     return (ImpalaPlanRel) runProgram(plan, builder.build(), simplifier);
   }
 
+  private RelNode runJoinProgram(RelNode currentNode, HepProgram program,
+      ImpalaRexSimplify simplifier) {
+    HepPlanner planner = new HepPlanner(program,
+        new ImpalaLoptOptimizeExtension.RuntimeFilterInfo(queryOptions_), true, null,
+        RelOptCostImpl.FACTORY);
+    planner.setRoot(currentNode);
+
+    planner.setExecutor(simplifier.getRexExecutor());
+    return planner.findBestExp();
+  }
+
   private RelNode runProgram(RelNode currentNode, HepProgram program,
       ImpalaRexSimplify simplifier) {
     HepPlanner planner = new HepPlanner(program,
-        currentNode.getCluster().getPlanner().getContext(), true, null,
+        new ImpalaLoptOptimizeExtension.RuntimeFilterInfo(queryOptions_), true, null,
         RelOptCostImpl.FACTORY);
     planner.setRoot(currentNode);
     planner.setExecutor(simplifier.getRexExecutor());

@@ -30,6 +30,8 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.impala.calcite.rules.ImpalaLoptOptimizeExtension.RuntimeFilterInfo;
+import org.apache.impala.calcite.rules.ImpalaLoptOptimizeExtension.RuntimeFilterReductionContext;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -78,11 +80,16 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
   }
 
   private RelOptCost getJoinCost(Join join, RelMetadataQuery mq) {
+    return getJoinCost(join.getLeft(), join.getRight(), mq);
+     
+  }
+
+  public static RelOptCost getJoinCost(RelNode left, RelNode right, RelMetadataQuery mq) {
     // 1. Sum of input cardinalities
-    final Double leftRCount = mq.getRowCount(join.getLeft());
-    final Double rightRCount = mq.getRowCount(join.getRight());
-    final Double leftRAverageSize = mq.getAverageRowSize(join.getLeft());
-    final Double rightRAverageSize = mq.getAverageRowSize(join.getRight());
+    final Double leftRCount = mq.getRowCount(left);
+    final Double rightRCount = mq.getRowCount(right);
+    final Double leftRAverageSize = mq.getAverageRowSize(left);
+    final Double rightRAverageSize = mq.getAverageRowSize(right);
 
     if (leftRCount == null || rightRCount == null ||
         leftRAverageSize == null || rightRAverageSize == null) {
@@ -104,8 +111,28 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
 
   private RelOptCost getScanCost(TableScan scan, RelMetadataQuery mq) {
     double cardinality = mq.getRowCount(scan);
-    double avgTupleSize = mq.getAverageRowSize(scan);
-    return new ImpalaCost(0, hdfsRead * cardinality * avgTupleSize);
+    double avgTupleSize = 0.0;
+    RuntimeFilterInfo runtimeFilterInfo = scan.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+    Double reductionPercentage = 1.0;
+    if (runtimeFilterInfo != null) {
+      if (runtimeFilterInfo.reductionMap_.containsKey(scan)) {
+        reductionPercentage = RuntimeFilterReductionContext.getTotalReductionPercentage(runtimeFilterInfo.useLeft_, runtimeFilterInfo.reductionMap_.get(scan));
+      }
+      List<Double> avgColumnSizes = mq.getAverageColumnSizes(scan);
+      if (runtimeFilterInfo.inputRefs_ != null) {
+        for (Integer i : runtimeFilterInfo.inputRefs_) {
+          avgTupleSize += avgColumnSizes.get(i);
+        }
+      } else {
+        avgTupleSize = mq.getAverageRowSize(scan);
+      }
+    } else {
+      avgTupleSize = mq.getAverageRowSize(scan);
+    }
+
+
+
+    return new ImpalaCost(0, hdfsRead * cardinality * avgTupleSize * reductionPercentage);
   }
 
   private RelOptCost getAggregateCost(Aggregate agg, RelMetadataQuery mq) {
