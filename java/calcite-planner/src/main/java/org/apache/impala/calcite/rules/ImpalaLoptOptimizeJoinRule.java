@@ -14,15 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.rel.rules;
+package org.apache.impala.calcite.rules;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.impala.calcite.schema.ImpalaRelMdRowCount;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
@@ -30,6 +38,11 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.LoptJoinTree;
+import org.apache.calcite.rel.rules.LoptMultiJoin;
+import org.apache.calcite.rel.rules.LoptSemiJoinOptimizer;
+import org.apache.calcite.rel.rules.MultiJoin;
+import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -46,6 +59,14 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.IntPair;
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
+import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
+import org.apache.impala.calcite.schema.CalciteTable;
+import org.apache.impala.calcite.schema.ImpalaCost;
+import org.apache.impala.calcite.schema.ImpalaRelColumnOrigin;
+import org.apache.impala.calcite.schema.ImpalaRelMdNonCumulativeCost;
+import org.apache.impala.catalog.Column;
 
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -58,11 +79,51 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
 import static java.util.Objects.requireNonNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+/**
+ * IMPALA COMMENT on class:
+ *
+ * This class was grabbed from
+ * https://github.com/apache/calcite/blob/calcite-1.37.0/core/src/main/java/org/apache/...
+ * /calcite/rel/rules/LoptOptimizeJoinRule.java
+ *
+ * The use of runtime filters within Impala throw a wrench into the join optimization
+ * ordering. We should factor this in to come up with much better join ordering choices.
+ * While this first attempt in this file does not do this, it does put some band-aids
+ * on cases where the Calcite algorithm can go awry. Namely, the following changes
+ * are made from the original Calcite algorithm:
+ *
+ * - When attempting the check of whether to push down a join versus keeping the current
+ *   join, the epsilon on the tiebreaker has been made a little wider. If it does go
+ *   to the tiebreaker, it compares the "leftest most" cardinality on the 2 choices. This
+ *   allows a more effective runtime filter to be used, if found.
+ *
+ * - "Complex" trees threw a bit of a wrench into runtime filtering. A "simple" tree is
+ *   defined here as a tree with only projects and filters. If a tree is complex, the row
+ *   count will have gone through some major transformation, and it isn't quite apparent
+ *   based on the row count at the top level that a runtime filter could have a major
+ *   impact. It especially caused problems when the complex tree was processed in between
+ *   simple trees. Because the row count showed up low, a swap might occur with a simple
+ *   tree where it shouldn't have. In practice, it helped extremely to delay the
+ *   processing of complex trees until after all the simple trees have been processed.
+ *
+ * - Similar to the last point, we also do not want to swap the left and right side
+ *   if we detect a complex tree that has its "leftest" most input with a high
+ *   cardinality because a runtime filter could help improve performance greatly.
+ *
+ * To sum up: These are band-aid patches that take guesses as to when a runtime
+ * filter will be used. A more complete analysis should be done at some point, but
+ * these changes should improve performance, as tested on the tpcds queries.
+ */
 /**
  * Planner rule that implements the heuristic planner for determining optimal
  * join orderings.
@@ -86,23 +147,24 @@ import static java.util.Objects.requireNonNull;
  * modifications is not possible.
  */
 @Value.Enclosing
-public class LoptOptimizeJoinRule
-    extends RelRule<LoptOptimizeJoinRule.Config>
+public class ImpalaLoptOptimizeJoinRule
+    extends RelRule<ImpalaLoptOptimizeJoinRule.Config>
     implements TransformationRule {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaLoptOptimizeJoinRule.class.getName());
 
   /** Creates an LoptOptimizeJoinRule. */
-  protected LoptOptimizeJoinRule(Config config) {
+  protected ImpalaLoptOptimizeJoinRule(Config config) {
     super(config);
   }
 
   @Deprecated // to be removed before 2.0
-  public LoptOptimizeJoinRule(RelBuilderFactory relBuilderFactory) {
+  public ImpalaLoptOptimizeJoinRule(RelBuilderFactory relBuilderFactory) {
     this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
         .as(Config.class));
   }
 
   @Deprecated // to be removed before 2.0
-  public LoptOptimizeJoinRule(RelFactories.JoinFactory joinFactory,
+  public ImpalaLoptOptimizeJoinRule(RelFactories.JoinFactory joinFactory,
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory) {
     this(RelBuilder.proto(joinFactory, projectFactory, filterFactory));
@@ -469,12 +531,28 @@ public class LoptOptimizeJoinRule
     final List<String> fieldNames =
         multiJoin.getMultiJoinRel().getRowType().getFieldNames();
 
+    // Find out if there is a simple tree, that is, a tree that
+    // is basically comprised of only filters, projects, and
+    // a table scan.
+    boolean hasSimpleTree = false;
+    for (int i = 0; i < multiJoin.getNumJoinFactors(); i++) {
+      hasSimpleTree |= (isSimpleTree(multiJoin, i) && !multiJoin.isNullGenerating(i));
+    }
+
     // generate the N join orderings
     for (int i = 0; i < multiJoin.getNumJoinFactors(); i++) {
       // first factor cannot be null generating
       if (multiJoin.isNullGenerating(i)) {
         continue;
       }
+
+      // We don't want to start the ordering with a complex tree because it
+      // will do comparisons with individual branches rather than the whole
+      // branch. However, if all branches are complex plans, it's ok to createOrdering.
+      if (hasSimpleTree && isComplexTree(multiJoin, i)) {
+        continue;
+      }
+
       LoptJoinTree joinTree =
           createOrdering(
               mq,
@@ -843,6 +921,24 @@ public class LoptOptimizeJoinRule
                 factor);
       }
 
+      // We want to process complex trees last. There can potentially
+      // be a scan that is eligible for a runtime filter but we should
+      // process all the simple trees first because the runtime
+      // filter may help a portion of the complex tree but not the whole
+      // tree.  This is applicable to q95 of tpcds
+      if (isSimpleTree(multiJoin, nextFactor) && (dimWeight != 0)) {
+        if (isComplexTree(multiJoin, factor)) {
+          continue;
+        }
+      } else if (isComplexTree(multiJoin, nextFactor)) {
+        if (isSimpleTree(multiJoin, factor) && dimWeight != 0) {
+          nextFactor = factor;
+          bestWeight = dimWeight;
+          bestCardinality = cardinality;
+          continue;
+        }
+      }
+
       // if two factors have the same weight, pick the one
       // with the higher cardinality join key, relative to
       // the join being considered
@@ -975,10 +1071,12 @@ public class LoptOptimizeJoinRule
     RelOptCost costPushDown = null;
     RelOptCost costTop = null;
     if (pushDownTree != null) {
-      costPushDown = mq.getCumulativeCost(pushDownTree.getJoinTree());
+//      costPushDown = mq.getCumulativeCost(pushDownTree.getJoinTree());
+      costPushDown = getCumulativeCost(pushDownTree.getJoinTree(), mq);
     }
     if (topTree != null) {
-      costTop = mq.getCumulativeCost(topTree.getJoinTree());
+//      costTop = mq.getCumulativeCost(topTree.getJoinTree());
+      costTop = getCumulativeCost(topTree.getJoinTree(), mq);
     }
 
     if (pushDownTree == null) {
@@ -989,11 +1087,14 @@ public class LoptOptimizeJoinRule
       requireNonNull(costPushDown, "costPushDown");
       requireNonNull(costTop, "costTop");
       if (costPushDown.isEqWithEpsilon(costTop)) {
+        // IMPALA CHANGE
         // if both plans cost the same (with an allowable round-off
-        // margin of error), favor the one that passes
-        // around the wider rows further up in the tree
-        if (rowWidthCost(pushDownTree.getJoinTree())
-            < rowWidthCost(topTree.getJoinTree())) {
+        // margin of error), the left side will be the one that contains
+        // more rows. This could allow the opportunity for a runtime filter
+        // to be created.
+        Double topRowWidth = getLeftestRowCount(mq, topTree.getJoinTree());
+        Double pushRowWidth = getLeftestRowCount(mq, pushDownTree.getJoinTree());
+        if (pushRowWidth > topRowWidth) {
           bestTree = pushDownTree;
         } else {
           bestTree = topTree;
@@ -1790,7 +1891,7 @@ public class LoptOptimizeJoinRule
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
 
     // swap the inputs if beneficial
-    if (swapInputs(mq, multiJoin, left, right, selfJoin)) {
+    if (experiment(mq, multiJoin, left, right, condition, rexBuilder, fullAdjust)) {
       LoptJoinTree tmp = right;
       right = left;
       left = tmp;
@@ -1908,28 +2009,309 @@ public class LoptOptimizeJoinRule
       LoptMultiJoin multiJoin,
       LoptJoinTree left,
       LoptJoinTree right,
-      boolean selfJoin) {
+      boolean selfJoin,
+      RexNode condition,
+      RexBuilder rexBuilder,
+      boolean adjust) {
     boolean swap = false;
 
+    // IMPALA CHANGE: Commented this out because LoptJoinTree.Leaf
+    // is protected within Calcite and causes a compilation error.
+    // It's probably rare enough that it won't cause too many issues
+    // but this should be addressed at some point.
+    /*
     if (selfJoin) {
       return !multiJoin.isLeftFactorInRemovableSelfJoin(
           ((LoptJoinTree.Leaf) left.getFactorTree()).getId());
     }
+    */
 
     final Double leftRowCount = mq.getRowCount(left.getJoinTree());
     final Double rightRowCount = mq.getRowCount(right.getJoinTree());
 
-    // The left side is smaller than the right if it has fewer rows,
-    // or if it has the same number of rows as the right (excluding
-    // roundoff), but fewer columns.
+    // IMPALA CHANGE: Different logic to check if we should do a swap. We still
+    // want the greater side to be on the left (though unlike Calcite, we also
+    // multiply by row size. However, it is possible that the "lesser" side is
+    // a complex tree that has a left side with a higher cardinality that would
+    // make it the "greater" side. In this case, a runtime filter will help, so
+    // we take this into account when doing the swap.
     if ((leftRowCount != null)
-        && (rightRowCount != null)
-        && ((leftRowCount < rightRowCount)
-        || ((Math.abs(leftRowCount - rightRowCount) < RelOptUtil.EPSILON)
-            && (rowWidthCost(left.getJoinTree()) < rowWidthCost(right.getJoinTree()))))) {
-      swap = true;
+        && (rightRowCount != null)) {
+      Double leftRowSize = mq.getAverageRowSize(left.getJoinTree());
+      Double rightRowSize = mq.getAverageRowSize(right.getJoinTree());
+
+      boolean leftSideIsGreater =
+          (leftRowCount * leftRowSize >= rightRowCount * rightRowSize);
+      RelNode greaterSideNode =
+          leftSideIsGreater ? left.getJoinTree() : right.getJoinTree();
+      RelNode lesserSideNode =
+          leftSideIsGreater ? right.getJoinTree() : left.getJoinTree();
+      boolean runtimeFilterCouldHelp =
+          couldRuntimeFilterHelp(mq, lesserSideNode, greaterSideNode);
+      boolean swap2 = false;
+      // Swap will be true if the left side is greater, but the runtime filter will help
+      // the right side.  Also, swap will be true if right side is greater, but the
+      // runtime filter will help the left side.
+      if (leftSideIsGreater == runtimeFilterCouldHelp) {
+        swap = true;
+      }
+
+//      if (runtimeFilterCouldHelp) {
+//        String joinString = getJoinString(left.getJoinTree(), right.getJoinTree());
+        //LOG.info("SJC: CHECKING SWAP FOR " + joinString);
+//        try {
+          swap2 = experiment(mq, multiJoin, left, right, condition, rexBuilder, adjust);
+          if (swap == swap2) {
+          } else {
+            swap = !swap;
+          }
+//        } catch (Exception e) {
+//          LOG.info(ExceptionUtils.getStackTrace(e));
+//        }
+ //     }
+ /*
+        if (swap) {
+          LOG.info("SJC: GONNA SWAP!");
+        }
+        */
+
     }
     return swap;
+  }
+
+  /**
+   * Returns true if it turns out the lesser side has a table scan on its far left that
+   * is 99% higher than the cardinality on the right.
+   */
+  private static boolean couldRuntimeFilterHelp(RelMetadataQuery mq,
+      RelNode lesserSideNode, RelNode greaterSideNode) {
+    Double lesserSideRowWidth = getLeftestRowCount(mq, lesserSideNode);
+    Double greaterSideRowWidth = mq.getRowCount(greaterSideNode);
+    // Lowered the value to .01 for q64.  Anything higher than
+    // about .1 will caused (store_returns, (store_sales, item))
+    // to change to ((store_sales, item), store_returns) which
+    // created a really bad plan.
+    boolean runFilterWillHelp = (lesserSideRowWidth * .01 > greaterSideRowWidth);
+    if (runFilterWillHelp) {
+    }
+    return runFilterWillHelp;
+  }
+
+  private static boolean experiment(RelMetadataQuery mq, LoptMultiJoin multiJoin, LoptJoinTree leftTree, LoptJoinTree rightTree, RexNode condition, RexBuilder rexBuilder, boolean adjust) {
+    MultiJoin multiJoinRel = multiJoin.getMultiJoinRel();
+    RuntimeFilterInfo runtimeFilterInfo = multiJoinRel.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+    if (runtimeFilterInfo != null) {
+      runtimeFilterInfo.clear();
+    } else {
+    }
+    Context context = multiJoinRel.getCluster().getPlanner().getContext();
+
+
+    int [] adjustments = new int[multiJoin.getNumTotalFields()];
+    List<RexNode> andConditions = ExprConjunctsConverter.getAndConjuncts(condition);
+    RelNode leftSide = leftTree.getJoinTree();
+    RelNode rightSide = rightTree.getJoinTree();
+    Map<CalciteTable, Double> leftReductionMap = new HashMap<>();
+    Map<CalciteTable, Double> rightReductionMap = new HashMap<>();
+
+    if (andConditions.size() > 1) {
+      return false;
+    }
+    for (RexNode andCondition : andConditions) { 
+      runtimeFilterInfo.reductionMap_.putAll(createRuntimeFilterReductionContext(andCondition, adjust,
+          multiJoinRel, leftSide, rightSide, rightTree, mq));
+    }
+
+    //XXX: ugly, but will fix with cost model, hopefully
+    /*
+    List<RuntimeFilterReductionContext> leftReductionList = null;
+    List<RuntimeFilterReductionContext> rightReductionList = null;
+    for (TableScan ts : runtimeFilterInfo.reductionMap_.keySet()) {
+      Preconditions.checkState(runtimeFilterInfo.reductionMap_.size() == 2);
+      if (runtimeFilterInfo.reductionMap_.get(ts).get(0).isLeft_) {
+        leftReductionList = runtimeFilterInfo.reductionMap_.get(ts);
+      } else {
+        rightReductionList = runtimeFilterInfo.reductionMap_.get(ts);
+      }
+    }
+
+    Double leftTotalReduction = 0.0;
+    Double rightTotalReduction = 0.0;
+    if (leftReductionList != null) {
+      leftTotalReduction = RuntimeFilterReductionContext.getTotalReduction(leftReductionList);
+    } else {
+    }
+    if (rightReductionList != null) {
+      rightTotalReduction = RuntimeFilterReductionContext.getTotalReduction(rightReductionList);
+    } else {
+    }
+
+
+//    Double totalLeftReduction = leftTable.getRowCount() - leftTable.getRowCount() * leftReduction;
+//    Double totalRightReduction = rightTable.getRowCount() - rightTable.getRowCount() * rightReduction;
+
+*/
+    RelNode relNode3 = leftSide;
+    if (relNode3 instanceof HepRelVertex) {
+      relNode3 = ((HepRelVertex)relNode3).getCurrentRel();
+    }
+
+    runtimeFilterInfo.useLeft_ = true;
+    RelOptCost leftSideWithFilterCost = getCumulativeCost(relNode3, mq);
+    runtimeFilterInfo.useLeft_ = false;
+    RelOptCost leftSideWithoutFilterCost = getCumulativeCost(relNode3, mq);
+    relNode3 = rightSide;
+    if (relNode3 instanceof HepRelVertex) {
+      relNode3 = ((HepRelVertex)relNode3).getCurrentRel();
+    }
+    runtimeFilterInfo.useLeft_ = false;
+    RelOptCost rightSideWithFilterCost = getCumulativeCost(relNode3, mq);
+    runtimeFilterInfo.useLeft_ = true;
+    RelOptCost rightSideWithoutFilterCost = getCumulativeCost(relNode3, mq);
+    RelOptCost totalPreJoinNonSwapCost = leftSideWithFilterCost.plus(rightSideWithoutFilterCost);
+    RelOptCost totalPreJoinSwapCost = leftSideWithoutFilterCost.plus(rightSideWithFilterCost);
+
+    RelOptCost totalJoinNonSwapCost = totalPreJoinNonSwapCost.plus(ImpalaRelMdNonCumulativeCost.getJoinCost(leftSide, rightSide, mq));
+    RelOptCost totalJoinSwapCost = totalPreJoinSwapCost.plus(ImpalaRelMdNonCumulativeCost.getJoinCost(rightSide, leftSide, mq));
+    return totalJoinSwapCost.isLe(totalJoinNonSwapCost);
+    /*
+    if (mq.getRowCount(leftSide) > mq.getRowCount(rightSide)) {
+      if (leftSideCost.isLe(rightSideCost)) {
+        return true;
+      }
+      if (rightReductionList == null) {
+        return false;
+      } else if (rightTotalReduction > mq.getRowCount(leftSide)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      if (leftReductionList == null) {
+        return true;
+    } else if (leftTotalReduction > mq.getRowCount(rightSide)) {
+        return false;
+      } else {
+        return true;
+      }
+    }
+    */
+  }
+
+  private static boolean swapBitSides(ImmutableBitSet bitSet, boolean adjust, LoptJoinTree rightTree, MultiJoin multiJoin) {
+    if (!adjust) {
+      return false;
+    }
+
+    final List<Integer> joinOrder = new ArrayList<>();
+    rightTree.getTreeOrder(joinOrder);
+    Preconditions.checkState(joinOrder.size() == 1);
+
+    int factor = joinOrder.get(0);
+
+    int startOfRightSideFields = 0;
+    for (int i = 0; i < factor; ++i) {
+      startOfRightSideFields += multiJoin.getInputs().get(i).getRowType().getFieldList().size();
+    }
+    int endOfRightSideFields = startOfRightSideFields + multiJoin.getInputs().get(factor).getRowType().getFieldList().size();
+
+    return bitSet.nth(0) >= startOfRightSideFields && bitSet.nth(0) < endOfRightSideFields;
+  }
+
+  private static Set<Integer> getLeftPreAdjustedIndexList(ImmutableBitSet bitSet, Set<Integer> rightPreAdjustedIndexList) {
+    Set<Integer> bitsOnLeftSide = new HashSet<>();
+    for (Integer bit : bitSet) {
+      if (!rightPreAdjustedIndexList.contains(bit)) {
+        bitsOnLeftSide.add(bit);
+      }
+    }
+    Preconditions.checkState(bitSet.cardinality() == bitsOnLeftSide.size() * 2);
+    return bitsOnLeftSide;
+  }
+
+
+  private static int getAdjustedIndex(MultiJoin multiJoin, int index) {
+    int totalFieldsSoFar = 0;
+    for (RelNode r : multiJoin.getInputs()) {
+      if (index - totalFieldsSoFar < r.getRowType().getFieldList().size()) {
+        return index - totalFieldsSoFar;
+      }
+      totalFieldsSoFar += r.getRowType().getFieldList().size();
+    }
+    throw new RuntimeException("SJC: EXCEPTION");
+  }
+
+  /**
+   * Check if the given factor in the multiJoin is a simple tree. If the factor
+   * is -1, return false.
+   */
+  private static boolean isSimpleTree(LoptMultiJoin multiJoin, int factor) {
+    if (factor == -1) {
+      return false;
+    }
+    return !isComplexTree(multiJoin.getJoinFactor(factor), true);
+  }
+
+  /**
+   * Check if the given factor in the multiJoin is a complex tree. If the factor
+   * is -1, return false.
+   */
+  private static boolean isComplexTree(LoptMultiJoin multiJoin, int factor) {
+    if (factor == -1) {
+      return false;
+    }
+    return isComplexTree(multiJoin.getJoinFactor(factor), true);
+  }
+
+  /**
+   * Check if the RelNode is a complex tree. One piece of tricky logic: It is possible
+   * that the current RelNode is a Join RelNode and part of the RelNode tree that is
+   * being built from this MultiJoin. So any joins at the top level are ok for this check.
+   * This method just wants to ensure that the whole RelNode tree consists of
+   * simple trees.
+   */
+  private static boolean isComplexTree(RelNode relNode, boolean ignoreJoin) {
+    if (relNode instanceof HepRelVertex) {
+      relNode = ((HepRelVertex)relNode).getCurrentRel();
+    }
+
+    if ((relNode instanceof Aggregate) || (relNode instanceof Union)) {
+      return true;
+    }
+
+    if (relNode instanceof Join) {
+      if (!ignoreJoin) {
+        return true;
+      }
+    } else {
+      ignoreJoin = false;
+    }
+
+    for (RelNode input : relNode.getInputs()) {
+      if (isComplexTree(input, ignoreJoin)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // IMPALA-14456: This method gets the row count of the input on the left most side for
+  // the purpose of a runtime filter comparison.  This isn't a great comparison because
+  // we should factor in the whole cost. This helped improve the tpcds suite, so this
+  // is an initial good start, but this needs to be made better.
+  private static Double getLeftestRowCount(RelMetadataQuery mq, RelNode relNode) {
+    if (relNode instanceof HepRelVertex) {
+      relNode = ((HepRelVertex)relNode).getCurrentRel();
+    }
+
+    while (relNode.getInputs().size() > 0) {
+      relNode = relNode.getInput(0);
+      if (relNode instanceof HepRelVertex) {
+        relNode = ((HepRelVertex)relNode).getCurrentRel();
+      }
+    }
+    return mq.getRowCount(relNode);
+
   }
 
   /**
@@ -2108,11 +2490,223 @@ public class LoptOptimizeJoinRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = ImmutableLoptOptimizeJoinRule.Config.of()
-        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs());
+    Config DEFAULT = ImmutableImpalaLoptOptimizeJoinRule.Config.builder()
+        .operandSupplier(b -> b.operand(MultiJoin.class).anyInputs()).build();
 
-    @Override default LoptOptimizeJoinRule toRule() {
-      return new LoptOptimizeJoinRule(this);
+    @Override default ImpalaLoptOptimizeJoinRule toRule() {
+      return new ImpalaLoptOptimizeJoinRule(this);
+    }
+  }
+
+  private static String getJoinString(RelNode left, RelNode right) {
+    String joinString = "(";
+    joinString += getJoinTableString(left);
+    joinString += ", ";
+    joinString += getJoinTableString(right);
+    joinString += ")";
+    return joinString;
+  }
+
+  public static String getJoinTableString(RelNode rel) {
+    String currentString = "";;
+    if (rel instanceof HepRelVertex) {
+      rel = ((HepRelVertex)rel).getCurrentRel();
+    }   
+    if (rel instanceof Join) {
+      Join join = (Join) rel;
+      currentString += "(";
+      currentString += getJoinTableString(join.getLeft());
+      currentString += ", ";
+      currentString += getJoinTableString(join.getRight());
+      currentString += ")";
+    } else if (rel instanceof TableScan) {
+      TableScan scan = (TableScan) rel;
+      CalciteTable table = (CalciteTable) scan.getTable();
+      currentString = table.getName();
+    } else if (rel.getInputs().size() > 0) {
+      currentString = getJoinTableString(rel.getInput(0));
+    }   
+    return currentString;
+  }
+
+  private static Map<TableScan, List<RuntimeFilterReductionContext>> createRuntimeFilterReductionContext(
+      RexNode condition, boolean adjust,
+      MultiJoin multiJoinRel, RelNode leftSide, RelNode rightSide, LoptJoinTree rightTree,
+      RelMetadataQuery mq) {
+    Map<TableScan, List<RuntimeFilterReductionContext>> reductionMap = new HashMap<>();
+    JoinRelNodes joinRelNodes = new JoinRelNodes(leftSide, rightSide);
+    ImmutableBitSet bitSet = RelOptUtil.InputFinder.bits(condition);
+
+    if (bitSet.cardinality() != 2) {
+      return reductionMap;
+    }
+
+    Double leftReduction = 1.0;
+    Double rightReduction = 1.0;
+    int leftBit = bitSet.nth(0);
+    int rightBit = bitSet.nth(1);
+    if (swapBitSides(bitSet, adjust, rightTree, multiJoinRel)) {
+      leftBit = bitSet.nth(1);
+      rightBit = bitSet.nth(0);
+    }
+    int leftIndex = adjust ? getAdjustedIndex(multiJoinRel, leftBit) : leftBit;
+    int rightIndex = adjust ? getAdjustedIndex(multiJoinRel, rightBit) : rightBit - leftSide.getRowType().getFieldList().size();
+//    Set<Integer> rightPreAdjustedIndexList = getRightPreAdjustedIndexList(bitSet, adjust, rightTree, multiJoinRel);
+//    Set<Integer> leftPreAdjustedIndexList = getLeftPreAdjustedIndexList(bitSet, rightPreAdjustedIndexList);
+    ImpalaRelColumnOrigin leftOrigin = (ImpalaRelColumnOrigin) mq.getColumnOrigin(leftSide, leftIndex);
+    ImpalaRelColumnOrigin rightOrigin = (ImpalaRelColumnOrigin) mq.getColumnOrigin(rightSide, rightIndex);
+    if (leftOrigin != null) {
+      CalciteTable leftTable = (CalciteTable) leftOrigin.getOriginTable();
+      Column leftTableColumn = leftTable.getColumn(leftOrigin.getOriginColumnOrdinal());
+      ImmutableBitSet leftBitSet = ImmutableBitSet.of(leftIndex);
+      rightReduction = mq.getDistinctRowCount(leftSide, leftBitSet, null) / leftTableColumn.getStats().getNumDistinctValues();
+      if (leftTable.getName().equals("store_sales") && rightReduction < .1) {
+      }
+    }
+    rightReduction = Math.min(rightReduction, 1.0);
+
+    if (rightOrigin != null) {
+      CalciteTable rightTable = (CalciteTable) rightOrigin.getOriginTable();
+      Column rightTableColumn = rightTable.getColumn(rightOrigin.getOriginColumnOrdinal());
+      ImmutableBitSet rightBitSet = ImmutableBitSet.of(rightIndex);
+      leftReduction = mq.getDistinctRowCount(rightSide, rightBitSet, null) / rightTableColumn.getStats().getNumDistinctValues();
+    }
+    leftReduction = Math.min(leftReduction, 1.0);
+
+    List<RuntimeFilterReductionContext> contextList;
+    if (rightOrigin != null) {
+      contextList =
+           reductionMap.computeIfAbsent(rightOrigin.getTableScan(), k -> new ArrayList<>());
+      contextList.add(new RuntimeFilterReductionContext(joinRelNodes, rightOrigin.getTableScan(), rightReduction, false, false));
+    }
+    if (leftOrigin != null) {
+      contextList =
+           reductionMap.computeIfAbsent(leftOrigin.getTableScan(), k -> new ArrayList<>());
+      contextList.add(new RuntimeFilterReductionContext(joinRelNodes, leftOrigin.getTableScan(), leftReduction, true, false));
+    }
+    return reductionMap;
+  }
+
+  public static RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+    RuntimeFilterInfo runtimeFilterInfo = rel.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+    runtimeFilterInfo.inputRefs_ = getInputRefsForContext(rel, runtimeFilterInfo.inputRefs_, 0);
+    RelOptCost cost = getCumulativeCostInternal(rel, mq);
+    runtimeFilterInfo.inputRefs_ = null;
+    return cost;
+  }
+
+  public static RelOptCost getCumulativeCostInternal(RelNode rel, RelMetadataQuery mq) {
+    ImpalaRelMdNonCumulativeCost noncumulativeCostHandler =
+        new ImpalaRelMdNonCumulativeCost();
+    RelOptCost cost = noncumulativeCostHandler.getNonCumulativeCost(rel, mq);
+    RuntimeFilterInfo runtimeFilterInfo = rel.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+    if (cost == null) {
+      return null;
+    }
+    List<RelNode> inputs = rel.getInputs();
+    for (int i = 0; i < inputs.size(); ++i) {
+      runtimeFilterInfo.inputRefs_ = getInputRefsForContext(rel, runtimeFilterInfo.inputRefs_, i);
+      RelNode realInput = inputs.get(i);
+      if (realInput instanceof HepRelVertex) {
+        realInput = ((HepRelVertex) realInput).getCurrentRel();
+      }
+      RelOptCost inputCost = getCumulativeCostInternal(realInput, mq);
+      if (inputCost == null) {
+        return null;
+      }
+      cost = cost.plus(inputCost);
+    }
+    return cost;
+  }
+
+  private static ImmutableBitSet getInputRefsForContext(RelNode rel, ImmutableBitSet currentSet, int i) {
+    if (currentSet == null) {
+      currentSet = ImmutableBitSet.of();
+    }
+    switch (ImpalaPlanRel.getRelNodeType(rel)) {
+      case AGGREGATE:
+      case SORT:
+      case UNION:
+        return ImmutableBitSet.range(rel.getInputs().get(0).getRowType().getFieldList().size());
+      case HDFSSCAN:
+      case VALUES:
+        return ImmutableBitSet.range(rel.getRowType().getFieldList().size());
+      case JOIN:
+        int leftSize = rel.getInputs().get(0).getRowType().getFieldList().size();
+        return (i == 0)
+            ? ImmutableBitSet.range(leftSize)
+            : ImmutableBitSet.range(rel.getRowType().getFieldList().size() - leftSize);
+      case PROJECT:
+        return RelOptUtil.InputFinder.bits(((Project) rel).getProjects(), null);
+      case FILTER:
+        return currentSet.union(RelOptUtil.InputFinder.bits(((Filter) rel).getCondition()));
+      default:
+        throw new RuntimeException("Unknown RelNodeType: " + ImpalaPlanRel.getRelNodeType(rel));
+    }
+  }
+
+  public static class JoinRelNodes {
+    public final RelNode left_;
+    public final RelNode right_;
+    public JoinRelNodes(RelNode left, RelNode right) {
+      left_ = left;
+      right_ = right;
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(left_, right_);
+    }
+ 
+    @Override public boolean equals(Object obj) {
+      if (!(obj instanceof JoinRelNodes)) {
+        return false;
+      }
+      JoinRelNodes other = (JoinRelNodes) obj;
+      return (this == other) ||
+              (this.left_.equals(other.left_) && this.right_.equals(other.right_));
+    }
+  }
+
+  public static class RuntimeFilterInfo implements Context {
+    public final Map<TableScan, List<RuntimeFilterReductionContext>> reductionMap_ = new HashMap<>();
+    public boolean useLeft_;
+    public ImmutableBitSet inputRefs_;
+
+    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+      return clazz.isInstance(this) ? clazz.cast(this) : null;
+    }
+
+    public void clear() {
+      reductionMap_.clear();
+    }
+  }
+
+  public static class RuntimeFilterReductionContext {
+    public final JoinRelNodes joinRelNodes_;
+    public final TableScan tableScan_;
+    public final Double reductionPercentage_;
+    //XXX: temp variable
+    public final boolean isLeft_;
+    public final boolean useAlways_;
+
+    public RuntimeFilterReductionContext(JoinRelNodes joinRelNodes, TableScan tableScan,
+        Double reductionPercentage, boolean isLeft, boolean useAlways) {
+      this.joinRelNodes_ = joinRelNodes;
+      this.tableScan_ = tableScan;
+      this.reductionPercentage_ = reductionPercentage;
+      this.isLeft_ = isLeft;
+      this.useAlways_ = useAlways;
+    }
+
+    public static Double getTotalReductionPercentage(boolean useLeft,
+        List<RuntimeFilterReductionContext> reductionList) {
+      Double totalReduction = 1.0;
+      for (RuntimeFilterReductionContext r : reductionList) {
+        if (useLeft == r.isLeft_ || r.useAlways_) {
+          totalReduction *=  r.reductionPercentage_;
+        }
+      }
+      return totalReduction;
     }
   }
 }

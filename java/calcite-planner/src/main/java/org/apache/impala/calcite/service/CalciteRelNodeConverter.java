@@ -54,6 +54,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.impala.calcite.operators.ImpalaConvertletTable;
 import org.apache.impala.calcite.operators.ImpalaRexBuilder;
 import org.apache.impala.calcite.rules.ImpalaCoreRules;
+import org.apache.impala.calcite.rules.ImpalaLoptOptimizeJoinRule;
 import org.apache.impala.calcite.rules.ImpalaRexExecutor;
 import org.apache.impala.calcite.rules.RemoveUnraggedCharCastRexExecutor;
 import org.apache.impala.calcite.rules.ReplaceRelOptClusterShuttle;
@@ -90,7 +91,7 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = analysisResult.getTypeFactory();
     this.reader_ = analysisResult.getCatalogReader();
     this.sqlValidator_ = analysisResult.getSqlValidator();
-    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, null);
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo());
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =
@@ -104,7 +105,7 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = validator.getTypeFactory();
     this.reader_ = validator.getCatalogReader();
     this.sqlValidator_ = validator.getSqlValidator();
-    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, null);
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo());
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =
