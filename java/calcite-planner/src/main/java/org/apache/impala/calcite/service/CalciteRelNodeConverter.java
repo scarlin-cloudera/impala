@@ -147,7 +147,8 @@ public class CalciteRelNodeConverter implements CompilerStep {
         cluster_,
         ImpalaConvertletTable.INSTANCE,
         SqlToRelConverter.config().withCreateValuesRel(false)
-            .withRelBuilderFactory(ImpalaCoreRules.LOGICAL_BUILDER_NO_SIMPLIFY));
+            .withRelBuilderFactory(ImpalaCoreRules.LOGICAL_BUILDER_NO_SIMPLIFY)
+            .withHintStrategyTable(ImpalaCoreRules.HINT_STRATEGIES));
 
     // Convert the valid AST into a logical plan
     RelRoot root = relConverter.convertQuery(validatedNode, false, true);
@@ -173,7 +174,9 @@ public class CalciteRelNodeConverter implements CompilerStep {
     LogUtil.logDebug(decorrelatedPlan, "Plan after subquery decorrelation phase");
 
     RexBuilder rexBuilder = new RexBuilder(typeFactory_);
+
     RelOptCluster newCluster = RelOptCluster.create(planner_, rexBuilder);
+    newCluster.setHintStrategies(ImpalaCoreRules.HINT_STRATEGIES);
     newCluster.setMetadataProvider(ImpalaRelMetadataProvider.DEFAULT);
     ReplaceRelOptClusterShuttle shuttle = new ReplaceRelOptClusterShuttle(newCluster);
     return decorrelatedPlan.accept(shuttle);
