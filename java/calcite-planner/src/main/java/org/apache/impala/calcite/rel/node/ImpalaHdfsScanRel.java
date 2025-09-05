@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
@@ -69,8 +70,7 @@ public class ImpalaHdfsScanRel extends TableScan
 
     CalciteTable table = (CalciteTable) getTable();
 
-    BaseTableRef baseTblRef =
-        table.createBaseTableRef((SimplifiedAnalyzer) context.ctx_.getRootAnalyzer());
+    BaseTableRef baseTblRef = table.createBaseTableRef();
 
     produceSlotDescriptorsForTable(baseTblRef, context);
 
@@ -80,14 +80,12 @@ public class ImpalaHdfsScanRel extends TableScan
     List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots());
 
     Analyzer analyzer = context.ctx_.getRootAnalyzer();
+
     // break up the filter condition (if given) to ones that can be used for
     // partition pruning and ones that cannot.
-    ExprConjunctsConverter converter = new ExprConjunctsConverter(
-        context.filterCondition_, outputExprs, getCluster().getRexBuilder(),
-        analyzer);
-
-    PrunedPartitionHelper pph = new PrunedPartitionHelper(table, converter,
-        tupleDesc, getCluster().getRexBuilder(), context.ctx_.getRootAnalyzer());
+    PrunedPartitionHelper pph = table.createPrunedPartitionHelper(
+        context.filterCondition_, outputExprs, tupleDesc,
+        getCluster().getRexBuilder());
     List<? extends FeFsPartition> impalaPartitions = pph.getPrunedPartitions();
 
     List<Expr> partitionConjuncts = pph.getPartitionedConjuncts();
@@ -115,9 +113,19 @@ public class ImpalaHdfsScanRel extends TableScan
           baseTblRef, filterConjuncts, impalaPartitions, partitionConjuncts,
           context.ctx_);
     } else {
-      physicalNode = new ImpalaHdfsScanNode(nodeId, tupleDesc, impalaPartitions,
-          baseTblRef, null, partitionConjuncts, filterConjuncts, countStarDesc,
-          isPartitionScanOnly(context, table));
+      boolean isPartitionScanOnly = isPartitionScanOnly(context, table);
+      if (isPartitionScanOnly &&
+          context.ctx_.getQueryOptions().optimize_partition_key_scans) {
+        physicalNode =
+            SingleNodePlanner.createOptimizedPartitionUnionNode(nodeId, impalaPartitions,
+            tupleDesc, analyzer);
+      } else {
+        RelNode rowCountRelNode = context.parentFilter_ == null ? this : context.parentFilter_;
+        Double calciteCardinality = getCluster().getMetadataQuery().getRowCount(rowCountRelNode);
+        physicalNode = new ImpalaHdfsScanNode(nodeId, tupleDesc, impalaPartitions,
+            baseTblRef, null, partitionConjuncts, filterConjuncts, countStarDesc,
+            isPartitionScanOnly(context, table), calciteCardinality);
+      }
     }
     physicalNode.setOutputSmap(new ExprSubstitutionMap());
     physicalNode.init(analyzer);

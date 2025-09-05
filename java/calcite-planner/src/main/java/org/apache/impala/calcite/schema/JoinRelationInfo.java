@@ -156,8 +156,19 @@ public class JoinRelationInfo {
 
     int nFieldsLeft = joinRel.getLeft().getRowType().getFieldList().size();
     int nFieldsRight = joinRel.getRight().getRowType().getFieldList().size();
+    ImmutableBitSet leftFieldsBitSet = ImmutableBitSet.range(0, nFieldsLeft);
     ImmutableBitSet rightFieldsBitSet = ImmutableBitSet.range(nFieldsLeft,
         nFieldsLeft + nFieldsRight);
+
+    // The JOIN_CONDITION_PUSH rule will not push down a join condition on the left
+    // side of a left join if both columns of the equals condition are on the left side.
+    // TODO: Currently, we will ignore this condition because it would be hard to
+    // estimate equality without sampling.
+    if ((rightFieldsBitSet.contains(leftCols) && rightFieldsBitSet.contains(rightCols)) ||
+        leftFieldsBitSet.contains(leftCols) && leftFieldsBitSet.contains(rightCols)) {
+      return null;
+    }
+
     /*
      * flip column references if join condition specified in reverse order to
      * join sources.
@@ -191,6 +202,46 @@ public class JoinRelationInfo {
         maxRight = Math.min(equalityConj.rhsNumRows_, maxRight * equalityConj.rhsNdv_);
       }
     }
+
+    return Math.max(maxLeft, maxRight);
+  }
+
+  public double getDistinctRows0() {
+    double maxLeft = 1.0;
+    double maxRight = 1.0;
+    // the number of distinct rows is the maximum of the number of distinct rows
+    // on the left or on the right. If there are multiple columns, we make a
+    // blind assumption that there is no correlation between the columns and thus
+    // multiply the columns to get the number of distinct rows. We also
+    // make sure that the number of distinct rows never exceeds the total number
+    // of rows.
+    EqualityConjunction equalityConj = equalityConjunctions_.get(0);
+      if (maxLeft < equalityConj.lhsNumRows_) {
+        maxLeft = Math.min(equalityConj.lhsNumRows_, maxLeft * equalityConj.lhsNdv_);
+      }
+      if (maxRight < equalityConj.rhsNumRows_) {
+        maxRight = Math.min(equalityConj.rhsNumRows_, maxRight * equalityConj.rhsNdv_);
+      }
+
+    return Math.max(maxLeft, maxRight);
+  }
+
+  public double getDistinctRows1() {
+    double maxLeft = 1.0;
+    double maxRight = 1.0;
+    // the number of distinct rows is the maximum of the number of distinct rows
+    // on the left or on the right. If there are multiple columns, we make a
+    // blind assumption that there is no correlation between the columns and thus
+    // multiply the columns to get the number of distinct rows. We also
+    // make sure that the number of distinct rows never exceeds the total number
+    // of rows.
+    EqualityConjunction equalityConj = equalityConjunctions_.get(1);
+      if (maxLeft < equalityConj.lhsNumRows_) {
+        maxLeft = Math.min(equalityConj.lhsNumRows_, maxLeft * equalityConj.lhsNdv_);
+      }
+      if (maxRight < equalityConj.rhsNumRows_) {
+        maxRight = Math.min(equalityConj.rhsNumRows_, maxRight * equalityConj.rhsNdv_);
+      }
 
     return Math.max(maxLeft, maxRight);
   }

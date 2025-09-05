@@ -31,11 +31,14 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
+import org.apache.impala.calcite.operators.ImpalaRexUtil;
 import org.apache.impala.common.ImpalaException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,27 +52,53 @@ import org.slf4j.LoggerFactory;
 public class ExprConjunctsConverter {
   private static final Logger LOG = LoggerFactory.getLogger(ExprConjunctsConverter.class);
 
-  private final List<Expr> allConjuncts_;
+  private final List<CalciteImpalaConjunct> allConjuncts_;
+
+  // lazily evaluated
+  private List<Expr> allImpalaConjuncts_;
 
   public ExprConjunctsConverter(RexNode conjunct, List<Expr> inputExprs,
       RexBuilder rexBuilder, Analyzer analyzer) throws ImpalaException {
-    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder();
+    this(conjunct, inputExprs, rexBuilder, analyzer, true);
+  }
+
+  public ExprConjunctsConverter(RexNode conjunct, List<Expr> inputExprs,
+      RexBuilder rexBuilder, Analyzer analyzer, boolean splitAndConjuncts)
+      throws ImpalaException {
+    ImmutableList.Builder<CalciteImpalaConjunct> builder = new ImmutableList.Builder();
     if (conjunct != null) {
       CreateExprVisitor visitor =
           new CreateExprVisitor(rexBuilder, inputExprs, analyzer);
 
-      List<RexNode> andOperands = getAndConjuncts(conjunct);
-      for (RexNode andOperand : andOperands) {
-        Expr convertedExpr = CreateExprVisitor.getExpr(visitor, andOperand);
-        builder.add(convertedExpr);
+      RexNode expandedConjunct = ImpalaRexUtil.expandSearch(rexBuilder, conjunct);
+      // if splitAndConjuncts is false, there will be only one operand containing
+      // all the 'and' conjuncts. If it is true, each top level 'and' will be
+      // a member in the list. Separating out the 'and' clauses is needed for partition
+      // pruning, because if the 'and' conjunct meets pruning conditions, the
+      // clause is used to remove directories and not needed when checking
+      // on each individual row.
+      List<RexNode> operands = splitAndConjuncts
+          ? getAndConjuncts(expandedConjunct)
+          : Lists.newArrayList(expandedConjunct);
+      for (RexNode operand : operands) {
+        Expr convertedExpr = CreateExprVisitor.getExpr(visitor, operand);
+        builder.add(new CalciteImpalaConjunct(convertedExpr, operand));
       }
     }
 
     this.allConjuncts_ = builder.build();
   }
 
-  public List<Expr> getImpalaConjuncts() {
+  public List<CalciteImpalaConjunct> getConjuncts() {
     return allConjuncts_;
+  }
+
+  public List<Expr> getImpalaConjuncts() {
+    if (allImpalaConjuncts_ == null) {
+      allImpalaConjuncts_ = allConjuncts_.stream()
+          .map(t -> t.impalaConjunct_).collect(Collectors.toList());
+    }
+    return allImpalaConjuncts_;
   }
 
   /**
@@ -95,7 +124,25 @@ public class ExprConjunctsConverter {
       return ImmutableList.of(conjunct);
     }
     // If it's an AND conjunct, then all the operands represent individual
-    // AND clauses.
-    return rexCallConjunct.getOperands();
+    // AND clauses.  Call recursively to catch nested ANDs.
+    List<RexNode> andOperands = new ArrayList<>();
+    for (RexNode operand : rexCallConjunct.getOperands()) {
+      andOperands.addAll(getAndConjuncts(operand));
+    }
+    return andOperands;
+  }
+
+  /**
+   * CalciteImpalaConjunct is a small helper "Pair" class that links an
+   * Expr with the equivalent RexNode
+   */
+  public static class CalciteImpalaConjunct {
+    public final Expr impalaConjunct_;
+    public final RexNode calciteConjunct_;
+
+    public CalciteImpalaConjunct(Expr impalaConjunct, RexNode calciteConjunct) {
+      impalaConjunct_ = impalaConjunct;
+      calciteConjunct_ = calciteConjunct;
+    }
   }
 }

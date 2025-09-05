@@ -18,11 +18,13 @@
 package org.apache.impala.calcite.functions;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlPosixRegexOperator;
@@ -32,17 +34,25 @@ import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.ArithmeticExpr;
 import org.apache.impala.analysis.BinaryPredicate;
 import org.apache.impala.analysis.CaseWhenClause;
+import org.apache.impala.analysis.CastExpr;
 import org.apache.impala.analysis.CompoundPredicate;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.FunctionCallExpr;
+import org.apache.impala.analysis.IsNullPredicate;
+import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.TimestampArithmeticExpr;
+import org.apache.impala.calcite.operators.ImpalaInOperator;
+import org.apache.impala.calcite.rules.ImpalaRexExecutor;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
+import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -78,11 +88,23 @@ public class RexCallConverter {
       case AND:
         return createCompoundExpr(rexCall, params);
       case CAST:
-        return createCastExpr(rexCall, params, analyzer);
+        return createCastExpr(rexCall, params, analyzer, true);
+      case NOT_IN:
+        return createInExpr(rexCall, params, analyzer);
+      case IS_NULL:
+        return new IsNullPredicate(params.get(0), false);
+      case IS_NOT_NULL:
+        return new IsNullPredicate(params.get(0), true);
+      case LIKE:
+        return createLikeExpr(rexBuilder, rexCall, params, analyzer);
+      case OTHER:
+        if (rexCall.getOperator() instanceof ImpalaInOperator) {
+          return createInExpr(rexCall, params, analyzer);
+        }
     }
 
     if (rexCall.getOperator().getName().toLowerCase().equals("explicit_cast")) {
-      return createCastExpr(rexCall, params, analyzer);
+      return createCastExpr(rexCall, params, analyzer, false);
     }
 
     String funcName = rexCall.getOperator().getName().toLowerCase();
@@ -122,10 +144,14 @@ public class RexCallConverter {
 
     switch (rexCall.getOperator().getKind()) {
       case CASE:
-        return createCaseExpr(fn, params, impalaRetType);
+        return createCaseExpr(fn, params, analyzer);
       case POSIX_REGEX_CASE_SENSITIVE:
       case POSIX_REGEX_CASE_INSENSITIVE:
         return createRegexExpr(fn, params, impalaRetType, rexCall);
+      case IS_NULL:
+        return new IsNullPredicate(params.get(0), false);
+      case IS_NOT_NULL:
+        return new IsNullPredicate(params.get(0), true);
       default:
         return new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
     }
@@ -164,10 +190,61 @@ public class RexCallConverter {
     return null;
   }
 
-  private static Expr createCastExpr(RexCall call, List<Expr> params, Analyzer analyzer)
-      throws ImpalaException {
+  /**
+   * Create In Expr
+   */
+  private static Expr createInExpr(RexCall call, List<Expr> params, Analyzer analyzer
+      ) throws ImpalaException {
+    return new AnalyzedInPredicate(call, params, analyzer);
+  }
+
+  private static Expr createLikeExpr(RexBuilder rexBuilder, RexCall rexCall,
+      List<Expr> params, Analyzer analyze) throws ImpalaException {
+
+    // CALCITE-7287: Regression in Calcite 1.41. In the RexSimplify.simplifyLike()
+    // method, the string RexLiteral gets converted back into its Calcite CHAR
+    // type whereas Impala treats these literals as strings. We look for the specific
+    // case where that happens: The first parameter of the like must be of type
+    // varchar, the second parameter is a literal of type char.  When this is seen,
+    // the rexLiteral gets cast once again to a VARCHAR so that the function name
+    // can be resolved by the function resolver.
+    // XXX: get rid of this comment, but for testig purposes, this can be seen in
+    // tpcds-q91
+    if (rexCall.getOperands().get(1) instanceof RexLiteral) {
+      RexLiteral literal = (RexLiteral) rexCall.getOperands().get(1);
+      if (literal.getType().getSqlTypeName().equals(SqlTypeName.CHAR)) {
+        RexNode op0 = (RexNode) rexCall.getOperands().get(0);
+        if (op0.getType().getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
+          RexNode varcharLiteral = rexBuilder.makeLiteral(
+              literal.getValueAs(String.class), op0.getType(), true);
+          List<RexNode> operands = ImmutableList.of(op0, varcharLiteral);
+          rexCall = (RexCall) rexBuilder.makeCall(rexCall.getOperator(), operands);
+        }
+      }
+    }
+
+    String funcName = rexCall.getOperator().getName().toLowerCase();
+    Function fn = getFunction(rexCall);
+
+    if (fn == null) {
+      List<RelDataType> argTypes =
+          Lists.transform(rexCall.getOperands(), RexNode::getType);
+      Preconditions.checkState(false, "Could not find function \"" + funcName +
+        "\" in Impala " + "with args " + argTypes + " and return type " +
+        rexCall.getType());
+      return null;
+    }
+    Type impalaRetType = ImpalaTypeConverter.createImpalaType(fn.getReturnType(),
+        rexCall.getType().getPrecision(), rexCall.getType().getScale());
+
+    return new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
+  }
+
+  private static Expr createCastExpr(RexCall call, List<Expr> params, Analyzer analyzer,
+      boolean isImplicit) throws ImpalaException {
     Type impalaRetType = ImpalaTypeConverter.createImpalaType(call.getType());
-    if (params.get(0).getType() == Type.NULL) {
+    Expr paramsOperand = params.get(0);
+    if (paramsOperand.getType() == Type.NULL) {
       return new AnalyzedNullLiteral(impalaRetType);
     }
 
@@ -176,11 +253,39 @@ public class RexCallConverter {
       return params.get(0);
     }
 
+    // Hack logic: Partition pruning needs the exact number when the column
+    // is decimal. We need to keep the cast(<some decimal> as double) so the
+    // partition pruner can keep the right value.
+    if (ImpalaRexExecutor.isImplicitCastDecimalToInexact(call)) {
+      RexLiteral literal = (RexLiteral) call.getOperands().get(0);
+      Type decimalType = ImpalaTypeConverter.createImpalaType(literal.getType());
+      BigDecimal value = (BigDecimal) RexLiteral.value(literal);
+      return new NumericLiteral(value, impalaRetType);
+    }
+
+    if (paramsOperand instanceof CastExpr &&
+        Type.isImplicitlyCastable(paramsOperand.getChild(0).getType(),
+        impalaRetType, TypeCompatibility.DEFAULT)) {
+      paramsOperand = paramsOperand.getChild(0);
+    }
+
     // Small hack: Most cast expressions have "isImplicit" set to true. If this
     // is the case, then it blocks "analyze" from working through the cast. We
     // need to analyze the expression before creating the cast around it.
-    params.get(0).analyze(analyzer);
-    return new AnalyzedCastExpr(impalaRetType, params.get(0));
+    paramsOperand.analyze(analyzer);
+
+    // no need for redundant cast.
+    if (paramsOperand.getType().equals(impalaRetType)) {
+      return paramsOperand;
+    }
+
+    // call getFunction which will return null if the cast is not valid.
+    Function fn = CastExpr.getFunction(paramsOperand.getType(), impalaRetType, false);
+    if (fn == null) {
+      throw new AnalysisException("Invalid type cast " +
+          "from " + paramsOperand.getType() + " to " + impalaRetType);
+    }
+    return new AnalyzedCastExpr(impalaRetType, paramsOperand, isImplicit);
   }
 
   private static Expr createDecodeExpr(Function fn, List<Expr> params,
@@ -192,20 +297,37 @@ public class RexCallConverter {
     return new AnalyzedCaseExpr(fn, impalaRetType, decodeExpr);
   }
 
-  private static Expr createCaseExpr(Function fn, List<Expr> params, Type retType) {
+  private static Expr createCaseExpr(Function fn, List<Expr> params,
+      Analyzer analyzer) throws ImpalaException {
     List<CaseWhenClause> caseWhenClauses = new ArrayList<>();
     Expr whenParam = null;
     // params alternate between "when" and the action expr
+    Type retType = null;
     for (Expr param : params) {
       if (whenParam == null) {
         whenParam = param;
       } else {
+        // The params are not always analyzed at this phase.
+        if (!param.isAnalyzed()) {
+          param.analyze(analyzer);
+        }
+        // The return type needs to be evaluated here since the case function
+        // resolver always returns boolean. At this point, the coercenodes module
+        // sets all the parameters to be the compatible type, and this is the type
+        // we use for the return value.
+        if (retType == null) {
+          retType = param.getType();
+        } else {
+          Preconditions.checkState(retType.equals(param.getType()));
+        }
         caseWhenClauses.add(new CaseWhenClause(whenParam, param));
         whenParam = null;
       }
     }
     // Leftover 'when' param is the 'else' param, null if there is no leftover
-    return new AnalyzedCaseExpr(fn, caseWhenClauses, whenParam, retType);
+    Expr expr = new AnalyzedCaseExpr(fn, caseWhenClauses, whenParam, retType);
+    expr.analyze(analyzer);
+    return expr;
   }
 
 

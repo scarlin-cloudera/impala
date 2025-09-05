@@ -18,6 +18,7 @@
 package org.apache.impala.calcite.schema;
 
 import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
@@ -58,10 +59,28 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
   }
 
   @Override
+  public Double getRowCount(Aggregate agg, RelMetadataQuery mq) {
+    Double d = super.getRowCount(agg, mq);
+    return d;
+  }
+
+  @Override
   public Double getRowCount(Filter filter, RelMetadataQuery mq) {
     RelNode input = filter.getInput();
-    CalciteTable table = getTable(input);
     RexNode condition = filter.getCondition();
+
+    RelOptTable table = getTable(input);
+    // If we find a CalciteTable attached, we can be a bit more precise on the row
+    // count because partition pruning will give us better stats.
+    if (table != null && table instanceof CalciteTable) {
+      try {
+        CalciteTable calciteTable = (CalciteTable) table;
+        return getPrunedRowCount(filter, mq, calciteTable);
+      } catch (ImpalaException e) {
+        LOG.debug("Filter contained an expression that cannot be used for optimization" +
+            " pruning check, using estimate:" + condition);
+      }
+    }
 
     Double inputRowCount = mq.getRowCount(input);
     Preconditions.checkState(inputRowCount >= 0.0);
@@ -81,15 +100,36 @@ public class ImpalaRelMdRowCount extends RelMdRowCount {
     // Build information about the join, and get the row count from there
     // if available
     JoinRelationInfo info = new JoinRelationInfo(join, rexBuilder, mq);
-    return (info.useDefaultRowCount())
+    Double d = (info.useDefaultRowCount())
         ? super.getRowCount(join, mq)
         : info.getRowCount();
+    return d;
   }
 
   @Override
   public Double getRowCount(TableScan ts, RelMetadataQuery mq) {
-    return ts.getTable().getRowCount();
+    return ts.estimateRowCount(mq);
   }
+
+  private Double getPrunedRowCount(Filter filter, RelMetadataQuery mq,
+      CalciteTable table) throws ImpalaException {
+    RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
+    PrunedPartitionHelper pph =
+        table.getPrunedPartitionHelper(filter.getCondition(), rexBuilder);
+    Double inputRowCount = pph.getPrunedRowCount();
+    Preconditions.checkState(inputRowCount >= 0.0);
+
+    // The PrunedPartitionHelper divides the filter condition into the portion
+    // that can be used for pruning and the portion that cannot.  For the portion
+    // not used for pruning, we do a selectivity estimation.
+    RexNode condition = pph.getNonPartitionedConjunct();
+    FilterSelectivityEstimator estimator =
+        new FilterSelectivityEstimator(filter.getInput(), mq);
+    Double selectivity =
+        condition != null ? estimator.estimateSelectivity(condition) : 1.0;
+    return multiply(inputRowCount, selectivity);
+  }
+
 
   private CalciteTable getTable(RelNode input) {
     return (input instanceof HepRelVertex)

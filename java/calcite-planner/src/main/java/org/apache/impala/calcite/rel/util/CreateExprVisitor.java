@@ -40,6 +40,7 @@ import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.calcite.functions.RexCallConverter;
 import org.apache.impala.calcite.functions.RexLiteralConverter;
+import org.apache.impala.calcite.operators.ImpalaRexUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,12 +56,26 @@ public class CreateExprVisitor extends RexVisitorImpl<Expr> {
 
   private final Analyzer analyzer_;
 
+  private int numExprs_ = 0;
+
   public CreateExprVisitor(RexBuilder rexBuilder, List<Expr> inputExprs,
       Analyzer analyzer) {
     super(false);
     this.inputExprs_ = inputExprs;
     this.rexBuilder_ = rexBuilder;
     this.analyzer_ = analyzer;
+  }
+
+  public RexBuilder getRexBuilder() {
+    return rexBuilder_;
+  }
+
+  public int getNumExprs() {
+    return numExprs_;
+  }
+
+  public void reset() {
+    numExprs_ = 0;
   }
 
   @Override
@@ -70,6 +85,7 @@ public class CreateExprVisitor extends RexVisitorImpl<Expr> {
 
   @Override
   public Expr visitCall(RexCall rexCall) {
+    numExprs_++;
     List<Expr> params = Lists.newArrayList();
     for (RexNode operand : rexCall.getOperands()) {
       params.add(operand.accept(this));
@@ -138,7 +154,20 @@ public class CreateExprVisitor extends RexVisitorImpl<Expr> {
   public static Expr getExpr(CreateExprVisitor visitor, RexNode operand)
       throws ImpalaException {
     try {
-      Expr expr = operand.accept(visitor);
+      // Impala cannot handle the SEARCH operand so this needs to
+      // be expanded.  A custom ImpalaRexUtil was made to handle
+      // the IN operator and is needed until at least CALCITE-7226
+      // is fixed.
+      visitor.reset();
+      RexNode expandedOperand = ImpalaRexUtil.expandSearch(visitor.getRexBuilder(), operand);
+      Expr expr = expandedOperand.accept(visitor);
+      int maxExprsAllowed =
+          visitor.analyzer_.getQueryOptions().getStatement_expression_limit();
+      if (visitor.getNumExprs() >= maxExprsAllowed) {
+        String errorStr = String.format("Exceeded the statement expression limit (%d)\n" +
+          "Statement has %d expressions.", maxExprsAllowed, visitor.getNumExprs());
+        throw new AnalysisException(errorStr);
+      }
       expr.analyze(visitor.analyzer_);
       return expr;
     } catch (Exception e) {

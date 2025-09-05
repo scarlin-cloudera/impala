@@ -141,7 +141,7 @@ public class Planner {
     checkForSmallQueryOptimization(singleNodePlan);
 
     // Join rewrites.
-    invertJoins(singleNodePlan, ctx_.isSingleNodeExec());
+    invertJoins(singleNodePlan, ctx_.isSingleNodeExec(), ctx_);
     singleNodePlan = useNljForSingularRowBuilds(singleNodePlan, ctx_.getRootAnalyzer());
 
     if(ctx_.isMerge()) {
@@ -489,6 +489,14 @@ public class Planner {
     if (explainLevel.ordinal() < TExplainLevel.VERBOSE.ordinal()) {
       // Print the non-fragmented parallel plan.
       str.append(fragments.get(0).getExplainString(options, explainLevel));
+      // Print disjoint local exchange fragments, if any.
+      for (int i = 1; i < fragments.size(); ++i) {
+        PlanFragment fragment = fragments.get(i);
+        if (fragment.getSink() instanceof LocalMultiSink) {
+          str.append("\n");
+          str.append(fragment.getExplainString(options, explainLevel));
+        }
+      }
     } else {
       // Print the fragmented parallel plan.
       for (int i = 0; i < fragments.size(); ++i) {
@@ -741,12 +749,12 @@ public class Planner {
    * The 'isLocalPlan' parameter indicates whether the plan tree rooted at 'root'
    * will be executed locally within one machine, i.e., without any data exchanges.
    */
-  public static void invertJoins(PlanNode root, boolean isLocalPlan) {
+  public static void invertJoins(PlanNode root, boolean isLocalPlan, PlannerContext ctx) {
     if (root instanceof SubplanNode) {
-      invertJoins(root.getChild(0), isLocalPlan);
-      invertJoins(root.getChild(1), true);
+      invertJoins(root.getChild(0), isLocalPlan, ctx);
+      invertJoins(root.getChild(1), true, ctx);
     } else {
-      for (PlanNode child: root.getChildren()) invertJoins(child, isLocalPlan);
+      for (PlanNode child: root.getChildren()) invertJoins(child, isLocalPlan, ctx);
     }
 
     if (root instanceof JoinNode) {
@@ -769,7 +777,9 @@ public class Planner {
         // The current join is a distributed non-equi right outer or semi join
         // which has no backend support. Invert the join to make it executable.
         joinNode.invertJoin();
-      } else if (isInvertedJoinCheaper(joinNode, isLocalPlan)) {
+      } else if (isInvertedJoinCheaper(joinNode, isLocalPlan, ctx)) {
+        LOG.info("SJC: GONNA CALL AGAIN");
+        isInvertedJoinCheaper(joinNode, isLocalPlan, ctx);
         joinNode.invertJoin();
       }
       // Re-compute the numNodes and numInstances based on the new input order
@@ -828,7 +838,12 @@ public class Planner {
    * parallelism significantly, then a significant difference between lhs and rhs
    * bytes is needed to justify inversion.
    */
-  public static boolean isInvertedJoinCheaper(JoinNode joinNode, boolean isLocalPlan) {
+  public static boolean isInvertedJoinCheaper(JoinNode joinNode, boolean isLocalPlan, PlannerContext ctx) {
+  /*
+    if (ctx.getQueryOptions().isUse_calcite_planner()) {
+      return false;
+    }
+    */
     long lhsCard = joinNode.getChild(0).getCardinality();
     long rhsCard = joinNode.getChild(1).getCardinality();
     // Need cardinality estimates to make a decision.

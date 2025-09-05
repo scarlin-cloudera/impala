@@ -32,6 +32,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -110,14 +111,17 @@ public class CoerceNodes{
         return processJoinNode(relNode, newInputs, rexBuilder, isInputChanged);
       case PROJECT:
         return processProjectNode(relNode, newInputs, rexBuilder, isInputChanged);
+      case CTEPRODUCER:
+      case SEQUENCE:
       case SORT:
-        return processSortNode(relNode, newInputs, rexBuilder, isInputChanged);
+        return processSimpleNode(relNode, newInputs, rexBuilder, isInputChanged);
       case UNION:
         return processUnionNode(relNode, newInputs, rexBuilder, isInputChanged);
       case VALUES:
         return processValuesNode(relNode, newInputs, rexBuilder, isInputChanged);
+      case CTECONSUMER:
       case HDFSSCAN:
-        // HDFS Scan node will never need coercing.
+        // Some leaf types don't need coercing.
         return relNode;
     }
 
@@ -143,6 +147,12 @@ public class CoerceNodes{
     }
 
     RexNode newCondition = (changedRexNodes == null) ? condition : changedRexNodes.get(0);
+
+    // need to 'flatten' before putting it back into a filter or else some
+    // tpcds queries will fail in the junit tests because of an assert statement
+    // in the Filter constructor.
+    newCondition = RexUtil.flatten(rexBuilder, newCondition);
+
     return filter.copy(filter.getTraitSet(), inputs.get(0), newCondition);
   }
 
@@ -196,9 +206,9 @@ public class CoerceNodes{
   }
 
   /**
-   * processSortNode: recreates sort node if an input was changed.
+   * processSimpleNode: recreates the node if an input was changed.
    */
-  private static RelNode processSortNode(RelNode relNode, List<RelNode> inputs,
+  private static RelNode processSimpleNode(RelNode relNode, List<RelNode> inputs,
       RexBuilder rexBuilder, boolean isInputChanged) {
     return isInputChanged ? relNode.copy(relNode.getTraitSet(), inputs) : relNode;
   }

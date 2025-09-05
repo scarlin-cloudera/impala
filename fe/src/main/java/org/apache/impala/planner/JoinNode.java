@@ -453,6 +453,11 @@ public abstract class JoinNode extends PlanNode {
     // FK/PK join cardinality must be <= the lhs cardinality.
     result = Math.min(result, lhsCard);
     Preconditions.checkState(result >= 0);
+    // XXX: SJC ADDED CODE THIS WON'T WORK BECAUSE IT'S NOT GENERIC
+    if (eqJoinConjunctSlots.size() > 1) {
+      result = (long) Math.min(result, eqJoinConjunctSlots.get(0).lhsNumRows());
+      result = (long) Math.min(result, eqJoinConjunctSlots.get(0).rhsNumRows());
+    }
     return result;
   }
 

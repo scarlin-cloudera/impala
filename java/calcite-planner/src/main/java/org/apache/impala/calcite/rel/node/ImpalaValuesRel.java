@@ -61,21 +61,24 @@ public class ImpalaValuesRel extends Values
 
   @Override
   public NodeWithExprs getPlanNode(ParentPlanRelContext context) throws ImpalaException {
-    // Value RelNode will generate a Union PlanNode to hold the values. There is
-    // no need to create another Union node if the parent is already a Union node.
-    if (context.parentType_ == RelNodeType.UNION && (getTuples().size() == 1)) {
-      return getValuesExprs(context, getTuples().get(0));
-    }
 
-    PlanNodeId nodeId = context.ctx_.getNextNodeId();
 
     RelDataType rowType =
         context.parentRowType_ != null ? context.parentRowType_ : getRowType();
 
-    List<NodeWithExprs> nodeWithExprsList = getValuesExprs(context);
+    // Value RelNode will generate a Union PlanNode to hold the values. There is
+    // no need to create another Union node if the parent is already a Union node.
+    if (context.parentType_ == RelNodeType.UNION && (getTuples().size() == 1)) {
+      return getValuesExprs(rowType, context.ctx_.getRootAnalyzer(), getTuples().get(0));
+    }
+
+    List<NodeWithExprs> nodeWithExprsList =
+        getValuesExprs(rowType, context.ctx_.getRootAnalyzer());
+
+    PlanNodeId nodeId = context.ctx_.getNextNodeId();
 
     NodeWithExprs retNode = NodeCreationUtils.createUnionPlanNode(nodeId,
-        context.ctx_.getRootAnalyzer(), rowType, nodeWithExprsList, false);
+        context.ctx_.getRootAnalyzer(), rowType, nodeWithExprsList, false, this);
 
     // If there is a filter condition, a SelectNode will get added on top
     // of the retNode.
@@ -83,16 +86,16 @@ public class ImpalaValuesRel extends Values
         getCluster().getRexBuilder());
   }
 
-  private List<NodeWithExprs> getValuesExprs(ParentPlanRelContext context
-      ) throws ImpalaException {
+  private List<NodeWithExprs> getValuesExprs(RelDataType rowType,
+      Analyzer analyzer) throws ImpalaException {
     List<NodeWithExprs> nodeWithExprsList = new ArrayList<>();
     for (List<RexLiteral> literals : getTuples()) {
-      nodeWithExprsList.add(getValuesExprs(context, literals));
+      nodeWithExprsList.add(getValuesExprs(rowType, analyzer, literals));
     }
     return nodeWithExprsList;
   }
 
-  private NodeWithExprs getValuesExprs(ParentPlanRelContext context,
+  private NodeWithExprs getValuesExprs(RelDataType rowType, Analyzer analyzer,
       List<RexLiteral> literals) throws ImpalaException {
 
     PlanNode retNode = null;
@@ -101,23 +104,18 @@ public class ImpalaValuesRel extends Values
     int i = 0;
     for (RexLiteral literal : literals) {
       ExprConjunctsConverter converter = new ExprConjunctsConverter(literal,
-          new ArrayList<>(), getCluster().getRexBuilder(),
-          context.ctx_.getRootAnalyzer());
+          new ArrayList<>(), getCluster().getRexBuilder(), analyzer);
 
       // If the parentRowType_ is set, that means there is a passthrough "Project"
       // RelNode on top of this Values RelNode.   This Project will contain the type we
       // need to use.  This happens because Calcite treats literal strings as "char"
       // and smaller integers (e.g. tinyint) as "int",
-      if (context.parentRowType_ != null) {
-        LiteralExpr literalExpr =
-            getLiteralExprWithType(
-                (LiteralExpr) converter.getImpalaConjuncts().get(0),
-                context.parentRowType_.getFieldList().get(i).getType(),
-                context.ctx_.getRootAnalyzer());
-        outputExprs.add(literalExpr);
-      } else {
-        outputExprs.addAll(converter.getImpalaConjuncts());
-      }
+      LiteralExpr literalExpr =
+          getLiteralExprWithType(
+              (LiteralExpr) converter.getImpalaConjuncts().get(0),
+              rowType.getFieldList().get(i).getType(),
+              analyzer);
+      outputExprs.add(literalExpr);
       i++;
     }
 

@@ -169,7 +169,7 @@ public class ExecRequestCreator implements CompilerStep {
 
     TRuntimeProfileNode calciteProfile =
         this.queryCtx.getFrontend().createTRuntimeProfileNode(Frontend.PLANNER_PROFILE);
-    this.queryCtx.getFrontend().addPlannerToProfile("CalcitePlanner");
+    this.queryCtx.getFrontend().addPlannerToProfile("CalcitePlanner", null);
     result.setProfile(FrontendProfile.getCurrent().emitAsThrift());
     result.setProfile_children(FrontendProfile.getCurrent().emitChildrenAsThrift());
     if (isExplain) {
@@ -250,7 +250,7 @@ public class ExecRequestCreator implements CompilerStep {
     rootFragment.verifyTree();
 
     List<Expr> resultExprs = outputExprs;
-    rootFragment.setSink(new PlanRootSink(resultExprs));
+    rootFragment.setSink(PlanRootSink.create(ctx, resultExprs, true));
 
     Planner.checkForDisableCodegen(rootFragment.getPlanRoot(), ctx);
     // finalize exchanges: this ensures that for hash partitioned joins, the partitioning
@@ -405,9 +405,11 @@ public class ExecRequestCreator implements CompilerStep {
         // which has no backend support. Invert the join to make it executable.
         joinNode.invertJoin();
         inverted = true;
+        /*
       } else if (Planner.isInvertedJoinCheaper(joinNode, isLocalPlan)) {
         joinNode.invertJoin();
         inverted = true;
+        */
       }
       // Re-compute the numNodes and numInstances based on the new input order
       joinNode.recomputeNodes();

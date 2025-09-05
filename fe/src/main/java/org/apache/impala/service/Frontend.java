@@ -149,6 +149,7 @@ import org.apache.impala.catalog.iceberg.IcebergMetadataTable;
 import org.apache.impala.catalog.paimon.FePaimonTable;
 import org.apache.impala.catalog.paimon.FeShowFileStmtSupport;
 import org.apache.impala.common.AnalysisException;
+import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.common.UserCancelledException;
 import org.apache.impala.common.FileSystemUtil;
 import org.apache.impala.common.ImpalaException;
@@ -173,6 +174,7 @@ import org.apache.impala.service.catalogmanager.FeCatalogManager;
 import org.apache.impala.thrift.CatalogLookupStatus;
 import org.apache.impala.thrift.TAlterDbParams;
 import org.apache.impala.thrift.TBackendGflags;
+import org.apache.impala.thrift.TCalciteFallback;
 import org.apache.impala.thrift.TCatalogObject;
 import org.apache.impala.thrift.TCatalogObjectType;
 import org.apache.impala.thrift.TCatalogOpRequest;
@@ -298,6 +300,7 @@ public class Frontend {
   private static final String CPU_ASK_BOUNDED = "CpuAskBounded";
   private static final String AVG_ADMISSION_SLOTS_PER_EXECUTOR =
       "AvgAdmissionSlotsPerExecutor";
+  private static final String CALCITE_FAILURE_REASON = "CalciteFailureReason";
 
   // info about the planner used. In this code, we will always use the Original planner,
   // but other planners may set their own planner values
@@ -2389,14 +2392,16 @@ public class Frontend {
       PlanCtx planCtx, EventSequence timeline) throws ImpalaException {
     TExecRequest request = null;
     CompilerFactory compilerFactory = getCalciteCompilerFactory(planCtx);
+    String exceptionClass = null;
     if (compilerFactory != null) {
       try {
         request = getTExecRequest(compilerFactory, planCtx, timeline);
       } catch (Exception e) {
-        if (!shouldFallbackToRegularPlanner(planCtx)) {
+        if (!shouldFallbackToRegularPlanner(planCtx, e)) {
           throw e;
         }
-        LOG.info("Calcite planner failed: ", e);
+        LOG.info("Calcite planner failed: {}", e.getClass());
+        exceptionClass = e.getClass().toString();
         timeline.markEvent("Failing over from Calcite planner");
       }
     }
@@ -2407,21 +2412,35 @@ public class Frontend {
       compilerFactory = new CompilerFactoryImpl();
       request = getTExecRequest(compilerFactory, planCtx, timeline);
     }
-    addPlannerToProfile(compilerFactory.getPlannerString());
+    addPlannerToProfile(compilerFactory.getPlannerString(), exceptionClass);
     return request;
   }
 
-  private boolean shouldFallbackToRegularPlanner(PlanCtx planCtx) {
+  private boolean shouldFallbackToRegularPlanner(PlanCtx planCtx, Exception e) {
     // TODO: Need a fallback flag for various modes. In production, we will most
     // likely want to fallback to the original planner, but in testing, we might want
     // the query to fail.
     // There are some cases where we will always want to fallback, e.g. if the statement
     // fails at parse time because it is not a select statement.
     TQueryCtx queryCtx = planCtx.getQueryContext();
+    TQueryOptions queryOptions = queryCtx.client_request.getQuery_options();
+    // SJC: COMMENTING OUT FALLBACK FOR PERFORMANCE VERSION, WOULD RATHER FAIL SINCE
+    // WE ARE ONLY TESTING TPCDS
+    /*
+    if (queryOptions.getCalcite_fallback() == TCalciteFallback.ALL_EXCEPTIONS) {
+      return true;
+    }
+    */
+
+    if (queryOptions.getCalcite_fallback() == TCalciteFallback.UNSUPPORTED_AND_NONQUERY &&
+        e instanceof UnsupportedFeatureException) {
+      return true;
+    }
+
     try {
       return !(Parser.parse(queryCtx.client_request.stmt,
           queryCtx.client_request.query_options) instanceof QueryStmt);
-    } catch (Exception e) {
+    } catch (Exception f) {
       return false;
     }
   }
@@ -2831,9 +2850,12 @@ public class Frontend {
     }
   }
 
-  public static void addPlannerToProfile(String planner) {
+  public static void addPlannerToProfile(String planner, String exceptionClass) {
     TRuntimeProfileNode profile = createTRuntimeProfileNode(PLANNER_PROFILE);
     addInfoString(profile, PLANNER_TYPE, planner);
+    if (exceptionClass != null) {
+      addInfoString(profile, CALCITE_FAILURE_REASON, exceptionClass);
+    }
     FrontendProfile.getCurrent().addChildrenProfile(profile);
   }
 

@@ -28,6 +28,7 @@ public class ImpalaRelMetadataProvider {
       JaninoRelMetadataProvider.of(
           ChainedRelMetadataProvider.of(
               ImmutableList.of(
+                  ImpalaRelMdColumnOrigins.SOURCE,
                   ImpalaRelMdDistinctRowCount.SOURCE,
                   ImpalaRelMdRowCount.SOURCE,
                   ImpalaRelMdSize.SOURCE,

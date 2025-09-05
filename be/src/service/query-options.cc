@@ -1425,6 +1425,19 @@ Status impala::SetQueryOption(TImpalaQueryOptions::type option, const string& va
         query_options->__set_tuple_cache_budget_bytes_per_executor(mem_spec_val.value);
         break;
       }
+      case TImpalaQueryOptions::CALCITE_FALLBACK: {
+        TCalciteFallback::type enum_type;
+        RETURN_IF_ERROR(GetThriftEnum(value, "Calcite fallback",
+            _TCalciteFallback_VALUES_TO_NAMES, &enum_type));
+        query_options->__set_calcite_fallback(enum_type);
+        break;
+      }
+      case TImpalaQueryOptions::CTE_THRESHOLD: {
+        int32_t int32_t_val = 0;
+        RETURN_IF_ERROR(QueryOptionParser::Parse<int32_t>(option, value, &int32_t_val));
+        query_options->__set_cte_threshold(int32_t_val);
+        break;
+      }
       default:
         string key = to_string(option);
         if (IsRemovedQueryOption(key)) {

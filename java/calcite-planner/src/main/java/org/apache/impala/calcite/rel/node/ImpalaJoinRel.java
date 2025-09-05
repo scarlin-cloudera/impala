@@ -24,8 +24,11 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -34,6 +37,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.BinaryPredicate;
+import org.apache.impala.analysis.ExprSubstitutionMap;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.JoinOperator;
 import org.apache.impala.analysis.SlotRef;
@@ -61,6 +65,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,8 +80,8 @@ public class ImpalaJoinRel extends Join
       LoggerFactory.getLogger(ImpalaJoinRel.class.getName());
 
   public ImpalaJoinRel(Join join) {
-    super(join.getCluster(), join.getTraitSet(), join.getLeft(), join.getRight(),
-        join.getCondition(), join.getJoinType(), new HashSet<>());
+    super(join.getCluster(), join.getTraitSet(), join.getHints(), join.getLeft(),
+        join.getRight(), join.getCondition(), join.getVariablesSet(), join.getJoinType());
   }
 
   public ImpalaJoinRel(RelOptCluster cluster, RelTraitSet relTraitSet,
@@ -101,13 +106,45 @@ public class ImpalaJoinRel extends Join
     Analyzer analyzer = context.ctx_.getRootAnalyzer();
     JoinOperator joinOp = getImpalaJoinOp();
 
-    List<BinaryPredicate> equiJoinConjuncts = new ArrayList<>();
-    List<Expr> otherJoinConjuncts = new ArrayList<>();
 
     // IMPALA-13176: TODO: Impala allows forcing hints for the distribution mode
     // - e.g force broadcast or hash partition join.  However, we are not
     // currently supporting hints from the new planner.
     JoinNode.DistributionMode distMode = JoinNode.DistributionMode.NONE;
+
+    List<ConjunctInfo> conjunctInfos = getConditionConjuncts(getCondition(),
+        leftInput, rightInput, analyzer);
+
+    boolean rightSideHasOneRow = isRightSideOneRow(getInput(1));
+
+    List<BinaryPredicate> equiJoinConjuncts =
+        conjunctInfos.stream()
+            .filter(conj -> conj.isEquiJoin_)
+            .map(conj -> (BinaryPredicate) conj.conjunct_)
+            .collect(Collectors.toList());
+
+    List<Expr> nonEquiJoinConjuncts =
+        conjunctInfos.stream()
+            .filter(conj -> !conj.isEquiJoin_)
+            .map(conj -> conj.conjunct_)
+            .collect(Collectors.toList());
+
+    boolean isHashJoin = equiJoinConjuncts.size() > 0;
+
+    List<Expr> otherJoinConjuncts = new ArrayList<>();
+    List<Expr> filterConjuncts = new ArrayList<>();
+
+    if (isHashJoin) {
+      otherJoinConjuncts.addAll(nonEquiJoinConjuncts);
+    } else {
+      // Nested join loops keep the non-equijoin conjuncts in the other join conjuncts
+      // except in the special case where this is only one row on the right side.
+      if (rightSideHasOneRow) {
+        filterConjuncts.addAll(nonEquiJoinConjuncts);
+      } else {
+        otherJoinConjuncts.addAll(nonEquiJoinConjuncts);
+      }
+    }
 
     // get the Exprs from both sides. If it's an outer join, some of the
     // Exprs will be Null wrapped (see comment on method)
@@ -115,21 +152,7 @@ public class ImpalaJoinRel extends Join
     outputExprs.addAll(getOutputExprs(analyzer, leftInput, true, joinOp));
     outputExprs.addAll(getOutputExprs(analyzer, rightInput, false, joinOp));
 
-    // Populate equijoin and non-equijoin conditions
-    if (!getCondition().isAlwaysTrue()) {
-      List<ConjunctInfo> conjunctInfos = getConditionConjuncts(getCondition(),
-          leftInput, rightInput, analyzer);
-      for (ConjunctInfo conjunctInfo : conjunctInfos) {
-        if (conjunctInfo.isEquiJoin_) {
-          equiJoinConjuncts.add((BinaryPredicate) conjunctInfo.conjunct_);
-        } else {
-          otherJoinConjuncts.add(conjunctInfo.conjunct_);
-        }
-      }
-    }
-
-    // Populate filter condition
-    List<Expr> filterConjuncts = new ArrayList<>();
+    // Populate filter condition if it existed in a parent RelNode.
     if (context.filterCondition_ != null) {
       ExprConjunctsConverter converter = new ExprConjunctsConverter(
           context.filterCondition_, outputExprs, getCluster().getRexBuilder(), analyzer);
@@ -137,23 +160,37 @@ public class ImpalaJoinRel extends Join
     }
 
     // Create Impala plan node
-    PlanNode joinNode = equiJoinConjuncts.size() == 0
-      ? new ImpalaNestedLoopJoinNode(context.ctx_.getNextNodeId(), leftInput.planNode_,
-          rightInput.planNode_, false /* not a straight join */, distMode, joinOp,
-          otherJoinConjuncts, filterConjuncts, analyzer)
-      : new ImpalaHashJoinNode(context.ctx_.getNextNodeId(), leftInput.planNode_,
-          rightInput.planNode_, false /* not a straight join */, distMode, joinOp,
-          equiJoinConjuncts, otherJoinConjuncts, filterConjuncts, analyzer);
+    PlanNode joinNode = isHashJoin
+        ? new ImpalaHashJoinNode(context.ctx_.getNextNodeId(), leftInput.planNode_,
+            rightInput.planNode_, isStraightJoin(), distMode, joinOp,
+            equiJoinConjuncts, otherJoinConjuncts, filterConjuncts, analyzer)
+        : new ImpalaNestedLoopJoinNode(context.ctx_.getNextNodeId(), leftInput.planNode_,
+            rightInput.planNode_, isStraightJoin(), distMode, joinOp,
+            otherJoinConjuncts, filterConjuncts, analyzer);
 
+    if (joinNode instanceof ImpalaHashJoinNode) {
+      ImpalaHashJoinNode a = (ImpalaHashJoinNode) joinNode;
+      if (isJoinCalculatable(this)) {
+        a.calciteCardinality_ = getCluster().getMetadataQuery().getRowCount(this);
+      }
+    } else {
+      ImpalaNestedLoopJoinNode a = (ImpalaNestedLoopJoinNode) joinNode;
+      if (isJoinCalculatable(this)) {
+        a.calciteCardinality_ = getCluster().getMetadataQuery().getRowCount(this);
+      }
+    }
     // register the equi join conjuncts with the analyzer such that
     // value transfer graph creation can consume it. It is only useful
     // in the value transfer graph if the value transfer is equal on
     // both sides.
-    if (equiJoinConjuncts.size() > 0) {
-      List<Expr> equiJoinExprs = new ArrayList<Expr>(equiJoinConjuncts);
-      registerConjuncts(getJoinConjunctListToRegister(equiJoinExprs), analyzer,
-          joinNode);
-    }
+    // XXX: experiment with this:  Can we register both?
+    List<Expr> equiJoinExprs = rightSideHasOneRow
+        ? filterConjuncts
+        : new ArrayList<Expr>(equiJoinConjuncts);
+    registerConjuncts(getJoinConjunctListToRegister(equiJoinExprs), analyzer,
+        joinNode, joinOp);
+
+    joinNode.setOutputSmap(new ExprSubstitutionMap());
 
     return new NodeWithExprs(joinNode, outputExprs, getRowType().getFieldNames());
   }
@@ -164,6 +201,7 @@ public class ImpalaJoinRel extends Join
     ParentPlanRelContext.Builder builder =
         new ParentPlanRelContext.Builder(context, this);
     builder.setFilterCondition(null);
+    builder.setParentFilter(null);
     return inputPlanRel.getPlanNode(builder.build());
   }
 
@@ -248,8 +286,15 @@ public class ImpalaJoinRel extends Join
     return retExpr;
   }
 
-  private JoinOperator getImpalaJoinOp() throws ImpalaException {
-    switch (getJoinType()) {
+  private JoinOperator getImpalaJoinOp()
+      throws ImpalaException {
+    JoinRelType joinRelType = getJoinType();
+    /*
+    if (rightSideHasOneRow && joinRelType == JoinRelType.CROSS) {
+      return JoinOperator.INNER_JOIN;
+    }
+    */
+    switch (joinRelType) {
     case INNER:
       return JoinOperator.INNER_JOIN;
     case FULL:
@@ -329,7 +374,9 @@ public class ImpalaJoinRel extends Join
    * of the join conjunct expression.
    */
   public List<Expr> getJoinConjunctToRegister(Expr joinConjunct) {
-    Preconditions.checkState(joinConjunct.getChildren().size() == 2);
+    if (joinConjunct.getChildren().size() != 2) {
+      return Lists.newArrayList();
+    }
     List<SlotRef> leftSideSlotRefs = new ArrayList<>();
     List<SlotRef> rightSideSlotRefs = new ArrayList<>();
     joinConjunct.getChild(0).collect(SlotRef.class, leftSideSlotRefs);
@@ -417,9 +464,14 @@ public class ImpalaJoinRel extends Join
    * of the Expr conjuncts (and whether it is an EQUALS conjunct).
    */
   private List<ConjunctInfo> getConditionConjuncts(RexNode condition,
-      NodeWithExprs leftInput, NodeWithExprs rightInput, Analyzer analyzer) {
+      NodeWithExprs leftInput, NodeWithExprs rightInput, Analyzer analyzer)
+      throws ImpalaException {
 
     List<ConjunctInfo> conjunctInfos = new ArrayList<>();
+    if (condition.isAlwaysTrue()) {
+      return conjunctInfos;
+    }
+
     CreateExprVisitor visitor = new CreateExprVisitor(getCluster().getRexBuilder(),
         getAllInputExprs(leftInput, rightInput), analyzer);
 
@@ -429,7 +481,7 @@ public class ImpalaJoinRel extends Join
     for (RexNode conj : conjuncts) {
       // get a canonicalized representation
       conj = getCanonical(conj, leftInput.outputExprs_.size());
-      Expr impalaConjunct = conj.accept(visitor);
+      Expr impalaConjunct = CreateExprVisitor.getExpr(visitor, conj);
       conjunctInfos.add(
           new ConjunctInfo(impalaConjunct, isEquijoinConjunct(conj, leftInput)));
     }
@@ -445,7 +497,7 @@ public class ImpalaJoinRel extends Join
   // - should be at least one input ref on the left side and one input ref on
   //   the right side.
   private boolean isEquijoinConjunct(RexNode conjunct, NodeWithExprs leftInput) {
-    if (!conjunct.isA(SqlKind.EQUALS)) {
+    if (!conjunct.isA(SqlKind.EQUALS) && !conjunct.isA(SqlKind.IS_NOT_DISTINCT_FROM)) {
       return false;
     }
 
@@ -485,9 +537,11 @@ public class ImpalaJoinRel extends Join
    * valueTransfersGraph to determine if runtime filters can be created.
    */
   private void registerConjuncts(List<Expr> equiJoinExprs, Analyzer analyzer,
-      PlanNode joinNode) throws ImpalaException {
+      PlanNode joinNode, JoinOperator joinOp) throws ImpalaException {
+    if (equiJoinExprs.size() == 0) {
+      return;
+    }
 
-    JoinOperator joinOp = getImpalaJoinOp();
     if (joinOp == JoinOperator.RIGHT_OUTER_JOIN) {
       List<TableRef> lhsTableRefs = getTableRefs(joinNode.getChild(0));
       registerOuterJoinedTids(lhsTableRefs, analyzer, joinOp);
@@ -522,6 +576,42 @@ public class ImpalaJoinRel extends Join
     return tableRefs;
   }
 
+  private boolean isStraightJoin() {
+    return getHints().stream()
+        .anyMatch(r -> r.hintName.toLowerCase().equals("straight_join"));
+  }
+
+  private boolean isRightSideOneRow(RelNode rightInput) {
+    boolean foundPotentialNode = false;
+    while (!foundPotentialNode) {
+      ImpalaPlanRel planRel = (ImpalaPlanRel) rightInput;
+      switch (planRel.relNodeType()) {
+        case HDFSSCAN:
+        case UNION:
+        case JOIN:
+        case CTECONSUMER:
+        case CTEPRODUCER:
+        case SEQUENCE:
+          return false;
+        case AGGREGATE:
+        case VALUES:
+          foundPotentialNode = true;
+          break;
+      }
+      if (!foundPotentialNode) {
+        rightInput = rightInput.getInput(0);
+      }
+    }
+
+    if (rightInput instanceof Values) {
+      Values values = (Values) rightInput;
+      // can only have one tuple with one value in it
+      return values.getTuples().size() == 1 && values.getTuples().get(0).size() == 1;
+    }
+
+    return ImpalaAggRel.returnsSingleRow((Aggregate) rightInput);
+  }
+
   private static class ConjunctInfo {
     public final Expr conjunct_;
     public final boolean isEquiJoin_;
@@ -553,5 +643,18 @@ public class ImpalaJoinRel extends Join
   @Override
   public RelNodeType relNodeType() {
     return RelNodeType.JOIN;
+  }
+
+  public static boolean isJoinCalculatable(RelNode relNode) {
+    boolean retVal = true;
+    for (RelNode input : relNode.getInputs()) {
+      ImpalaPlanRel planRel = (ImpalaPlanRel) input;
+      switch (ImpalaPlanRel.getRelNodeType(planRel)) {
+        case JOIN:
+          return false;
+      }
+      retVal = retVal && isJoinCalculatable(input);
+    }
+    return retVal;
   }
 }

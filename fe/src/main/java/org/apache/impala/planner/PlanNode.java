@@ -421,6 +421,7 @@ abstract public class PlanNode extends TreeNode<PlanNode> {
       } else {
         expBuilder.append(PrintUtils.printEstCardinality(cardinality_));
       }
+      expBuilder.append(getCalciteCardinalityString());      
       if (Planner.isProcessingCostAvailable(queryOptions)) {
         // Show processing cost total.
         expBuilder.append(" cost=");
@@ -1407,6 +1408,10 @@ abstract public class PlanNode extends TreeNode<PlanNode> {
    * this to return true if this is an unfavorable caching location.
    */
   public boolean omitTupleCache() { return false; }
+
+  public String getCalciteCardinalityString() {     
+    return "";
+  }
 
   /**
    * Return True if Impala Coordinator node has scratch_dirs flag configured and

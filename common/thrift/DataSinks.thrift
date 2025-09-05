@@ -36,6 +36,7 @@ enum TDataSinkType {
   ICEBERG_DELETE_BUILDER = 5
   MULTI_DATA_SINK = 6
   MERGE_SINK = 7
+  LOCAL_MULTI_SINK = 8
 }
 
 enum TSinkAction {
@@ -196,4 +197,7 @@ struct TDataSink {
 
   // Child data sinks if this is a MULTI_DATA_SINK.
   10: optional list<TDataSink> child_data_sinks
+
+  // Forwards the same results to multiple fragments for LOCAL_MULTI_SINK
+  11: optional list<Types.TPlanNodeId> dest_node_ids
 }

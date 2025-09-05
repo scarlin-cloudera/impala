@@ -1076,6 +1076,12 @@ where 10.1 not in (tinyint_col, smallint_col, int_col, bigint_col, float_col, do
 8990
 ---- TYPES
 bigint
+=====
+---- QUERY
+# Test that casts are not allowed between DATE and numerical types
+select cast(date '2000-12-21' as int);
+---- CATCH
+AnalysisException: Invalid type cast from DATE to INT
 ====
 ---- QUERY
 # Test for varchar ndv with both 1 and 2 parameters
@@ -1122,9 +1128,177 @@ int
 row_regex: .*PlannerType: CalcitePlanner.*
 ====
 ---- QUERY
+# IMPALA-14561: Should not be using MySqlDialect to capture labels
+select timestamp_col + interval 3 milliseconds from functional.alltypestiny;
+---- LABELS
+expr$0
+---- RUNTIME_PROFILE
+row_regex: .*PlannerType: CalcitePlanner.*
+====
+---- QUERY
 select cast('nan' as double), cast('inf' as float);
 ---- RESULTS
 NaN,Inf
 ---- TYPES
 DOUBLE, FLOAT
+====
+---- QUERY
+select count(*) from functional.alltypestiny;
+---- RUNTIME_PROFILE
+row_regex: .*SPOOL_QUERY_RESULTS=0.*
+====
+---- QUERY
+select * from (values(0));
+---- RUNTIME_PROFILE
+row_regex: .*SPOOL_QUERY_RESULTS=0.*
+====
+---- QUERY
+# IMPALA-14421: Repeat of test in chars.test since Calcite
+# was returning the wrong types
+WITH numbered AS (
+  SELECT *, row_number() over (order by cs) as rn
+  FROM functional.chars_tiny)
+SELECT *
+FROM (
+  SELECT CASE WHEN rn % 2 = 0 THEN cs END cs,
+    CASE WHEN rn % 2 = 1 THEN cl END cl,
+    CASE WHEN rn % 3 = 0 THEN vc END vc
+  FROM numbered
+  UNION ALL
+  SELECT CASE WHEN rn % 2 = 1 THEN cs END cs,
+    CASE WHEN rn % 2 = 0 THEN cl END cl,
+    CASE WHEN rn % 3 = 1 THEN vc END vc
+  FROM numbered) v
+---- TYPES
+char, char, string
+---- HS2_TYPES
+char, char, varchar
+---- RESULTS
+'NULL','1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','NULL'
+'2aaaa','NULL','NULL'
+'NULL','3bbbbb                                                                                                                                      ','3ccc'
+'4aa  ','NULL','NULL'
+'NULL','5bbb                                                                                                                                        ','NULL'
+'6a   ','NULL','6c'
+'NULL','6b                                                                                                                                          ','NULL'
+'a    ','NULL','NULL'
+'NULL','NULL','NULL'
+'1aaaa','NULL','1cccc'
+'NULL','2bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb','NULL'
+'3aaa ','NULL','NULL'
+'NULL','4bbbb                                                                                                                                       ','4cc'
+'5a   ','NULL','NULL'
+'NULL','6b                                                                                                                                          ','NULL'
+'6a   ','NULL','6c'
+'NULL','b                                                                                                                                           ','NULL'
+'NULL','NULL','NULL'
+====
+---- QUERY
+# values test with different sized columns.
+# result should have no trailing spaces.
+values ('abc'), ('defg')
+---- RESULTS
+'abc'
+'defg'
+---- TYPES
+string
+---- RUNTIME_PROFILE
+row_regex: .*PlannerType: CalcitePlanner.*
+====
+---- QUERY
+select cast('nan' as double), cast('inf' as float);
+---- RESULTS
+NaN,Inf
+---- TYPES
+DOUBLE, FLOAT
+====
+---- QUERY
+# Labels test
+select 1;
+---- LABELS
+1
+---- RESULTS
+1
+---- TYPES
+tinyint
+---- RUNTIME_PROFILE
+row_regex: .*PlannerType: CalcitePlanner.*
+====
+---- QUERY
+select count(*) from functional.alltypestiny;
+---- RUNTIME_PROFILE
+row_regex: .*SPOOL_QUERY_RESULTS=0.*
+====
+---- QUERY
+select * from (values(0));
+---- RUNTIME_PROFILE
+row_regex: .*SPOOL_QUERY_RESULTS=0.*
+====
+---- QUERY
+# IMPALA-14222
+# Grouping sets has a duplicate group. This query should produce a
+# union rel node in the plan.
+select int_col, string_col, bool_col, count(*)
+from functional.alltypesagg
+group by grouping sets((int_col), (string_col), (int_col, bool_col),
+  (int_col, bool_col))
+order by count(*) desc, 1, 2, 3
+limit 21
+---- RESULTS
+10,'NULL',true,20
+10,'NULL',true,20
+10,'NULL',NULL,20
+20,'NULL',true,20
+20,'NULL',true,20
+20,'NULL',NULL,20
+30,'NULL',true,20
+30,'NULL',true,20
+30,'NULL',NULL,20
+40,'NULL',true,20
+40,'NULL',true,20
+40,'NULL',NULL,20
+50,'NULL',true,20
+50,'NULL',true,20
+50,'NULL',NULL,20
+60,'NULL',true,20
+60,'NULL',true,20
+60,'NULL',NULL,20
+70,'NULL',true,20
+70,'NULL',true,20
+70,'NULL',NULL,20
+---- TYPES
+INT,STRING,BOOLEAN,BIGINT
+====
+---- QUERY
+CREATE TABLE test_date_unionall (date_col DATE);
+INSERT INTO test_date_unionall  values('2025-03-18');
+SELECT * FROM (
+SELECT date_col FROM test_date_unionall
+UNION ALL
+SELECT '2025-03-17 12:00:00' FROM test_date_unionall
+) AS t1;
+---- TYPES
+date
+---- RESULTS
+2025-03-18
+2025-03-17
+====
+---- QUERY
+CREATE TABLE test_timestamp_unionall (timestamp_col TIMESTAMP);
+INSERT INTO test_timestamp_unionall  values('2025-03-18 12:01:02');
+SELECT * FROM (
+SELECT timestamp_col FROM test_timestamp_unionall
+UNION ALL
+SELECT '2025-03-17 12:02:03' FROM test_timestamp_unionall
+) AS t1;
+---- TYPES
+timestamp
+---- RESULTS
+2025-03-18 12:01:02
+2025-03-17 12:02:03
+====
+---- QUERY
+select '\"';
+---- RESULTS
+'"'
 ====

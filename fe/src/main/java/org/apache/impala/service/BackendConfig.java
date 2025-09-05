@@ -624,4 +624,8 @@ public class BackendConfig {
   public int getMaxStmtMetadataLoaderThreads() {
     return backendCfg_.max_stmt_metadata_loader_threads;
   }
+
+  public String getCTESuggesterClass() {
+    return backendCfg_.cte_suggester_class;
+  }
 }

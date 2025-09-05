@@ -30,6 +30,8 @@
 #include "exec/aggregation-node.h"
 #include "exec/analytic-eval-node.h"
 #include "exec/cardinality-check-node.h"
+#include "exec/cte-consumer-node.h"
+#include "exec/cte-producer-node.h"
 #include "exec/data-source-scan-node.h"
 #include "exec/empty-set-node.h"
 #include "exec/exchange-node.h"
@@ -47,6 +49,7 @@
 #include "exec/partial-sort-node.h"
 #include "exec/partitioned-hash-join-node.h"
 #include "exec/select-node.h"
+#include "exec/sequence-node.h"
 #include "exec/singular-row-src-node.h"
 #include "exec/sort-node.h"
 #include "exec/streaming-aggregation-node.h"
@@ -238,6 +241,15 @@ Status PlanNode::CreatePlanNode(
       break;
     case TPlanNodeType::ICEBERG_MERGE_NODE:
       *node = pool->Add(new IcebergMergePlanNode());
+      break;
+    case TPlanNodeType::SEQUENCE_NODE:
+      *node = pool->Add(new SequencePlanNode());
+      break;
+    case TPlanNodeType::CTE_CONSUMER_NODE:
+      *node = pool->Add(new CTEConsumerPlanNode());
+      break;
+    case TPlanNodeType::CTE_PRODUCER_NODE:
+      *node = pool->Add(new CTEProducerPlanNode());
       break;
     default:
       map<int, const char*>::const_iterator i =

@@ -76,6 +76,7 @@ public class ImpalaFilterRel extends Filter
     RexNode newFilterCondition =
         createNewCondition(context.filterCondition_, getCondition());
     builder.setFilterCondition(newFilterCondition);
+    builder.setParentFilter(this);
 
     // need to set the inputRefs.  The HdfsScan RelNode needs to know which columns are
     // needed from the table in order to implement the filter condition. The input ref
@@ -94,6 +95,9 @@ public class ImpalaFilterRel extends Filter
   private RexNode createNewCondition(RexNode previousCondition, RexNode newCondition) {
     if (previousCondition == null) {
       return newCondition;
+    }
+    if (true) {
+      throw new RuntimeException("NEED TO DO SOMETHING ABOUT THIS");
     }
 
     List<RexNode> conditions = ImmutableList.of(previousCondition, newCondition);

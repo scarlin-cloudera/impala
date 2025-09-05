@@ -57,6 +57,9 @@ enum TPlanNodeType {
   TUPLE_CACHE_NODE = 20
   SYSTEM_TABLE_SCAN_NODE = 21
   ICEBERG_MERGE_NODE = 22
+  SEQUENCE_NODE = 23
+  CTE_CONSUMER_NODE = 24
+  CTE_PRODUCER_NODE = 25
 }
 
 // phases of an execution node
@@ -774,6 +777,17 @@ struct TIcebergMergeNode {
   6: required Types.TTupleId target_tuple_id
 }
 
+struct TCTEProducer {
+  1: required string name
+  2: required i32 num_consumers
+}
+
+struct TCTEConsumer {
+  1: required string name
+  2: required list<Types.TTupleId> input_row_tuples
+  3: required list<Exprs.TExpr> result_exprs
+}
+
 // See PipelineMembership in the frontend for details.
 struct TPipelineMembership {
   1: required Types.TPlanNodeId pipe_id
@@ -838,6 +852,9 @@ struct TPlanNode {
   28: optional TTupleCacheNode tuple_cache_node
 
   29: optional TSystemTableScanNode system_table_scan_node
+
+  31: optional TCTEProducer cte_producer
+  32: optional TCTEConsumer cte_consumer
 }
 
 // A flattened representation of a tree of PlanNodes, obtained by depth-first

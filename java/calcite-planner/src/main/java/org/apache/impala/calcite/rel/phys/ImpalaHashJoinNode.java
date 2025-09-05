@@ -27,6 +27,8 @@ import org.apache.impala.planner.PlanNode;
 import org.apache.impala.planner.PlanNodeId;
 
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ImpalaHashJoinNode: Derived class of HashJoinNode. This is needed
@@ -35,7 +37,9 @@ import java.util.List;
  * conjuncts.
  */
 public class ImpalaHashJoinNode extends HashJoinNode {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaHashJoinNode.class.getName());
 
+  public Double calciteCardinality_ = null;
   public ImpalaHashJoinNode(PlanNodeId id, PlanNode leftInput, PlanNode rightInput,
       boolean isStraightJoin, DistributionMode distMode, JoinOperator joinOp,
       List<BinaryPredicate> equiJoinConjuncts, List<Expr> nonEquijoinConjuncts,
@@ -51,4 +55,10 @@ public class ImpalaHashJoinNode extends HashJoinNode {
   public void assignConjuncts(Analyzer analyzer) {
   }
 
+  @Override
+  public String getCalciteCardinalityString() {
+    String ret = ", calciteCardinality=";
+    ret += (calciteCardinality_ == null) ? "unknown" : calciteCardinality_;
+    return ret;
+  }
 }

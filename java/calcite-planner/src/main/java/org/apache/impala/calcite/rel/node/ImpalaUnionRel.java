@@ -61,7 +61,7 @@ public class ImpalaUnionRel extends Union
     List<NodeWithExprs> nodeWithExprsList = getChildrenPlanNodes(getInputs(), context);
 
     NodeWithExprs retNode = NodeCreationUtils.createUnionPlanNode(nodeId,
-        context.ctx_.getRootAnalyzer(), rowType, nodeWithExprsList, this.all);
+        context.ctx_.getRootAnalyzer(), rowType, nodeWithExprsList, this.all, this);
 
     // If there is a filter condition, a SelectNode will get added on top
     // of the retNode.
@@ -77,6 +77,7 @@ public class ImpalaUnionRel extends Union
       ParentPlanRelContext.Builder builder =
           new ParentPlanRelContext.Builder(context, this);
       builder.setFilterCondition(null);
+      builder.setParentFilter(null);
       childrenNodes.add(inputRel.getPlanNode(builder.build()));
     }
     return childrenNodes;

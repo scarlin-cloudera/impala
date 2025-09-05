@@ -1069,6 +1069,16 @@ enum TImpalaQueryOptions {
   // for a given query execution. A higher value caches more aggressively. A lower
   // value reduces caching and thus overhead.
   TUPLE_CACHE_BUDGET_BYTES_PER_EXECUTOR = 197
+
+  // The type of fallback that will happen when a Calcite query fails. In normal
+  // production mode, all exceptions will fall back to the original planner. However,
+  // in testing mode, we don't always want to fallback so we can determine if queries
+  // are working or failing in Calcite.
+  CALCITE_FALLBACK = 198
+
+  // Occurence threshold for using CTEs. CTEs are only used if occurences are greater
+  // than the threshold. Defaults to -1; negative values disable CTE planning.
+  CTE_THRESHOLD = 199
 }
 
 // The summary of a DML statement.

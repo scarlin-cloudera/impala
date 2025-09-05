@@ -27,12 +27,14 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.impala.analysis.NumericLiteral;
+import org.apache.impala.calcite.functions.FunctionResolver;
 import org.apache.impala.catalog.ScalarType;
 import org.apache.impala.catalog.Type;
 import org.apache.impala.catalog.TypeCompatibility;
 import org.apache.impala.thrift.TPrimitiveType;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -63,6 +65,8 @@ public class ImpalaTypeConverter {
   // Maps Impala default types to Calcite default types.
   private static Map<Type, RelDataType> impalaToCalciteMap;
 
+  private static Map<Type, RelDataType> nonNullImpalaToCalciteMap;
+
   static {
     RexBuilder rexBuilder =
         new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
@@ -85,10 +89,13 @@ public class ImpalaTypeConverter {
     map.put(Type.NULL, factory.createSqlType(SqlTypeName.NULL));
 
     ImmutableMap.Builder<Type, RelDataType> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<Type, RelDataType> nonNullBuilder = ImmutableMap.builder();
     for (Type t : map.keySet()) {
       RelDataType r = map.get(t);
+      nonNullBuilder.put(t, r);
       builder.put(t, factory.createTypeWithNullability(r, true));
     }
+    nonNullImpalaToCalciteMap = nonNullBuilder.build();
     impalaToCalciteMap = builder.build();
   }
 
@@ -125,12 +132,21 @@ public class ImpalaTypeConverter {
    * Get the normalized RelDataType given an impala type.
    */
   public static RelDataType getRelDataType(Type impalaType) {
+    return getRelDataType(impalaType, true);
+  }
+
+  /**
+   * Get the normalized RelDataType given an impala type.
+   */
+  public static RelDataType getRelDataType(Type impalaType, boolean nullable) {
     if (impalaType == null) {
       return null;
     }
     TPrimitiveType primitiveType = impalaType.getPrimitiveType().toThrift();
     Type normalizedImpalaType = getImpalaType(primitiveType);
-    return impalaToCalciteMap.get(normalizedImpalaType);
+    return nullable
+        ? impalaToCalciteMap.get(normalizedImpalaType)
+        : nonNullImpalaToCalciteMap.get(normalizedImpalaType);
   }
 
   /**
@@ -371,10 +387,57 @@ public class ImpalaTypeConverter {
       rdt = getRelDataType(Type.SMALLINT);
     } else if (NumericLiteral.fitsInInt(bd)) {
       rdt = getRelDataType(Type.INT);
-    } else {
+    } else if (NumericLiteral.fitsInBigInt(bd)) {
       rdt = getRelDataType(Type.BIGINT);
+    } else {
+      Type impalaType = createImpalaType(Type.DECIMAL, bd.precision(), bd.scale());
+      rdt = createRelDataType(factory, impalaType);
     }
     return factory.createTypeWithNullability(rdt, false);
+  }
+
+  public static RelDataType getCompatibleTypeForCase(List<RelDataType> dataTypes,
+      RelDataTypeFactory factory) {
+    List<RelDataType> compatibleTypes = new ArrayList<>();
+    for (int i = 0; i < dataTypes.size(); ++i) {
+      // skip the "when" clauses which are always boolean and only evaluate the
+      // "then" and "else" clauses.
+      if (!FunctionResolver.shouldSkipOperandForCase(dataTypes.size(), i)) {
+        compatibleTypes.add(dataTypes.get(i));
+      }
+    }
+    Preconditions.checkState(compatibleTypes.size() > 0);
+    return getCompatibleType(compatibleTypes, factory);
+  }
+
+  /**
+   * Returns true if given literal in the BigDecimal fits into
+   * the given type (e.g. 1 fits in TINYTINT, 842 does not).
+   */
+  public static boolean fitsIn(RelDataType rt, BigDecimal bd) {
+    if (bd == null) {
+      return true;
+    }
+    try {
+      switch (rt.getSqlTypeName()) {
+        case TINYINT:
+          return NumericLiteral.fitsInTinyInt(new BigDecimal(bd.longValueExact()));
+        case SMALLINT:
+          return NumericLiteral.fitsInSmallInt(new BigDecimal(bd.longValueExact()));
+        case INTEGER:
+          return NumericLiteral.fitsInInt(new BigDecimal(bd.longValueExact()));
+        case BIGINT:
+          return NumericLiteral.fitsInBigInt(new BigDecimal(bd.longValueExact()));
+        case DOUBLE:
+          return NumericLiteral.fitsInDouble(bd);
+        case FLOAT:
+          return NumericLiteral.fitsInFloat(bd);
+        default:
+          return false;
+      }
+    } catch (ArithmeticException e) {
+      return false;
+    }
   }
 
   public static RelDataType getCompatibleType(Collection<RelDataType> dataTypes,
@@ -404,6 +467,9 @@ public class ImpalaTypeConverter {
     Type retType = ScalarType.getAssignmentCompatibleType(impalaType1, impalaType2,
         TypeCompatibility.DEFAULT);
 
-    return createRelDataType(factory, retType);
+    RelDataType compatibleType = createRelDataType(factory, retType);
+    return (!type1.isNullable() && !type2.isNullable())
+        ? factory.createTypeWithNullability(compatibleType, false)
+        : compatibleType;
   }
 }

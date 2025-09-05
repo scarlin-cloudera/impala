@@ -34,6 +34,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
@@ -45,12 +46,16 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.calcite.operators.ImpalaOperatorTable;
+import org.apache.impala.calcite.operators.ImpalaRexSimplify;
 import org.apache.impala.calcite.rel.util.PrunedPartitionHelper;
+import org.apache.impala.calcite.rules.ImpalaFilterSimplifyRule;
 import org.apache.impala.calcite.schema.ImpalaRelMetadataProvider;
 import org.apache.impala.calcite.schema.CalciteTable;
 import org.apache.impala.calcite.schema.FilterSelectivityEstimator;
@@ -269,11 +274,11 @@ public class TestCalciteStats extends PlannerTestBase {
           "FROM functional.alltypes where bigint_col < 5");
       RelMetadataQuery mq = getMQ();
       double cardinality =
-          ALL_TYPES_CARD * FilterSelectivityEstimator.RANGE_COMPARISON_SELECTIVITY;
+          ALL_TYPES_CARD * Expr.DEFAULT_SELECTIVITY;
       assertEquals(cardinality, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
       ImmutableBitSet bitSet = ImmutableBitSet.of(0);
       double distinctRows =
-          BIGINT_NDV * FilterSelectivityEstimator.RANGE_COMPARISON_SELECTIVITY;
+          BIGINT_NDV * Expr.DEFAULT_SELECTIVITY;
       assertEquals(distinctRows, (double) mq.getDistinctRowCount(logicalPlan,
           bitSet, null), DOUBLE_ERR);
     } catch (ImpalaException e) {
@@ -287,18 +292,33 @@ public class TestCalciteStats extends PlannerTestBase {
       RelNode logicalPlan = getRelNodeForQuery("SELECT bigint_col " +
           "FROM functional.alltypes where bigint_col between 1 and 2");
       // TODO: Need to apply Impala selectivity logic for between
+      RelNode logicalPlanWithSearch = runFilterRule(logicalPlan);
       RelMetadataQuery mq = getMQ();
       double cardinality =
-          ALL_TYPES_CARD * FilterSelectivityEstimator.BETWEEN_SELECTIVITY;
-      assertEquals(cardinality, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+          ALL_TYPES_CARD * Expr.DEFAULT_SELECTIVITY;
+      assertEquals(cardinality,
+          (double) mq.getRowCount(logicalPlanWithSearch), DOUBLE_ERR);
       ImmutableBitSet bitSet = ImmutableBitSet.of(0);
       double distinctRows =
-          BIGINT_NDV * FilterSelectivityEstimator.BETWEEN_SELECTIVITY;
-      assertEquals(distinctRows, (double) mq.getDistinctRowCount(logicalPlan,
+          BIGINT_NDV * Expr.DEFAULT_SELECTIVITY;
+      assertEquals(distinctRows, (double) mq.getDistinctRowCount(logicalPlanWithSearch,
           bitSet, null), DOUBLE_ERR);
     } catch (ImpalaException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private RelNode runFilterRule(RelNode relNode) {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    RexBuilder rexBuilder = relNode.getCluster().getRexBuilder();
+    ImpalaRexSimplify simplifier =
+        new ImpalaRexSimplify(rexBuilder, new RexExecutorImpl(null));
+    builder.addRuleInstance(new ImpalaFilterSimplifyRule(simplifier, true));
+    HepPlanner planner = new HepPlanner(builder.build(),
+        relNode.getCluster().getPlanner().getContext(), true, null,
+        RelOptCostImpl.FACTORY);
+    planner.setRoot(relNode);
+    return planner.findBestExp();
   }
 
   @Test
@@ -314,6 +334,81 @@ public class TestCalciteStats extends PlannerTestBase {
       Double distinctRows = 10.0 * cardinality / ALL_TYPES_CARD;
       assertEquals(distinctRows, (double) mq.getDistinctRowCount(logicalPlan,
           bitSet, null), DOUBLE_ERR);
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Test with a query that does filtering on a table with a condition that
+   * will does pruning. Explicitly tests the PrunedPartitionHelper class.
+   */
+  @Test
+  public void testPrunedCondition() {
+    try {
+      RelNode logicalPlan =
+          getRelNodeForQuery("SELECT month from functional.alltypes where month = 2");
+      RelMetadataQuery mq = getMQ();
+      Double cardinality = PARTITIONED_MONTH_ROWS;
+      assertEquals(cardinality, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+      ImmutableBitSet bitSet = ImmutableBitSet.of(0);
+      assertEquals(1.0, (double) mq.getDistinctRowCount(logicalPlan, bitSet,
+          null), DOUBLE_ERR);
+
+      // extra prune tests, make sure pruning was used on table scan level.
+      RexNode condition = getFirstFilterCondition(logicalPlan);
+      RexBuilder rexBuilder = logicalPlan.getCluster().getRexBuilder();
+      CalciteTable table = getTable(logicalPlan);
+      PrunedPartitionHelper helper =
+          table.getPrunedPartitionHelper(condition, rexBuilder);
+      assertEquals(cardinality, helper.getPrunedRowCount());
+      List<? extends FeFsPartition> partitions = helper.getPrunedPartitions();
+      assertEquals(2, partitions.size());
+      List<Expr> partitionedConjuncts = helper.getPartitionedConjuncts();
+      assertEquals(1, partitionedConjuncts.size());
+      assertEquals("functional.alltypes.month = 2", partitionedConjuncts.get(0).toSql());
+      List<Expr> nonPartitionedConjuncts = helper.getNonPartitionedConjuncts();
+      assertEquals(0, nonPartitionedConjuncts.size());
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Test with a query that does filtering on a table with a condition that
+   * will not do any pruning. Explicitly tests the PrunedPartitionHelper class.
+   */
+  @Test
+  public void testPrunedConditionWithNonPrunedCondition() {
+    try {
+      RelNode logicalPlan = getRelNodeForQuery("SELECT month " +
+          "FROM functional.alltypes where month = 2 and bigint_col = 10");
+      RelMetadataQuery mq = getMQ();
+      // pruned row count with extra condition will be 56.0;
+      Double cardinality = PARTITIONED_MONTH_ROWS / BIGINT_NDV;
+      assertEquals(cardinality, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+      ImmutableBitSet bitSet = ImmutableBitSet.of(0);
+      assertEquals(1.0, (double) mq.getDistinctRowCount(logicalPlan, bitSet, null),
+          DOUBLE_ERR);
+
+      // extra prune tests, make sure pruning was used on table scan level.
+      RexNode condition = getFirstFilterCondition(logicalPlan);
+      RexBuilder rexBuilder = logicalPlan.getCluster().getRexBuilder();
+      CalciteTable table = getTable(logicalPlan);
+      PrunedPartitionHelper helper =
+          table.getPrunedPartitionHelper(condition, rexBuilder);
+      // pruned row count will be 560.0;
+      assertEquals(PARTITIONED_MONTH_ROWS, (double) helper.getPrunedRowCount(),
+          DOUBLE_ERR);
+      List<? extends FeFsPartition> partitions = helper.getPrunedPartitions();
+      assertEquals(2, partitions.size());
+      List<Expr> partitionedConjuncts = helper.getPartitionedConjuncts();
+      assertEquals(1, partitionedConjuncts.size());
+      assertEquals("functional.alltypes.month = 2", partitionedConjuncts.get(0).toSql());
+      List<Expr> nonPartitionedConjuncts = helper.getNonPartitionedConjuncts();
+      assertEquals(1, nonPartitionedConjuncts.size());
+      assertEquals("functional.alltypes.bigint_col = 10",
+          nonPartitionedConjuncts.get(0).toSql());
     } catch (ImpalaException e) {
       throw new RuntimeException(e);
     }
@@ -501,7 +596,7 @@ public class TestCalciteStats extends PlannerTestBase {
           "functional.alltypes group by bigint_col HAVING bigint_col >= 5");
       RelMetadataQuery mq = getMQ();
       double selectivity =
-          BIGINT_NDV * FilterSelectivityEstimator.RANGE_COMPARISON_SELECTIVITY;
+          BIGINT_NDV * Expr.DEFAULT_SELECTIVITY;;
       assertEquals(selectivity, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
       ImmutableBitSet bitSet = ImmutableBitSet.of(0);
       // Using Calcite's distinct row count, can prolly do better here.

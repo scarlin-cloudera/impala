@@ -43,6 +43,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.math.IntMath;
 
 /**
@@ -53,6 +55,8 @@ public class DistributedPlanner {
   private final static Logger LOG = LoggerFactory.getLogger(DistributedPlanner.class);
 
   private final PlannerContext ctx_;
+
+  private final ListMultimap<String, PlanNode> cteConsumers_ = ArrayListMultimap.create();
 
   public DistributedPlanner(PlannerContext ctx) {
     ctx_ = ctx;
@@ -159,6 +163,23 @@ public class DistributedPlanner {
           childFragments.get(0), childFragments.get(1));
     } else if (root instanceof IcebergMergeNode) {
       childFragments.get(0).addPlanRoot(root);
+      result = childFragments.get(0);
+    } else if (root instanceof CTEConsumerNode) {
+      // CTEConsumerNode and CTEProducerNode use matching cteName_ to identify each other.
+      cteConsumers_.put(root.getDisplayLabelDetail(), root);
+      result = new PlanFragment(ctx_.getNextFragmentId(), root, DataPartition.RANDOM);
+    } else if (root instanceof CTEProducerNode) {
+      childFragments.get(0).addPlanRoot(root);
+      result = childFragments.get(0);
+      // TODO: represent multiple destination scans.
+      List<PlanNode> dests = cteConsumers_.get(root.getDisplayLabelDetail());
+      for (PlanNode dest : dests) {
+        dest.addChild(root);
+      }
+      result.setDestination(dests.get(0));
+      result.setSink(new LocalMultiSink((CTEProducerNode) root, dests));
+    } else if (root instanceof SequenceNode) {
+      // The first child produces primary output of the SequenceNode.
       result = childFragments.get(0);
     } else {
       throw new InternalException("Cannot create plan fragment for this node type: "
