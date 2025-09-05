@@ -21,9 +21,12 @@ import com.google.common.collect.ImmutableList;
 
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
+import org.apache.impala.analysis.SetOperationStmt;
 import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
 import org.apache.impala.analysis.TupleDescriptor;
+import org.apache.impala.catalog.ColumnStats;
+import org.apache.impala.planner.CTEConsumerNode;
 import org.apache.impala.planner.EmptySetNode;
 import org.apache.impala.planner.PlanNodeId;
 import org.apache.impala.planner.SelectNode;
@@ -32,11 +35,13 @@ import org.apache.impala.calcite.rel.phys.ImpalaUnionNode;
 import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
 import org.apache.impala.calcite.rel.util.TupleDescriptorFactory;
 import org.apache.impala.common.ImpalaException;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class NodeCreationUtils {
 
@@ -45,7 +50,7 @@ public class NodeCreationUtils {
    * handle a filter expression, so we need a standalone node to do the filter.
    */
   public static NodeWithExprs createSelectNode(RexNode filterCondition, Analyzer analyzer,
-      NodeWithExprs nodeWithExprs, PlanNodeId nodeId, RexBuilder rexBuilder
+      NodeWithExprs nodeWithExprs, PlanNodeId nodeId, RexBuilder rexBuilder, long limit
       ) throws ImpalaException {
     Preconditions.checkNotNull(filterCondition);
     ExprConjunctsConverter converter = new ExprConjunctsConverter(filterCondition,
@@ -53,6 +58,9 @@ public class NodeCreationUtils {
     List<Expr> filterConjuncts = converter.getImpalaConjuncts();
     SelectNode selectNode =
         SelectNode.createFromCalcite(nodeId, nodeWithExprs.planNode_, filterConjuncts);
+    if (limit != -1) {
+      selectNode.setLimit(limit);
+    }
     selectNode.init(analyzer);
     return new NodeWithExprs(selectNode, nodeWithExprs);
   }
@@ -75,9 +83,13 @@ public class NodeCreationUtils {
 
   public static NodeWithExprs createUnionPlanNode(PlanNodeId nodeId,
       Analyzer analyzer, RelDataType rowType, List<NodeWithExprs> childrenPlanNodes,
-      boolean unionAll) throws ImpalaException {
-    TupleDescriptorFactory tupleDescFactory =
-        new TupleDescriptorFactory("union", rowType);
+      boolean unionAll, RelNode unionRel) throws ImpalaException {
+    List<List<Expr>> inputExprsList = childrenPlanNodes.stream()
+        .map(c -> c.outputExprs_).collect(Collectors.toList());
+    List<ColumnStats> columnStats = SetOperationStmt.getColumnStats(inputExprsList);
+    TupleDescriptorFactory tupleDescFactory = new TupleDescriptorFactory("union",
+        rowType, columnStats.size() > 0 ? columnStats : null);
+        new TupleDescriptorFactory("union", rowType, columnStats);
     TupleDescriptor tupleDesc = tupleDescFactory.create(analyzer);
     // The outputexprs are the SlotRef exprs passed to the parent node.
     List<Expr> outputExprs = createOutputExprs(tupleDesc.getSlots());
@@ -86,16 +98,54 @@ public class NodeCreationUtils {
       registerUnionValueTransfers(analyzer, outputExprs, childrenPlanNodes);
     }
 
-    UnionNode unionNode = new ImpalaUnionNode(nodeId, tupleDesc.getId(), outputExprs,
+    ImpalaUnionNode unionNode = new ImpalaUnionNode(nodeId, tupleDesc.getId(), outputExprs,
         childrenPlanNodes);
 
     unionNode.init(analyzer);
 
+    if (isUnionCalculatable(unionRel)) {
+      unionNode.calciteCardinality_ = unionRel.getCluster().getMetadataQuery().getRowCount(unionRel);
+    }
+
     return new NodeWithExprs(unionNode, outputExprs, rowType.getFieldNames());
   }
 
+  public static boolean isUnionCalculatable(RelNode relNode) {
+    if (relNode == null) {
+      return false;
+    }
+    boolean retVal = true;
+    for (RelNode input : relNode.getInputs()) {
+      ImpalaPlanRel planRel = (ImpalaPlanRel) input;
+      switch (ImpalaPlanRel.getRelNodeType(planRel)) {
+        case AGGREGATE:
+        case JOIN:
+          return false;
+      }
+      retVal = retVal && isUnionCalculatable(input);
+    }
+    return retVal;
+  }
+
+  public static NodeWithExprs createCTEConsumerPlanNode(ParentPlanRelContext context,
+      RelDataType rowType, String cteName) throws ImpalaException {
+    Analyzer analyzer = context.ctx_.getRootAnalyzer();
+    TupleDescriptorFactory tupleDescFactory =
+        new TupleDescriptorFactory(cteName, rowType);
+    TupleDescriptor desc = tupleDescFactory.create(analyzer);
+
+    PlanNodeId nodeId = context.ctx_.getNextNodeId();
+    NodeWithExprs producer = context.cteProducers_.get(cteName);
+    CTEConsumerNode cteConsumer = new CTEConsumerNode(nodeId, desc, cteName,
+        producer.planNode_, producer.outputExprs_);
+    cteConsumer.init(analyzer);
+
+    return new NodeWithExprs(
+        cteConsumer, createOutputExprs(desc.getSlots()), rowType.getFieldNames());
+  }
+
   public static List<Expr> createOutputExprs(List<SlotDescriptor> slotDescs) {
-    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder();
+    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder<>();
     for (SlotDescriptor slotDesc : slotDescs) {
       slotDesc.setIsMaterialized(true);
       builder.add(new SlotRef(slotDesc));
@@ -109,12 +159,17 @@ public class NodeCreationUtils {
    * in this case.
    */
   public static NodeWithExprs wrapInSelectNodeIfNeeded(ParentPlanRelContext context,
-      NodeWithExprs planNode, RexBuilder rexBuilder) throws ImpalaException {
+      NodeWithExprs planNode, RexBuilder rexBuilder, long limit) throws ImpalaException {
     return context.filterCondition_ != null
       ? NodeCreationUtils.createSelectNode(context.filterCondition_,
           context.ctx_.getRootAnalyzer(), planNode,
-          context.ctx_.getNextNodeId(), rexBuilder)
+          context.ctx_.getNextNodeId(), rexBuilder, limit)
       : planNode;
+  }
+
+  public static NodeWithExprs wrapInSelectNodeIfNeeded(ParentPlanRelContext context,
+      NodeWithExprs planNode, RexBuilder rexBuilder) throws ImpalaException {
+    return wrapInSelectNodeIfNeeded(context, planNode, rexBuilder, -1);
   }
 
   /**

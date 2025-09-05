@@ -335,6 +335,27 @@ Status Scheduler::ComputeFragmentExecParams(
     // Set destinations, per_exch_num_senders, sender_id.
     for (const TPlanFragment& src_fragment : plan_exec_info.fragments) {
       VLOG(3) << "Computing exec params for fragment " << src_fragment.display_name;
+
+      if (src_fragment.output_sink.__isset.dest_node_ids) {
+        // populate src_state->destinations
+        FragmentScheduleState* src_state =
+            state->GetFragmentScheduleState(src_fragment.idx);
+        for (const PlanNodeId dest_node_id : src_fragment.output_sink.dest_node_ids) {
+          FragmentIdx dest_idx = state->GetFragmentIdx(dest_node_id);
+          FragmentScheduleState* dest_state = state->GetFragmentScheduleState(dest_idx);
+          for (int i = 0; i < dest_state->instance_states.size(); ++i) {
+            PlanFragmentDestinationPB* dest = src_state->exec_params->add_destinations();
+            const NetworkAddressPB& host = dest_state->instance_states[i].host;
+            *dest->mutable_address() = host;
+            const BackendDescriptorPB& desc = LookUpBackendDesc(executor_config, host);
+            DCHECK(desc.has_krpc_address());
+            DCHECK(IsResolvedAddress(desc.krpc_address()));
+            *dest->mutable_krpc_backend() = desc.krpc_address();
+          }
+        }
+        continue;
+      }
+
       if (!src_fragment.output_sink.__isset.stream_sink
           && !src_fragment.output_sink.__isset.join_build_sink) {
         continue;
@@ -564,6 +585,12 @@ Status Scheduler::CheckEffectiveInstanceCount(
 Status Scheduler::ComputeFragmentExecParams(const ExecutorConfig& executor_config,
     const TPlanExecInfo& plan_exec_info, FragmentScheduleState* fragment_state,
     ScheduleState* state) {
+  if (fragment_state->visited) {
+    // Don't visit a fragment state more than once. Can happen with CTEs feeding
+    // multiple fragments.
+    return Status::OK();
+  }
+  fragment_state->visited = true;
   // Create exec params for child fragments connected by an exchange. Instance creation
   // for this fragment depends on where the input fragment instances are scheduled.
   for (FragmentIdx input_fragment_idx : fragment_state->exchange_input_fragments) {
@@ -642,12 +669,14 @@ Status Scheduler::ComputeFragmentExecParams(const ExecutorConfig& executor_confi
       }
     }
   } else if (ContainsUnionNode(fragment.plan) || ContainsScanNode(fragment.plan)) {
-    VLOG(3) << "Computing exec params for scan and/or union fragment.";
+    VLOG(3) << "Computing exec params for scan and/or union fragment "
+            << fragment_state->fragment.display_name;
     // case 2: leaf fragment (i.e. no input fragments) with a single scan node.
     // case 3: union fragment, which may have scan nodes and may have input fragments.
     CreateCollocatedAndScanInstances(executor_config, fragment_state, state);
   } else {
-    VLOG(3) << "Computing exec params for interior fragment.";
+    VLOG(3) << "Computing exec params for interior fragment "
+            << fragment_state->fragment.display_name;
     // case 4: interior (non-leaf) fragment without a scan or union.
     // We assign the same hosts as those of our leftmost input fragment (so that a
     // merge aggregation fragment runs on the hosts that provide the input data) OR
@@ -994,7 +1023,13 @@ void Scheduler::CreateInputCollocatedInstances(
   DCHECK_GE(fragment_state->exchange_input_fragments.size(), 1);
   const TPlanFragment& fragment = fragment_state->fragment;
   const FragmentScheduleState& input_fragment_state =
-      *state->GetFragmentScheduleState(fragment_state->exchange_input_fragments[0]);
+      *state->GetFragmentScheduleState(*std::max_element(
+          fragment_state->exchange_input_fragments.begin(),
+          fragment_state->exchange_input_fragments.end(),
+          [&state](FragmentIdx a, FragmentIdx b) {
+            return state->GetFragmentScheduleState(a)->instance_states.size()
+                < state->GetFragmentScheduleState(b)->instance_states.size();
+          }));
   int per_fragment_instance_idx = 0;
 
   int max_instances = input_fragment_state.instance_states.size();

@@ -20,11 +20,16 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.impala.calcite.type.ImpalaTypeConverter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -33,6 +38,19 @@ import java.util.List;
  * See the base class in Calcite for the details about RexBuilder. This extension
  * allows Impala to override functions that need extra work to make RexBuilder
  * Impala compatible.
+ *
+ * This RexBuilder is used at RelNodeConverter time. The extra 'makeLiteral'
+ * method causes numbers like '3' to be created as a tinyint rather than a
+ * an int (see CALCITE-7120). We do not want to use this at optimization time.
+ * When we do constant folding, we want to create literals with the type that
+ * Impala provides, not the default type. 
+ *
+ * For instance, take the expression '1 + 2'.  At parsing time, we want the
+ * individual literals to be tinyints here.  However, after constant folding,
+ * the '3' will be a smallint, as defined by the '+' coercing rules. So we
+ * want the provided 'smallint' type to be used for '3' and thus do not want
+ * to call the makeLiteral in this class.
+ *
  */
 public class ImpalaRexBuilder extends RexBuilder {
 
@@ -40,17 +58,14 @@ public class ImpalaRexBuilder extends RexBuilder {
     super(typeFactory);
   }
 
-  /**
-   * Only override the makeCall.  The SEARCH operator is not supported at this time,
-   * so we "expand" it to something Impala can understand.
-   */
   @Override
-  public RexNode makeCall(
-      SqlOperator op,
-      List<? extends RexNode> exprs) {
-    RexNode retNode = super.makeCall(op, exprs);
-    return op.getKind() == SqlKind.SEARCH
-        ? RexUtil.expandSearch(this, null, retNode)
-        : retNode;
+  public RexLiteral makeLiteral(Comparable o, RelDataType type, SqlTypeName typeName) {
+    // CALCITE-7120: Calcite always creates tinyint and smallint literals as Integer, but
+    // Impala needs them as tinyints and smallints.
+    if (type.getSqlTypeName().equals(SqlTypeName.INTEGER) && o instanceof BigDecimal) {
+      BigDecimal bd0 = (BigDecimal) o;
+      type = ImpalaTypeConverter.getLiteralDataType(bd0, type);
+    }
+    return super.makeLiteral(o, type, typeName);
   }
 }

@@ -28,6 +28,8 @@ import org.apache.impala.planner.PlanNodeId;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * ImpalaNestedLoopJoinNode: Derived class of NestedLoopJoinNode. This is needed
  * because the HashJoinNode tracks certain conjuncts, but this has already
@@ -35,6 +37,9 @@ import java.util.List;
  * conjuncts.
  */
 public class ImpalaNestedLoopJoinNode extends NestedLoopJoinNode {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaNestedLoopJoinNode.class.getName());
+
+  public Double calciteCardinality_ = null;
 
   public ImpalaNestedLoopJoinNode(PlanNodeId id, PlanNode leftInput, PlanNode rightInput,
       boolean isStraightJoin, DistributionMode distMode, JoinOperator joinOp,
@@ -42,12 +47,22 @@ public class ImpalaNestedLoopJoinNode extends NestedLoopJoinNode {
       List<Expr> filterConjuncts, Analyzer analyzer) throws ImpalaException {
     super(leftInput, rightInput, isStraightJoin, distMode, joinOp, joinConjuncts);
     setId(id);
-    init(analyzer);
+    for (Expr conjunct : filterConjuncts) {
+      conjunct.analyze(analyzer);
+    }
     this.conjuncts_ = filterConjuncts;
+    init(analyzer);
   }
 
   @Override
   public void assignConjuncts(Analyzer analyzer) {
+  }
+
+  @Override
+  public String getCalciteCardinalityString() {
+    String ret = ", calciteCardinality=";
+    ret += (calciteCardinality_ == null) ? "unknown" : calciteCardinality_;
+    return ret;
   }
 
 }

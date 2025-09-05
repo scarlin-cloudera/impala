@@ -24,11 +24,16 @@ import org.apache.impala.planner.UnionNode;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * ImpalaUnionNode can be created either from a Union RelNode or a Values RelNode.
  * If it comes from a Values RelNode, there is no child node.
  */
 public class ImpalaUnionNode extends UnionNode {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaUnionNode.class.getName());
+
+  public Double calciteCardinality_ = null;
 
   public ImpalaUnionNode(PlanNodeId id, TupleId tupleId, List<Expr> resultExprs,
       List<NodeWithExprs> planNodeAndExprsList) {
@@ -41,5 +46,12 @@ public class ImpalaUnionNode extends UnionNode {
         addChild(planNodeAndExprs.planNode_, planNodeAndExprs.outputExprs_);
       }
     }
+  }
+
+  @Override
+  public String getCalciteCardinalityString() {
+    String ret = ", calciteCardinality=";
+    ret += (calciteCardinality_ == null) ? "unknown" : calciteCardinality_;
+    return ret;
   }
 }

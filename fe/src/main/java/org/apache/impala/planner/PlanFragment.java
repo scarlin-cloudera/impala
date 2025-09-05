@@ -910,7 +910,8 @@ public class PlanFragment extends TreeNode<PlanFragment> {
   protected void getFragmentsInPlanPreorderAux(List<PlanFragment> result) {
     result.add(this);
     for (PlanFragment child: children_) {
-      if (child.getSink() instanceof DataStreamSink) {
+      if (child.getSink() instanceof DataStreamSink
+          || child.getSink() instanceof LocalMultiSink) {
         child.getFragmentsInPlanPreorderAux(result);
       }
     }
@@ -930,7 +931,12 @@ public class PlanFragment extends TreeNode<PlanFragment> {
     }
 
     // all ExchangeNodes have registered input fragments
-    Preconditions.checkState(exchNodes.size() == getChildren().size());
+    int notCTEs = 0;
+    for (PlanFragment child: getChildren()) {
+      PlanNode root = child.getPlanRoot();
+      if (!(root instanceof CTEProducerNode)) notCTEs++;
+    }
+    Preconditions.checkState(exchNodes.size() == notCTEs);
     List<PlanFragment> childFragments = new ArrayList<>();
     for (PlanNode exchNode: exchNodes) {
       PlanFragment childFragment = exchNode.getChild(0).getFragment();

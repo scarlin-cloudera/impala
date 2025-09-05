@@ -26,7 +26,6 @@ import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -35,15 +34,11 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlExplainFormat;
-import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
@@ -53,12 +48,17 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
-import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.impala.calcite.operators.ImpalaConvertletTable;
 import org.apache.impala.calcite.operators.ImpalaRexBuilder;
+import org.apache.impala.calcite.rules.ImpalaCoreRules;
+import org.apache.impala.calcite.rules.ImpalaLoptOptimizeJoinRule;
+import org.apache.impala.calcite.rules.ImpalaRexExecutor;
+import org.apache.impala.calcite.rules.RemoveUnraggedCharCastRexExecutor;
+import org.apache.impala.calcite.rules.ReplaceRelOptClusterShuttle;
+import org.apache.impala.calcite.schema.ImpalaCost;
 import org.apache.impala.calcite.schema.ImpalaRelMetadataProvider;
 import org.apache.impala.calcite.util.LogUtil;
 
@@ -91,8 +91,9 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = analysisResult.getTypeFactory();
     this.reader_ = analysisResult.getCatalogReader();
     this.sqlValidator_ = analysisResult.getSqlValidator();
-    this.planner_ = new VolcanoPlanner();
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo());
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =
         RelOptCluster.create(planner_, new ImpalaRexBuilder(typeFactory_));
     viewExpander_ = createViewExpander(
@@ -104,10 +105,11 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = validator.getTypeFactory();
     this.reader_ = validator.getCatalogReader();
     this.sqlValidator_ = validator.getSqlValidator();
-    this.planner_ = new VolcanoPlanner();
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo());
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =
-        RelOptCluster.create(planner_, new ImpalaRexBuilder(typeFactory_));
+        RelOptCluster.create(planner_, new RexBuilder(typeFactory_));
     viewExpander_ = createViewExpander(validator.getCatalogReader()
         .getRootSchema().plus());
     cluster_.setMetadataProvider(ImpalaRelMetadataProvider.DEFAULT);
@@ -134,13 +136,21 @@ public class CalciteRelNodeConverter implements CompilerStep {
   }
 
   public RelNode convert(SqlNode validatedNode) {
+    // Use the NO_SIMPLIFY RelBuilderFactory. Starting around Calcite 1.40, there
+    // are cases where Calcite finds a common type for literal strings that do not
+    // have the same length to the higher CHAR type. Impala treats literal strings
+    // as STRING type. The simplify() method removes some vital information needed
+    // to convert the CHAR to a STRING type later in coerce nodes, so we avoid the
+    // simplify step until after coerce nodes is complete.
     SqlToRelConverter relConverter = new SqlToRelConverter(
         viewExpander_,
         sqlValidator_,
         reader_,
         cluster_,
         ImpalaConvertletTable.INSTANCE,
-        SqlToRelConverter.config().withCreateValuesRel(false));
+        SqlToRelConverter.config().withCreateValuesRel(false)
+            .withRelBuilderFactory(ImpalaCoreRules.LOGICAL_BUILDER_NO_SIMPLIFY)
+            .withHintStrategyTable(ImpalaCoreRules.HINT_STRATEGIES));
 
     // Convert the valid AST into a logical plan
     RelRoot root = relConverter.convertQuery(validatedNode, false, true);
@@ -150,20 +160,27 @@ public class CalciteRelNodeConverter implements CompilerStep {
     RelNode subQueryRemovedPlan =
         runProgram(
             ImmutableList.of(
-                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
-                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
-                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE
+                ImpalaCoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+                ImpalaCoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                ImpalaCoreRules.FILTER_SUB_QUERY_TO_CORRELATE
             ),
             relNode);
     LogUtil.logDebug(subQueryRemovedPlan, "Plan after subquery removal phase");
 
-    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster_,
-        reader_);
+    RelBuilder relBuilder =
+        ImpalaCoreRules.LOGICAL_BUILDER_NO_SIMPLIFY.create(cluster_, reader_);
+
     RelNode decorrelatedPlan =
         RelDecorrelator.decorrelateQuery(subQueryRemovedPlan, relBuilder);
 
     LogUtil.logDebug(decorrelatedPlan, "Plan after subquery decorrelation phase");
-    return decorrelatedPlan;
+
+    RexBuilder rexBuilder = new RexBuilder(typeFactory_);
+    RelOptCluster newCluster = RelOptCluster.create(planner_, rexBuilder); 
+    newCluster.setHintStrategies(ImpalaCoreRules.HINT_STRATEGIES);
+    newCluster.setMetadataProvider(ImpalaRelMetadataProvider.DEFAULT);
+    ReplaceRelOptClusterShuttle shuttle = new ReplaceRelOptClusterShuttle(newCluster);
+    return decorrelatedPlan.accept(shuttle);
   }
 
   /**
@@ -177,12 +194,19 @@ public class CalciteRelNodeConverter implements CompilerStep {
     for (SqlNode selectItem : getSelectList(validatedNode)) {
       String fieldName = SqlValidatorUtil.alias(selectItem, 0);
       if (fieldName.startsWith("EXPR$")) {
-        // If it's a Calcite generated field name, it will be of the form "EXPR$"
-        // We get the actual SQL expression using the toSqlString method. There
-        // is no Impala Dialect yet, so using MySql dialect to get the field
-        // name. The language chosen is irrelevant because we only are using it
-        // to grab the expression as/is to use for the label.
-        fieldName = selectItem.toSqlString(MysqlSqlDialect.DEFAULT).getSql();
+        try {
+          // If it's a Calcite generated field name, it will be of the form "EXPR$"
+          // We get the actual SQL expression using the toSqlString method. There
+          // is no Impala Dialect yet, so using MySql dialect to get the field
+          // name. The language chosen is irrelevant because we only are using it
+          // to grab the expression as/is to use for the label.
+          fieldName = selectItem.toSqlString(MysqlSqlDialect.DEFAULT).getSql();
+        } catch (Error e) {
+          // The MysqlDialect may throw an exception if the column name is not
+          // compatible with Mysql.  So we catch the exception and just use the
+          // EXPR$ column name.
+          LOG.debug("Could not use label for {}, using default.", selectItem);
+        }
       }
       fieldNamesBuilder.add(fieldName.toLowerCase());
     }

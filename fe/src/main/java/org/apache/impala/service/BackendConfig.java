@@ -613,4 +613,8 @@ public class BackendConfig {
   public double getTupleCacheCostCoefficientReadRows() {
     return backendCfg_.tuple_cache_cost_coefficient_read_rows;
   }
+
+  public String getCTESuggesterClass() {
+    return backendCfg_.cte_suggester_class;
+  }
 }

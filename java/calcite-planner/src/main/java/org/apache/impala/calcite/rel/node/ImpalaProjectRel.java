@@ -36,7 +36,9 @@ import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.calcite.rel.util.CreateExprVisitor;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.planner.PlanNodeId;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -76,6 +78,11 @@ public class ImpalaProjectRel extends Project
 
     // see comment in isCoercedProjectForValues method
     boolean isCoercedProjectForValues = isCoercedProjectForValues(context);
+
+    if (isTrivialProject(context, getProjects())) {
+      return createUnionPlanNode(context, getProjects(), getRowType());
+    }
+
     NodeWithExprs inputWithExprs = getChildPlanNode(context, isCoercedProjectForValues);
 
     // If this Project is a coercedProjectForValues, then this Project has been taken
@@ -159,6 +166,9 @@ public class ImpalaProjectRel extends Project
     }
 
     List<RexNode> projects = getProjects();
+    if (getInput().getRowType().getFieldNames().size() != projects.size()) {
+      return false;
+    }
     for (int i = 0; i < projects.size(); ++i) {
       RexNode project = projects.get(i);
       if (project instanceof RexInputRef) {
@@ -181,6 +191,38 @@ public class ImpalaProjectRel extends Project
       return false;
     }
     return true;
+  }
+
+  private boolean isTrivialProject(ParentPlanRelContext context,
+      List<RexNode> projects) {
+    if (RelOptUtil.InputFinder.bits(projects, null).size() > 0) {
+      return false;
+    }
+    ImpalaPlanRel relInput = (ImpalaPlanRel) getInput(0);
+    if (!(relInput instanceof ImpalaValuesRel)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private NodeWithExprs createUnionPlanNode(ParentPlanRelContext context,
+      List<RexNode> projects, RelDataType rowType) throws ImpalaException {
+    CreateExprVisitor visitor = new CreateExprVisitor(getCluster().getRexBuilder(),
+        new ArrayList<>(), context.ctx_.getRootAnalyzer());
+    List<Expr> outputExprs = new ArrayList<>();
+    for (RexNode rexNode : projects) {
+      outputExprs.add(CreateExprVisitor.getExpr(visitor, rexNode));
+    }
+
+    PlanNodeId nodeId = context.ctx_.getNextNodeId();
+    List<NodeWithExprs> nodeWithExprsList = new ArrayList<>();
+    nodeWithExprsList.add(new NodeWithExprs(null, outputExprs,
+        getRowType().getFieldNames()));
+    NodeWithExprs retNode = NodeCreationUtils.createUnionPlanNode(nodeId,
+        context.ctx_.getRootAnalyzer(), rowType, nodeWithExprsList, true, null);
+    return NodeCreationUtils.wrapInSelectNodeIfNeeded(context, retNode,
+        getCluster().getRexBuilder());
   }
 
   @Override

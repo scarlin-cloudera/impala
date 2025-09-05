@@ -147,6 +147,7 @@ DECLARE_int32(catalog_reset_max_threads);
 DECLARE_string(warmup_tables_config_file);
 DECLARE_bool(keeps_warmup_tables_loaded);
 DECLARE_bool(truncate_external_tables_with_hms);
+DECLARE_string(cte_suggester_class);
 
 // HS2 SAML2.0 configuration
 // Defined here because TAG_FLAG caused issues in global-flags.cc
@@ -588,6 +589,7 @@ Status PopulateThriftBackendGflags(TBackendGflags& cfg) {
       FLAGS_tuple_cache_cost_coefficient_read_bytes);
   cfg.__set_tuple_cache_cost_coefficient_read_rows(
       FLAGS_tuple_cache_cost_coefficient_read_rows);
+  cfg.__set_cte_suggester_class(FLAGS_cte_suggester_class);
   return Status::OK();
 }
 

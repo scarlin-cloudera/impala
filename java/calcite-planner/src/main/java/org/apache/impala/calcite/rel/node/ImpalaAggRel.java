@@ -48,6 +48,7 @@ import org.apache.impala.analysis.FunctionParams;
 import org.apache.impala.analysis.MultiAggregateInfo;
 import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.SlotDescriptor;
+import org.apache.impala.calcite.rel.phys.ImpalaAggNode;
 import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.catalog.AggregateFunction;
 import org.apache.impala.catalog.BuiltinsDb;
@@ -148,6 +149,9 @@ public class ImpalaAggRel extends Aggregate
       simplifiedAnalyzer.setUnassignedConjuncts(converter.getImpalaConjuncts());
     }
     aggNode.init(simplifiedAnalyzer);
+    if (returnsSingleRow(this)) {
+      ((AggregationNode) aggNode).setIsNonCorrelatedScalarSubquery(true);
+    }
     simplifiedAnalyzer.clearUnassignedConjuncts();
 
     return new NodeWithExprs(aggNode, outputExprs, getRowType().getFieldNames());
@@ -160,6 +164,7 @@ public class ImpalaAggRel extends Aggregate
         new ParentPlanRelContext.Builder(context, this);
     // filter condition handled by agg node, so no need to pass it to the child.
     builder.setFilterCondition(null);
+    builder.setParentFilter(null);
     builder.setParentAggregate(this);
     builder.setInputRefs(ImmutableBitSet.of(RelOptUtil.getAllFields(this)));
     return relInput.getPlanNode(builder.build());
@@ -235,43 +240,65 @@ public class ImpalaAggRel extends Aggregate
       PlannerContext ctx) throws ImpalaException{
     Analyzer analyzer = ctx.getRootAnalyzer();
 
-    AggregationNode firstPhaseAgg = new AggregationNode(ctx.getNextNodeId(), input,
+    ImpalaAggNode firstPhaseAgg = new ImpalaAggNode(ctx.getNextNodeId(), input,
         multiAggInfo, MultiAggregateInfo.AggPhase.FIRST);
 
     if (!multiAggInfo.hasSecondPhase() && !multiAggInfo.hasTransposePhase()) {
       // caller will call the "init" method
+      if (isAggCalculatable(this)) {
+        firstPhaseAgg.calciteCardinality_ = getCluster().getMetadataQuery().getRowCount(this);
+      }
       return firstPhaseAgg;
     }
 
     firstPhaseAgg.init(analyzer);
     firstPhaseAgg.setIntermediateTuple();
 
-    AggregationNode secondPhaseAgg = null;
+    ImpalaAggNode secondPhaseAgg = null;
     if (multiAggInfo.hasSecondPhase()) {
       firstPhaseAgg.unsetNeedsFinalize();
       // A second phase aggregation is needed when there is an aggregation on two
       // different groups but Calcite produces a single aggregation RelNode
       // (e.g. select count(distinct c1), min(c2) from tbl).
-      secondPhaseAgg = new AggregationNode(ctx.getNextNodeId(), firstPhaseAgg,
+      secondPhaseAgg = new ImpalaAggNode(ctx.getNextNodeId(), firstPhaseAgg,
           multiAggInfo, MultiAggregateInfo.AggPhase.SECOND);
       if (!multiAggInfo.hasTransposePhase()) {
         // caller will call the "init" method
+        if (isAggCalculatable(this)) {
+          secondPhaseAgg.calciteCardinality_ = getCluster().getMetadataQuery().getRowCount(this);
+        }
         return secondPhaseAgg;
       }
       secondPhaseAgg.init(analyzer);
     }
 
-    AggregationNode transposePhaseAgg = firstPhaseAgg;
+    ImpalaAggNode transposePhaseAgg = firstPhaseAgg;
     if (multiAggInfo.hasTransposePhase()) {
-      AggregationNode inputAgg = secondPhaseAgg != null ? secondPhaseAgg : firstPhaseAgg;
+      ImpalaAggNode inputAgg = secondPhaseAgg != null ? secondPhaseAgg : firstPhaseAgg;
       // A transpose aggregation is needed for grouping sets
-      transposePhaseAgg = new AggregationNode(ctx.getNextNodeId(), inputAgg, multiAggInfo,
+      transposePhaseAgg = new ImpalaAggNode(ctx.getNextNodeId(), inputAgg, multiAggInfo,
           MultiAggregateInfo.AggPhase.TRANSPOSE);
     }
+    if (isAggCalculatable(this)) {
+      transposePhaseAgg.calciteCardinality_ = getCluster().getMetadataQuery().getRowCount(this);
+    }
+
     // caller will call the "init" method
     return transposePhaseAgg;
   }
 
+  public static boolean isAggCalculatable(RelNode relNode) {
+    boolean retVal = true;
+    for (RelNode input : relNode.getInputs()) {
+      ImpalaPlanRel planRel = (ImpalaPlanRel) input;
+      switch (ImpalaPlanRel.getRelNodeType(planRel)) {
+        case JOIN:
+          return false;
+      }
+      retVal = retVal && isAggCalculatable(input);
+    }
+    return retVal;
+  }
   /**
    * Returns true if the agg call is for distinct columns. This is used
    * by the partition key scan optimization which can limit the number of
@@ -426,24 +453,34 @@ public class ImpalaAggRel extends Aggregate
   public List<Expr> createMappedOutputExprs(MultiAggregateInfo multiAggInfo,
       List<Expr> groupingExprs, List<FunctionCallExpr> aggExprs,
       List<SlotDescriptor> slotDescs) {
-    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder();
+    List<Expr> mappedOutputExprs = new ArrayList<>();
     int numSlots = groupingExprs.size() + aggExprs.size();
 
     int index = 0;
 
     for (Expr e : groupingExprs) {
       Expr slotRefExpr = multiAggInfo.getOutputSmap().get(e);
-      Preconditions.checkNotNull(slotRefExpr);
-      builder.add(slotRefExpr);
+      // it's ok if slotRefExpr is null.  This can happen if there
+      // are grouping sets and a group exists that is not in any
+      // of the grouping sets.  Just use a null literal for the output
+      // expr.
+      if (slotRefExpr == null) {
+        slotRefExpr = new AnalyzedNullLiteral(e.getType());
+      }
+      mappedOutputExprs.add(slotRefExpr);
     }
 
     for (FunctionCallExpr e : aggExprs) {
       Expr slotRefExpr = multiAggInfo.getOutputSmap().get(e);
       Preconditions.checkNotNull(slotRefExpr);
-      builder.add(slotRefExpr);
+      mappedOutputExprs.add(slotRefExpr);
     }
 
-    return builder.build();
+    return mappedOutputExprs;
+  }
+
+  public static boolean returnsSingleRow(Aggregate agg) {
+    return agg.getGroupCount() == 0 && agg.getAggCallList().size() == 1;
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
@@ -33,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * CombineValuesNodesRule is a rule to combine multiple Values RelNodes
@@ -45,7 +47,6 @@ import java.util.List;
  * RelNodes.
  */
 public class CombineValuesNodesRule extends RelOptRule {
-
   public CombineValuesNodesRule() {
       super(operand(LogicalUnion.class, none()));
   }
@@ -53,6 +54,10 @@ public class CombineValuesNodesRule extends RelOptRule {
   @Override
   public void onMatch(RelOptRuleCall call) {
     final LogicalUnion union = call.rel(0);
+
+    if (!union.all) {
+      return;
+    }
 
     List<RelNode> newRelNodes = new ArrayList<>();
     RelDataType rowType = union.getRowType();
@@ -68,6 +73,13 @@ public class CombineValuesNodesRule extends RelOptRule {
       if (realInput instanceof LogicalValues) {
         rowBuilder.addAll(((LogicalValues) realInput).getTuples());
         numTuples++;
+      } else if (isLiteralProject(realInput)) {
+        LogicalProject project = (LogicalProject) realInput;
+        List<RexLiteral> literals = project.getProjects().stream()
+            .map(p -> (RexLiteral) p)
+            .collect(Collectors.toList());
+        rowBuilder.add(ImmutableList.copyOf(literals));
+        numTuples++;
       } else {
         // If it's something other than a Values RelNode, the input will not be combined
         // with the Values RelNode and will be kept as/is.
@@ -81,5 +93,23 @@ public class CombineValuesNodesRule extends RelOptRule {
       LogicalUnion newUnion = union.copy(union.getTraitSet(), newRelNodes, union.all);
       call.transformTo(newUnion);
     }
+  }
+
+  private boolean isLiteralProject(RelNode relNode) {
+    if (!(relNode instanceof LogicalProject)) {
+      return false;
+    }
+
+    RelNode inputRelNode = relNode.getInput(0);
+    if (inputRelNode instanceof HepRelVertex) {
+      inputRelNode = ((HepRelVertex) inputRelNode).getCurrentRel();
+    }
+
+    if (!(inputRelNode instanceof LogicalValues)) {
+      return false;
+    }
+
+    LogicalProject project = (LogicalProject) relNode;
+    return project.getProjects().stream().allMatch(r -> r instanceof RexLiteral);
   }
 }

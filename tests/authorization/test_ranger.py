@@ -1644,14 +1644,13 @@ class TestRanger(CustomClusterTestSuite):
     grantee_user = "non_owner"
     with self.create_impala_client(user=ADMIN) as admin_client, \
         self.create_impala_client(user=grantee_user) as non_owner_client:
-      non_owner_client.set_configuration({"use_calcite_planner": 1})
+      non_owner_client.set_configuration({"use_calcite_planner": 1,
+          "calcite_fallback": "nonquery_only"})
       database = "functional"
       table_1 = "alltypes"
       table_2 = "alltypestiny"
       test_select_query_1 = "select id from {0}.{1}".format(database, table_1)
       test_select_query_2 = "select id from {0}.{1}".format(database, table_2)
-      select_error = "UnsupportedFeatureException: Column masking and row filtering " \
-          "are not yet supported by the Calcite planner."
 
       policy_cnt = 0
       try:
@@ -1662,17 +1661,17 @@ class TestRanger(CustomClusterTestSuite):
 
         admin_client.execute("grant select (id) on table {0}.{1} to user {2}"
             .format(database, table_1, grantee_user))
-        result = self.execute_query_expect_failure(non_owner_client, test_select_query_1)
-        assert select_error in str(result)
+        result = self.execute_query_expect_success(non_owner_client, test_select_query_1)
+        assert "UnsupportedFeatureException" in str(result.runtime_profile)
 
         TestRanger._add_row_filtering_policy(
           unique_name + str(policy_cnt), grantee_user, database, table_2, "id % 2 = 0")
         policy_cnt += 1
 
         admin_client.execute("grant select (id) on table {0}.{1} to user {2}"
-            .format(database, table_1, grantee_user))
-        result = self.execute_query_expect_failure(non_owner_client, test_select_query_2)
-        assert select_error in str(result)
+            .format(database, table_2, grantee_user))
+        result = self.execute_query_expect_success(non_owner_client, test_select_query_2)
+        assert "UnsupportedFeatureException" in str(result.runtime_profile)
       finally:
         admin_client.execute("revoke select (id) on table {0}.{1} from user {2}"
             .format(database, table_1, grantee_user))

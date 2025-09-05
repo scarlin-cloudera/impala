@@ -29,26 +29,41 @@ import org.apache.impala.planner.PlanNodeId;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * ImpalaHdfsScanNode. Extends the HdfsScanNode to bypass processing of the
  * assignedConjuncts.
  */
 public class ImpalaHdfsScanNode extends HdfsScanNode {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaHdfsScanNode.class.getName());
 
   private final List<Expr> assignedConjuncts_;
 
   private final TableRef hdfsTblRef_;
+
+  private final Double calciteCardinality_;
 
   public ImpalaHdfsScanNode(PlanNodeId id, TupleDescriptor tupleDesc,
       List<? extends FeFsPartition> partitions,
       TableRef hdfsTblRef, MultiAggregateInfo aggInfo, List<Expr> partConjuncts,
       List<Expr> assignedConjuncts, SlotDescriptor countStarDescriptor,
       boolean isPartitionScanOnly) {
+    this(id, tupleDesc, partitions, hdfsTblRef, aggInfo, partConjuncts, assignedConjuncts,
+        countStarDescriptor, isPartitionScanOnly, null);
+  }
+
+  public ImpalaHdfsScanNode(PlanNodeId id, TupleDescriptor tupleDesc,
+      List<? extends FeFsPartition> partitions,
+      TableRef hdfsTblRef, MultiAggregateInfo aggInfo, List<Expr> partConjuncts,
+      List<Expr> assignedConjuncts, SlotDescriptor countStarDescriptor,
+      boolean isPartitionScanOnly, Double calciteCardinality) {
     super(id, tupleDesc, assignedConjuncts, partitions, hdfsTblRef, aggInfo,
         partConjuncts, isPartitionScanOnly);
     this.assignedConjuncts_ = assignedConjuncts;
     this.countStarSlot_ = countStarDescriptor;
     this.hdfsTblRef_ = hdfsTblRef;
+    this.calciteCardinality_ = calciteCardinality;
   }
 
   public TableRef getTableRef() {
@@ -59,5 +74,12 @@ public class ImpalaHdfsScanNode extends HdfsScanNode {
   public void assignConjuncts(Analyzer analyzer) {
     // ignore analyzer and retrieve the processed Calcite conjuncts
     this.conjuncts_ = assignedConjuncts_;
+  }
+
+  @Override
+  public String getCalciteCardinalityString() {
+    String ret = ", calciteCardinality=";
+    ret += (calciteCardinality_ == null) ? "unknown" : calciteCardinality_;
+    return ret;
   }
 }
