@@ -1301,3 +1301,26 @@ select string_col from functional.alltypestiny where string_col like '1%';
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+explain select id from functional.alltypestiny
+where id > (select sum(id) from functional.alltypessmall);
+---- RESULTS: VERIFY_IS_SUBSET
+# this should be using single row join optimization, which places the predicate in
+# 'predicates', not 'join predicates'.  The 'join predicates' are found in
+# the JoinNode.otherConjuncts_ member variable.
+'|  predicates: functional.alltypestiny.id > sum(functional.alltypessmall.id)'
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# test single row optimization with limit clause
+explain with s as (select id, int_col from functional.alltypestiny where id = 2 limit 1)
+select * from functional.alltypessmall b, s where b.int_col > s.int_col
+---- RESULTS: VERIFY_IS_SUBSET
+# this should be using single row join optimization, which places the predicate in
+# 'predicates', not 'join predicates'.  The 'join predicates' are found in
+# the JoinNode.otherConjuncts_ member variable.
+'|  predicates: functional.alltypessmall.int_col > functional.alltypestiny.int_col'
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
