@@ -43,6 +43,7 @@ import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.SortRemoveConstantKeysRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -185,11 +186,6 @@ public class ImpalaCoreRules {
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(JoinToMultiJoinRule.Config.class).toRule();
 
-  public static SortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
-      SortRemoveConstantKeysRule.Config.DEFAULT
-          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
-           .as(SortRemoveConstantKeysRule.Config.class).toRule();
-
   // Impala defined rules
   public static RelOptRule IMPALA_MINUS_TO_DISTINCT =
       ImpalaMinusToDistinctRule.Config.DEFAULT
@@ -210,12 +206,11 @@ public class ImpalaCoreRules {
   public static RelOptRule JOIN_PROJECT_TRANSPOSE_RIGHT_OUTER =
       ImpalaJoinProjectTransposeRule.RIGHT_OUTER;
 
-  public static ImpalaLoptOptimizeJoinRule MULTI_JOIN_OPTIMIZE =
-      ImpalaLoptOptimizeJoinRule.Config.DEFAULT
-          .withSwapInputsFunction((mq, mj, left, right, sj, cond, rexB, adjust)
-              -> ImpalaLoptOptimizeJoinRule.swapInputs(mq, mj, left, right, cond,
-                  rexB, adjust))
-          .toRule();
+  public static ImpalaSortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
+      new ImpalaSortRemoveConstantKeysRule(
+          SortRemoveConstantKeysRule.Config.DEFAULT
+              .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+              .as(SortRemoveConstantKeysRule.Config.class));
 
   // If the straight join hint is seen, we exclude applying the JOIN_TO_MULTI_JOIN
   // rule which will ensure no join optimization is done on the join.
@@ -224,4 +219,11 @@ public class ImpalaCoreRules {
           .excludedRules(CoreRules.JOIN_TO_MULTI_JOIN)
          .build())
      .build();
+
+  public static ImpalaLoptOptimizeJoinRule MULTI_JOIN_OPTIMIZE =
+      ImpalaLoptOptimizeJoinRule.Config.DEFAULT
+          .withSwapInputsFunction((mq, mj, left, right, sj, cond, rexB, adjust)
+              -> ImpalaLoptOptimizeJoinRule.swapInputs(mq, mj, left, right, cond,
+                  rexB, adjust))
+          .toRule();
 }
