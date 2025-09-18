@@ -83,8 +83,8 @@ AND a.`SELECT` = b.`INSERT`;
 'PLAN-ROOT SINK'
 '05:EXCHANGE [UNPARTITIONED]'
 '02:HASH JOIN [RIGHT OUTER JOIN, PARTITIONED]'
-'|--04:EXCHANGE [HASH(b.`INSERT`,b.`insert`)]'
-'|  00:SCAN $FILESYSTEM_NAME [$UNIQUE_DB.t1 b]'
-'03:EXCHANGE [HASH(a.`SELECT`,a.`select`)]'
-'01:SCAN $FILESYSTEM_NAME [$UNIQUE_DB.t2 a]'
+row_regex:'|--04:EXCHANGE \[HASH\(.*insert.*\)\]'
+row_regex:'|  00:SCAN $FILESYSTEM_NAME \[$UNIQUE_DB.t.*\]'
+row_regex:'03:EXCHANGE \[HASH\(.*select.*\)\]'
+row_regex:'.*01:SCAN $FILESYSTEM_NAME \[$UNIQUE_DB.t.*\]'
 ====

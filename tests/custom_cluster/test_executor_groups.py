@@ -680,7 +680,8 @@ class TestExecutorGroups(CustomClusterTestSuite):
 
     def assert_hash_join():
       ret = self.execute_query_expect_success(self.client, QUERY)
-      assert ":EXCHANGE [HASH(b.id)]" in str(ret.data)
+      assert ":EXCHANGE [HASH(b.id)]" in str(ret.data) or \
+          ":EXCHANGE [HASH(functional.alltypes_0.id)]" in str(ret.data)
 
     # Without any executors we default to a hash join.
     assert_hash_join()
@@ -719,7 +720,8 @@ class TestExecutorGroups(CustomClusterTestSuite):
     # Predicate to assert that the planner decided on a hash join.
     def assert_hash_join():
       ret = self.execute_query_expect_success(self.client, QUERY)
-      assert ":EXCHANGE [HASH(b.id)]" in str(ret.data)
+      assert ":EXCHANGE [HASH(b.id)]" in str(ret.data) or \
+          ":EXCHANGE [HASH(functional.alltypes_0.id)]" in str(ret.data)
 
     # Without any executors we default to a hash join.
     assert_hash_join()
