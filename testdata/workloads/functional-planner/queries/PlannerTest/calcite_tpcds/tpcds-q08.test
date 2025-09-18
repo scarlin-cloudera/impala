@@ -108,10 +108,10 @@ select  s_store_name
 
 # end query 8 in stream 0 using template query8.tpl
 ---- PLAN
-Max Per-Host Resource Reservation: Memory=80.84MB Threads=1
-Per-Host Resource Estimates: Memory=295MB
+Max Per-Host Resource Reservation: Memory=48.77MB Threads=1
+Per-Host Resource Estimates: Memory=177MB
 F00:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
-|  Per-Instance Resources: mem-estimate=294.92MB mem-reservation=80.84MB thread-reservation=1 runtime-filters-memory=5.00MB
+|  Per-Instance Resources: mem-estimate=176.92MB mem-reservation=48.77MB thread-reservation=1 runtime-filters-memory=5.00MB
 |  max-parallelism=1 segment-costs=[3045217, 10622426, 2948, 32441, 803624130, 18, 20]
 PLAN-ROOT SINK
 |  output exprs: tpcds_partitioned_parquet_snap.store.s_store_name, sum(tpcds_partitioned_parquet_snap.store_sales.ss_net_profit)
@@ -161,7 +161,7 @@ PLAN-ROOT SINK
 |  |  output: count()
 |  |  group by: CA_ZIP
 |  |  having: count() = CAST(2 AS BIGINT)
-|  |  mem-estimate=128.00MB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
+|  |  mem-estimate=10.00MB mem-reservation=1.94MB spill-buffer=64.00KB thread-reservation=0
 |  |  tuple-ids=17 row-size=20B cardinality=11.19K cost=32441
 |  |  in pipelines: 14(GETNEXT), 08(OPEN), 13(OPEN)
 |  |
@@ -288,8 +288,8 @@ PLAN-ROOT SINK
    tuple-ids=0 row-size=12B cardinality=803.40M(filtered from 7.88G) cost=169007870
    in pipelines: 00(GETNEXT)
 ---- DISTRIBUTEDPLAN
-Max Per-Host Resource Reservation: Memory=165.34MB Threads=26
-Per-Host Resource Estimates: Memory=727MB
+Max Per-Host Resource Reservation: Memory=101.27MB Threads=26
+Per-Host Resource Estimates: Memory=491MB
 F14:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=4.02MB mem-reservation=4.00MB thread-reservation=1
 |  max-parallelism=1 segment-costs=[23] cpu-comparison-result=90 [max(1 (self) vs 90 (sum children))]
@@ -359,7 +359,7 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
 |  |  in pipelines: 30(GETNEXT)
 |  |
 |  F11:PLAN FRAGMENT [HASH(CA_ZIP)] hosts=10 instances=10
-|  Per-Instance Resources: mem-estimate=128.26MB mem-reservation=34.00MB thread-reservation=1
+|  Per-Instance Resources: mem-estimate=10.26MB mem-reservation=1.94MB thread-reservation=1
 |  max-parallelism=10 segment-costs=[34713, 2920] cpu-comparison-result=42 [max(10 (self) vs 42 (sum children))]
 |  15:HASH JOIN [INNER JOIN, BROADCAST]
 |  |  hash-table-id=01
@@ -401,7 +401,7 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
 |  |  output: count:merge()
 |  |  group by: CA_ZIP
 |  |  having: count() = CAST(2 AS BIGINT)
-|  |  mem-estimate=128.00MB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
+|  |  mem-estimate=10.00MB mem-reservation=1.94MB spill-buffer=64.00KB thread-reservation=0
 |  |  tuple-ids=17 row-size=20B cardinality=11.19K cost=32441
 |  |  in pipelines: 30(GETNEXT), 22(OPEN), 28(OPEN)
 |  |
@@ -411,12 +411,12 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
 |  |  in pipelines: 22(GETNEXT), 28(GETNEXT)
 |  |
 |  F10:PLAN FRAGMENT [RANDOM] hosts=10 instances=10
-|  Per-Instance Resources: mem-estimate=139.21MB mem-reservation=35.94MB thread-reservation=1
+|  Per-Instance Resources: mem-estimate=21.21MB mem-reservation=3.94MB thread-reservation=1
 |  max-parallelism=10 segment-costs=[73182, 3117, 32441, 20174] cpu-comparison-result=31 [max(10 (self) vs 31 (sum children))]
 |  14:AGGREGATE [STREAMING]
 |  |  output: count()
 |  |  group by: CA_ZIP
-|  |  mem-estimate=128.00MB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
+|  |  mem-estimate=10.00MB mem-reservation=2.00MB spill-buffer=64.00KB thread-reservation=0
 |  |  tuple-ids=17 row-size=20B cardinality=11.19K cost=32441
 |  |  in pipelines: 22(GETNEXT), 28(GETNEXT)
 |  |
@@ -647,8 +647,8 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
    tuple-ids=0 row-size=12B cardinality=803.40M(filtered from 7.88G) cost=169007870
    in pipelines: 00(GETNEXT)
 ---- PARALLELPLANS
-Max Per-Host Resource Reservation: Memory=165.34MB Threads=26
-Per-Host Resource Estimates: Memory=727MB
+Max Per-Host Resource Reservation: Memory=101.27MB Threads=26
+Per-Host Resource Estimates: Memory=491MB
 F14:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=4.02MB mem-reservation=4.00MB thread-reservation=1
 |  max-parallelism=1 segment-costs=[23] cpu-comparison-result=90 [max(1 (self) vs 90 (sum children))]
@@ -718,7 +718,7 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
 |  |  in pipelines: 30(GETNEXT)
 |  |
 |  F11:PLAN FRAGMENT [HASH(CA_ZIP)] hosts=10 instances=10
-|  Per-Instance Resources: mem-estimate=128.26MB mem-reservation=34.00MB thread-reservation=1
+|  Per-Instance Resources: mem-estimate=10.26MB mem-reservation=1.94MB thread-reservation=1
 |  max-parallelism=10 segment-costs=[34713, 2920] cpu-comparison-result=42 [max(10 (self) vs 42 (sum children))]
 |  15:HASH JOIN [INNER JOIN, BROADCAST]
 |  |  hash-table-id=01
@@ -760,7 +760,7 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
 |  |  output: count:merge()
 |  |  group by: CA_ZIP
 |  |  having: count() = CAST(2 AS BIGINT)
-|  |  mem-estimate=128.00MB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
+|  |  mem-estimate=10.00MB mem-reservation=1.94MB spill-buffer=64.00KB thread-reservation=0
 |  |  tuple-ids=17 row-size=20B cardinality=11.19K cost=32441
 |  |  in pipelines: 30(GETNEXT), 22(OPEN), 28(OPEN)
 |  |
@@ -770,12 +770,12 @@ max-parallelism=90 segment-costs=[803604776, 3086] cpu-comparison-result=90 [max
 |  |  in pipelines: 22(GETNEXT), 28(GETNEXT)
 |  |
 |  F10:PLAN FRAGMENT [RANDOM] hosts=10 instances=10
-|  Per-Instance Resources: mem-estimate=139.21MB mem-reservation=35.94MB thread-reservation=1
+|  Per-Instance Resources: mem-estimate=21.21MB mem-reservation=3.94MB thread-reservation=1
 |  max-parallelism=10 segment-costs=[73182, 3117, 32441, 20174] cpu-comparison-result=31 [max(10 (self) vs 31 (sum children))]
 |  14:AGGREGATE [STREAMING]
 |  |  output: count()
 |  |  group by: CA_ZIP
-|  |  mem-estimate=128.00MB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
+|  |  mem-estimate=10.00MB mem-reservation=2.00MB spill-buffer=64.00KB thread-reservation=0
 |  |  tuple-ids=17 row-size=20B cardinality=11.19K cost=32441
 |  |  in pipelines: 22(GETNEXT), 28(GETNEXT)
 |  |

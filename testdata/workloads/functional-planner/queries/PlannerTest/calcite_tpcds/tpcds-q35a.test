@@ -62,9 +62,9 @@ select
 # end query 35 in stream 0 using template query35a.tpl
 ---- PLAN
 Max Per-Host Resource Reservation: Memory=227.81MB Threads=1
-Per-Host Resource Estimates: Memory=15.79GB
+Per-Host Resource Estimates: Memory=21.00GB
 F00:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
-|  Per-Instance Resources: mem-estimate=15.79GB mem-reservation=227.81MB thread-reservation=1 runtime-filters-memory=53.00MB
+|  Per-Instance Resources: mem-estimate=21.00GB mem-reservation=227.81MB thread-reservation=1 runtime-filters-memory=53.00MB
 |  max-parallelism=1 segment-costs=[533871767, 835774005, 1717703, 1800]
 PLAN-ROOT SINK
 |  output exprs: tpcds_partitioned_parquet_snap.customer_address.ca_state, tpcds_partitioned_parquet_snap.customer_demographics.cd_gender, tpcds_partitioned_parquet_snap.customer_demographics.cd_marital_status, tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_count, count(), stddev_samp(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_count), stddev_samp(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_count), min(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_count), tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_employed_count, count(), stddev_samp(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_employed_count), stddev_samp(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_employed_count), min(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_employed_count), tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_college_count, count(), stddev_samp(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_college_count), stddev_samp(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_college_count), min(tpcds_partitioned_parquet_snap.customer_demographics.cd_dep_college_count)
@@ -86,7 +86,7 @@ PLAN-ROOT SINK
 17:HASH JOIN [LEFT SEMI JOIN]
 |  hash predicates: tpcds_partitioned_parquet_snap.customer.c_customer_sk = CUSTOMSK
 |  runtime filters: RF000[bloom] <- CUSTOMSK, RF001[min_max] <- CUSTOMSK
-|  mem-estimate=13.55GB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
+|  mem-estimate=18.76GB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0
 |  tuple-ids=9,8,2,0 row-size=76B cardinality=28.95M cost=427973243
 |  in pipelines: 06(GETNEXT), 11(OPEN), 14(OPEN)
 |
@@ -271,7 +271,7 @@ PLAN-ROOT SINK
    in pipelines: 06(GETNEXT)
 ---- DISTRIBUTEDPLAN
 Max Per-Host Resource Reservation: Memory=844.00MB Threads=43
-Per-Host Resource Estimates: Memory=2.95GB
+Per-Host Resource Estimates: Memory=3.47GB
 F15:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=4.10MB mem-reservation=4.00MB thread-reservation=1
 |  max-parallelism=1 segment-costs=[1844] cpu-comparison-result=258 [max(1 (self) vs 258 (sum children))]
@@ -325,13 +325,13 @@ max-parallelism=10 segment-costs=[89066048, 11716111] cpu-comparison-result=258 
 |  in pipelines: 06(GETNEXT), 11(OPEN), 14(OPEN)
 |
 |--F16:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.customer.c_customer_sk)] hosts=10 instances=10
-|  |  Per-Instance Resources: mem-estimate=1.38GB mem-reservation=50.00MB thread-reservation=1 runtime-filters-memory=16.00MB
+|  |  Per-Instance Resources: mem-estimate=1.90GB mem-reservation=50.00MB thread-reservation=1 runtime-filters-memory=16.00MB
 |  |  max-parallelism=10 segment-costs=[469083346] cpu-comparison-result=70 [max(70 (self) vs 22 (sum children))]
 |  JOIN BUILD
 |  |  join-table-id=00 plan-id=01 cohort-id=01
 |  |  build expressions: CUSTOMSK
 |  |  runtime filters: RF000[bloom] <- CUSTOMSK, RF001[min_max] <- CUSTOMSK
-|  |  mem-estimate=1.35GB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0 cost=415301768
+|  |  mem-estimate=1.88GB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0 cost=415301768
 |  |
 |  31:EXCHANGE [HASH(CUSTOMSK)]
 |  |  mem-estimate=10.47MB mem-reservation=0B thread-reservation=0
@@ -665,7 +665,7 @@ max-parallelism=10 segment-costs=[45000779]
    in pipelines: 06(GETNEXT)
 ---- PARALLELPLANS
 Max Per-Host Resource Reservation: Memory=844.00MB Threads=43
-Per-Host Resource Estimates: Memory=2.95GB
+Per-Host Resource Estimates: Memory=3.47GB
 F15:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=4.10MB mem-reservation=4.00MB thread-reservation=1
 |  max-parallelism=1 segment-costs=[1844] cpu-comparison-result=258 [max(1 (self) vs 258 (sum children))]
@@ -719,13 +719,13 @@ max-parallelism=10 segment-costs=[89066048, 11716111] cpu-comparison-result=258 
 |  in pipelines: 06(GETNEXT), 11(OPEN), 14(OPEN)
 |
 |--F16:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.customer.c_customer_sk)] hosts=10 instances=10
-|  |  Per-Instance Resources: mem-estimate=1.38GB mem-reservation=50.00MB thread-reservation=1 runtime-filters-memory=16.00MB
+|  |  Per-Instance Resources: mem-estimate=1.90GB mem-reservation=50.00MB thread-reservation=1 runtime-filters-memory=16.00MB
 |  |  max-parallelism=10 segment-costs=[469083346] cpu-comparison-result=70 [max(70 (self) vs 22 (sum children))]
 |  JOIN BUILD
 |  |  join-table-id=00 plan-id=01 cohort-id=01
 |  |  build expressions: CUSTOMSK
 |  |  runtime filters: RF000[bloom] <- CUSTOMSK, RF001[min_max] <- CUSTOMSK
-|  |  mem-estimate=1.35GB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0 cost=415301768
+|  |  mem-estimate=1.88GB mem-reservation=34.00MB spill-buffer=2.00MB thread-reservation=0 cost=415301768
 |  |
 |  31:EXCHANGE [HASH(CUSTOMSK)]
 |  |  mem-estimate=10.47MB mem-reservation=0B thread-reservation=0
