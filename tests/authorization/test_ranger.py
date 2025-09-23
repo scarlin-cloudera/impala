@@ -1644,7 +1644,8 @@ class TestRanger(CustomClusterTestSuite):
     grantee_user = "non_owner"
     with self.create_impala_client(user=ADMIN) as admin_client, \
         self.create_impala_client(user=grantee_user) as non_owner_client:
-      non_owner_client.set_configuration({"use_calcite_planner": 1})
+      non_owner_client.set_configuration({"use_calcite_planner": 1,
+          "calcite_fallback": "nonquery_only"})
       database = "functional"
       table_1 = "alltypes"
       table_2 = "alltypestiny"

@@ -176,6 +176,7 @@ import org.apache.impala.service.catalogmanager.FeCatalogManager;
 import org.apache.impala.thrift.CatalogLookupStatus;
 import org.apache.impala.thrift.TAlterDbParams;
 import org.apache.impala.thrift.TBackendGflags;
+import org.apache.impala.thrift.TCalciteFallback;
 import org.apache.impala.thrift.TCatalogObject;
 import org.apache.impala.thrift.TCatalogObjectType;
 import org.apache.impala.thrift.TCatalogOpRequest;
@@ -2435,10 +2436,17 @@ public class Frontend {
     // the query to fail.
     // There are some cases where we will always want to fallback, e.g. if the statement
     // fails at parse time because it is not a select statement.
-    if (e instanceof UnsupportedFeatureException) {
+    TQueryCtx queryCtx = planCtx.getQueryContext();
+    TQueryOptions queryOptions = queryCtx.client_request.getQuery_options();
+    if (queryOptions.getCalcite_fallback() == TCalciteFallback.ALL_EXCEPTIONS) {
       return true;
     }
-    TQueryCtx queryCtx = planCtx.getQueryContext();
+
+    if (queryOptions.getCalcite_fallback() == TCalciteFallback.UNSUPPORTED_AND_NONQUERY &&
+        e instanceof UnsupportedFeatureException) {
+      return true;
+    }
+
     try {
       return !(Parser.parse(queryCtx.client_request.stmt,
           queryCtx.client_request.query_options) instanceof QueryStmt);

@@ -146,6 +146,19 @@ enum TTupleCachePlacementPolicy {
   COST_BASED = 1
 }
 
+// The type of fallback that will happen when a Calcite query fails. In normal
+// production mode, all exceptions will fall back to the original planner. For
+// testing Calcite, we want to fall back only for non query statements. A third
+// option of "unsupported and nonquery" is needed in order for "compute stats"
+// statements at load time to work, since there is a case at load time where
+// a select is done on a table with complex columns which is not supported by
+// Calcite at the time of this comment.
+enum TCalciteFallback {
+  ALL_EXCEPTIONS = 0,
+  UNSUPPORTED_AND_NONQUERY = 1,
+  NONQUERY_ONLY = 2
+}
+
 // constants for TQueryOptions.num_nodes
 const i32 NUM_NODES_ALL = 0
 const i32 NUM_NODES_ALL_RACKS = -1
@@ -811,6 +824,8 @@ struct TQueryOptions {
 
   // See comment in ImpalaService.thrift
   199: optional i32 show_create_table_partition_limit = 1000
+
+  200: optional TCalciteFallback calcite_fallback = TCalciteFallback.ALL_EXCEPTIONS
 }
 
 // Impala currently has three types of sessions: Beeswax, HiveServer2 and external

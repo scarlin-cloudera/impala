@@ -1432,6 +1432,13 @@ Status impala::SetQueryOption(TImpalaQueryOptions::type option, const string& va
         query_options->__set_show_create_table_partition_limit(int32_t_val);
         break;
       }
+      case TImpalaQueryOptions::CALCITE_FALLBACK: {
+        TCalciteFallback::type enum_type;
+        RETURN_IF_ERROR(GetThriftEnum(value, "Calcite fallback",
+            _TCalciteFallback_VALUES_TO_NAMES, &enum_type));
+        query_options->__set_calcite_fallback(enum_type);
+        break;
+      }
       default:
         string key = to_string(option);
         if (IsRemovedQueryOption(key)) {

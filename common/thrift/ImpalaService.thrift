@@ -1073,6 +1073,12 @@ enum TImpalaQueryOptions {
   // Maximum number of partitions to show in SHOW CREATE TABLE WITH STATS.
   // 0 means no limit. Default is 1000.
   SHOW_CREATE_TABLE_PARTITION_LIMIT = 198
+
+  // The type of fallback that will happen when a Calcite query fails. In normal
+  // production mode, all exceptions will fall back to the original planner. However,
+  // in testing mode, we don't always want to fallback so we can determine if queries
+  // are working or failing in Calcite.
+  CALCITE_FALLBACK = 199
 }
 
 // The summary of a DML statement.
