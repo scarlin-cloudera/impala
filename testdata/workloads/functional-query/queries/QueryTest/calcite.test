@@ -1239,3 +1239,67 @@ explain select min(month), max(year), ndv(day) from functional.alltypesagg;
 '01:AGGREGATE'
 '00:SCAN $FILESYSTEM_NAME [functional.alltypesagg]'
 ====
+---- QUERY
+select cast('nan' as double), cast('inf' as float);
+---- RESULTS
+NaN,Inf
+---- TYPES
+DOUBLE, FLOAT
+====
+---- QUERY
+# Labels test
+select 1;
+---- LABELS
+1
+---- RESULTS
+1
+---- TYPES
+tinyint
+---- RUNTIME_PROFILE
+row_regex: .*PlannerType: CalcitePlanner.*
+====
+---- QUERY
+select count(*) from functional.alltypestiny;
+---- RUNTIME_PROFILE
+row_regex: .*SPOOL_QUERY_RESULTS=0.*
+====
+---- QUERY
+select * from (values(0));
+---- RUNTIME_PROFILE
+row_regex: .*SPOOL_QUERY_RESULTS=0.*
+====
+---- QUERY
+# IMPALA-14222
+# Grouping sets has a duplicate group. This query should produce a
+# union rel node in the plan.
+select int_col, string_col, bool_col, count(*)
+from functional.alltypesagg
+group by grouping sets((int_col), (string_col), (int_col, bool_col),
+  (int_col, bool_col))
+order by count(*) desc, 1, 2, 3
+limit 21
+---- RESULTS
+10,'NULL',true,20
+10,'NULL',true,20
+10,'NULL',NULL,20
+20,'NULL',true,20
+20,'NULL',true,20
+20,'NULL',NULL,20
+30,'NULL',true,20
+30,'NULL',true,20
+30,'NULL',NULL,20
+40,'NULL',true,20
+40,'NULL',true,20
+40,'NULL',NULL,20
+50,'NULL',true,20
+50,'NULL',true,20
+50,'NULL',NULL,20
+60,'NULL',true,20
+60,'NULL',true,20
+60,'NULL',NULL,20
+70,'NULL',true,20
+70,'NULL',true,20
+70,'NULL',NULL,20
+---- TYPES
+INT,STRING,BOOLEAN,BIGINT
+====
