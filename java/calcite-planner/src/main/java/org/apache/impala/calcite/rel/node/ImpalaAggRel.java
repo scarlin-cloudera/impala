@@ -429,24 +429,30 @@ public class ImpalaAggRel extends Aggregate
   public List<Expr> createMappedOutputExprs(MultiAggregateInfo multiAggInfo,
       List<Expr> groupingExprs, List<FunctionCallExpr> aggExprs,
       List<SlotDescriptor> slotDescs) {
-    ImmutableList.Builder<Expr> builder = new ImmutableList.Builder();
+    List<Expr> mappedOutputExprs = new ArrayList<>();
     int numSlots = groupingExprs.size() + aggExprs.size();
 
     int index = 0;
 
     for (Expr e : groupingExprs) {
       Expr slotRefExpr = multiAggInfo.getOutputSmap().get(e);
-      Preconditions.checkNotNull(slotRefExpr);
-      builder.add(slotRefExpr);
+      // it's ok if slotRefExpr is null.  This can happen if there
+      // are grouping sets and a group exists that is not in any
+      // of the grouping sets.  Just use a null literal for the output
+      // expr.
+      if (slotRefExpr == null) {
+        slotRefExpr = new AnalyzedNullLiteral(e.getType());
+      }
+      mappedOutputExprs.add(slotRefExpr);
     }
 
     for (FunctionCallExpr e : aggExprs) {
       Expr slotRefExpr = multiAggInfo.getOutputSmap().get(e);
       Preconditions.checkNotNull(slotRefExpr);
-      builder.add(slotRefExpr);
+      mappedOutputExprs.add(slotRefExpr);
     }
 
-    return builder.build();
+    return mappedOutputExprs;
   }
 
   public static boolean returnsSingleRow(Aggregate agg) {
