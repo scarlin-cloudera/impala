@@ -49,12 +49,16 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
   @Override
   public RelDataType getWiderTypeFor(List<RelDataType> typeList,
       boolean stringPromotion) {
-    List<RelDataType> newTypeList = new ArrayList<>();
-    for (RelDataType type : typeList) {
-      newTypeList.add(type);
-    }
 
-    return ImpalaTypeConverter.getCompatibleType(newTypeList, factory);
+    // A little hack for Calcite. Impala treats CHAR and time columns
+    // as incompatible. Calcite puts string literals into char types.
+    // So when we determine the wider type, we need to take Calcite literals
+    // into account in this part of the code and we treat CHAR as STRING.
+    List<RelDataType> typeListToUse = hasOnlyTimeAndString(typeList)
+        ? convertCharToStringTypes(typeList)
+        : typeList;
+
+    return ImpalaTypeConverter.getCompatibleType(typeListToUse, factory);
   }
 
   // Do type coercion for In Clause. Calcite allows numerics
@@ -156,5 +160,34 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
   private static SqlNode castTo(SqlNode node, RelDataType type) {
     return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
+  }
+
+  private List<RelDataType> convertCharToStringTypes(List<RelDataType> typeList) {
+    List<RelDataType> convertedTypeList = new ArrayList<>();
+    RelDataType stringType = ImpalaTypeConverter.getRelDataType(Type.STRING);
+    for (RelDataType type : typeList) {
+      if (type.getSqlTypeName().equals(SqlTypeName.CHAR)) {
+        convertedTypeList.add(stringType);
+      } else {
+        convertedTypeList.add(type);
+      }
+    }
+    return convertedTypeList;
+  }
+
+  private boolean hasOnlyTimeAndString(List<RelDataType> typeList) {
+    boolean hasTime = false;
+    boolean hasChar = false;
+    for (RelDataType r : typeList) {
+      SqlTypeName typeName = r.getSqlTypeName();
+      if (typeName.equals(SqlTypeName.DATE) || typeName.equals(SqlTypeName.TIMESTAMP)) {
+        hasTime = true;
+      } else if (typeName.equals(SqlTypeName.CHAR)) {
+        hasChar = true;
+      } else {
+        return false;
+      }
+    }
+    return hasTime && hasChar;
   }
 }
