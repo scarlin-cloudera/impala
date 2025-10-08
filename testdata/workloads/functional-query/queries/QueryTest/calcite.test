@@ -1303,3 +1303,31 @@ limit 21
 ---- TYPES
 INT,STRING,BOOLEAN,BIGINT
 ====
+---- QUERY
+CREATE TABLE test_date_unionall (date_col DATE);
+INSERT INTO test_date_unionall  values('2025-03-18');
+SELECT * FROM (
+SELECT date_col FROM test_date_unionall
+UNION ALL
+SELECT '2025-03-17 12:00:00' FROM test_date_unionall
+) AS t1;
+---- TYPES
+date
+---- RESULTS
+2025-03-18
+2025-03-17
+====
+---- QUERY
+CREATE TABLE test_timestamp_unionall (timestamp_col TIMESTAMP);
+INSERT INTO test_timestamp_unionall  values('2025-03-18 12:01:02');
+SELECT * FROM (
+SELECT timestamp_col FROM test_timestamp_unionall
+UNION ALL
+SELECT '2025-03-17 12:02:03' FROM test_timestamp_unionall
+) AS t1;
+---- TYPES
+timestamp
+---- RESULTS
+2025-03-18 12:01:02
+2025-03-17 12:02:03
+====
