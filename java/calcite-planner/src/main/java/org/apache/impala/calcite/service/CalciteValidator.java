@@ -55,7 +55,7 @@ public class CalciteValidator implements CompilerStep {
     this.typeFactory = new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl());
     this.catalogReader = mdHandler.getCalciteCatalogReader();
 
-    this.sqlValidator = SqlValidatorUtil.newValidator(
+    this.sqlValidator = new ImpalaSqlValidatorImpl(
         ImpalaOperatorTable.getInstance(),
         catalogReader, typeFactory,
         SqlValidator.Config.DEFAULT
@@ -64,7 +64,8 @@ public class CalciteValidator implements CompilerStep {
             .withIdentifierExpansion(true)
             .withConformance(ImpalaConformance.INSTANCE)
             .withTypeCoercionEnabled(true)
-            .withTypeCoercionFactory(new ImpalaTypeCoercionFactory())
+            .withTypeCoercionFactory(new ImpalaTypeCoercionFactory()),
+            mdHandler.getAnalyzer()
             );
   }
 
