@@ -94,12 +94,11 @@ public class IntervalExpr extends Expr {
 
   @Override
   protected void analyzeImpl(Analyzer analyzer) throws AnalysisException {
-    throw new RuntimeException("not implemented");
   }
 
   @Override
   protected float computeEvalCost() {
-    throw new RuntimeException("not implemented");
+    return 1.0F;
   }
 
   @Override

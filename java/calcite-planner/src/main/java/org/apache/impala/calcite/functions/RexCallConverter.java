@@ -317,7 +317,9 @@ public class RexCallConverter {
       }
     }
     // Leftover 'when' param is the 'else' param, null if there is no leftover
-    return new AnalyzedCaseExpr(fn, caseWhenClauses, whenParam, retType);
+    Expr expr = new AnalyzedCaseExpr(fn, caseWhenClauses, whenParam, retType);
+    expr.analyze(analyzer);
+    return expr;
   }
 
 
