@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexNode;
 import org.apache.impala.calcite.operators.ImpalaRexSimplify;
 import org.apache.impala.calcite.operators.ImpalaRexUtil;
@@ -32,6 +33,7 @@ import java.util.List;
 /**
  * ImpalaFilterSimplifyRule calls the given ImpalaRexSimplify.simplify()
  * method (derived from Calcite's RexSimplify) for the filter condition.
+ * It also calls ImpalaRexExecutor.reduce() which does constant folding.
  */
 public class ImpalaFilterSimplifyRule extends RelOptRule {
 
@@ -48,8 +50,12 @@ public class ImpalaFilterSimplifyRule extends RelOptRule {
     RelOptCluster cluster = filter.getCluster();
     RexBuilder rexBuilder = cluster.getRexBuilder();
     RexNode condition = filter.getCondition();
+    RexExecutor executor = simplifier_.getRexExecutor();
 
     RexNode newCondition = simplifier_.simplify(condition);
+    List<RexNode> reducedExprs = new ArrayList<>();
+    executor.reduce(rexBuilder, ImmutableList.of(newCondition), reducedExprs);
+    newCondition = reducedExprs.get(0);
 
     if (newCondition.equals(condition)) {
       return;

@@ -77,13 +77,13 @@ PLAN-ROOT SINK
 |  |
 |  |--05:SCAN HDFS [tpcds_partitioned_parquet_snap.date_dim]
 |  |     HDFS partitions=1/1 files=1 size=2.17MB
-|  |     predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
+|  |     predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
 |  |     stored statistics:
 |  |       table: rows=73.05K size=2.17MB
 |  |       columns: all
 |  |     extrapolated-rows=disabled max-scan-range-rows=73.05K
-|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE)
-|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
+|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13'
+|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=1.00MB thread-reservation=0
 |  |     tuple-ids=6 row-size=8B cardinality=7.30K cost=14573
 |  |     in pipelines: 05(GETNEXT)
@@ -113,13 +113,13 @@ PLAN-ROOT SINK
 |
 |--03:SCAN HDFS [tpcds_partitioned_parquet_snap.date_dim]
 |     HDFS partitions=1/1 files=1 size=2.17MB
-|     predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
+|     predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
 |     stored statistics:
 |       table: rows=73.05K size=2.17MB
 |       columns: all
 |     extrapolated-rows=disabled max-scan-range-rows=73.05K
-|     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE)
-|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
+|     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13'
+|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=1.00MB thread-reservation=0
 |     tuple-ids=4 row-size=8B cardinality=7.30K cost=14573
 |     in pipelines: 03(GETNEXT)
@@ -264,13 +264,13 @@ max-parallelism=10 segment-costs=[1846083, 185] cpu-comparison-result=145 [max(7
 |  |  max-parallelism=1 segment-costs=[14888]
 |  |  05:SCAN HDFS [tpcds_partitioned_parquet_snap.date_dim, RANDOM]
 |  |     HDFS partitions=1/1 files=1 size=2.17MB
-|  |     predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
+|  |     predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
 |  |     stored statistics:
 |  |       table: rows=73.05K size=2.17MB
 |  |       columns: all
 |  |     extrapolated-rows=disabled max-scan-range-rows=73.05K
-|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE)
-|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
+|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13'
+|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=1.00MB thread-reservation=0
 |  |     tuple-ids=6 row-size=8B cardinality=7.30K cost=14573
 |  |     in pipelines: 05(GETNEXT)
@@ -326,13 +326,13 @@ max-parallelism=60 segment-costs=[503997546]
 |  max-parallelism=1 segment-costs=[14888]
 |  03:SCAN HDFS [tpcds_partitioned_parquet_snap.date_dim, RANDOM]
 |     HDFS partitions=1/1 files=1 size=2.17MB
-|     predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
+|     predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
 |     stored statistics:
 |       table: rows=73.05K size=2.17MB
 |       columns: all
 |     extrapolated-rows=disabled max-scan-range-rows=73.05K
-|     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE)
-|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
+|     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13'
+|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=1.00MB thread-reservation=0
 |     tuple-ids=4 row-size=8B cardinality=7.30K cost=14573
 |     in pipelines: 03(GETNEXT)
@@ -495,13 +495,13 @@ max-parallelism=10 segment-costs=[1846083, 185] cpu-comparison-result=145 [max(7
 |  |  max-parallelism=1 segment-costs=[14888]
 |  |  05:SCAN HDFS [tpcds_partitioned_parquet_snap.date_dim, RANDOM]
 |  |     HDFS partitions=1/1 files=1 size=2.17MB
-|  |     predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
+|  |     predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
 |  |     stored statistics:
 |  |       table: rows=73.05K size=2.17MB
 |  |       columns: all
 |  |     extrapolated-rows=disabled max-scan-range-rows=73.05K
-|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE)
-|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim_0.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
+|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13'
+|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim_0.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim_0.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim_0.d_date_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=1.00MB thread-reservation=0
 |  |     tuple-ids=6 row-size=8B cardinality=7.30K cost=14573
 |  |     in pipelines: 05(GETNEXT)
@@ -557,13 +557,13 @@ max-parallelism=60 segment-costs=[503997546]
 |  max-parallelism=1 segment-costs=[14888]
 |  03:SCAN HDFS [tpcds_partitioned_parquet_snap.date_dim, RANDOM]
 |     HDFS partitions=1/1 files=1 size=2.17MB
-|     predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
+|     predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
 |     stored statistics:
 |       table: rows=73.05K size=2.17MB
 |       columns: all
 |     extrapolated-rows=disabled max-scan-range-rows=73.05K
-|     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE)
-|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= CAST('2001-03-13' AS DATE) + INTERVAL CAST(90 AS INT) DAY, tpcds_partitioned_parquet_snap.date_dim.d_date >= CAST('2001-03-13' AS DATE), tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
+|     parquet statistics predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13'
+|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.date_dim.d_date <= DATE '2001-06-11', tpcds_partitioned_parquet_snap.date_dim.d_date >= DATE '2001-03-13', tpcds_partitioned_parquet_snap.date_dim.d_date_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=1.00MB thread-reservation=0
 |     tuple-ids=4 row-size=8B cardinality=7.30K cost=14573
 |     in pipelines: 03(GETNEXT)

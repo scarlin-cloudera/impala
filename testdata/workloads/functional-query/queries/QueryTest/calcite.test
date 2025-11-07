@@ -1187,3 +1187,15 @@ char, char, varchar
 'NULL','b                                                                                                                                           ','NULL'
 'NULL','NULL','NULL'
 ====
+---- QUERY
+# values test with different sized columns.
+# result should have no trailing spaces.
+values ('abc'), ('defg')
+---- RESULTS
+'abc'
+'defg'
+---- TYPES
+string
+---- RUNTIME_PROFILE
+row_regex: .*PlannerType: CalcitePlanner.*
+====
