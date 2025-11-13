@@ -152,12 +152,25 @@ public class JoinRelationInfo {
 
     // Any operator that doesn't have a column from each side of the join would
     // have been pushed down.
-    Preconditions.checkState(leftCols.cardinality() == 1 && rightCols.cardinality() == 1);
+    if (leftCols.cardinality() != 1 || rightCols.cardinality() != 1) {
+      return null;
+    }
 
     int nFieldsLeft = joinRel.getLeft().getRowType().getFieldList().size();
     int nFieldsRight = joinRel.getRight().getRowType().getFieldList().size();
+    ImmutableBitSet leftFieldsBitSet = ImmutableBitSet.range(0, nFieldsLeft);
     ImmutableBitSet rightFieldsBitSet = ImmutableBitSet.range(nFieldsLeft,
         nFieldsLeft + nFieldsRight);
+
+    // The JOIN_CONDITION_PUSH rule will not push down a join condition on the left
+    // side of a left join if both columns of the equals condition are on the left side.
+    // TODO: Currently, we will ignore this condition because it would be hard to
+    // estimate equality without sampling.
+    if ((rightFieldsBitSet.contains(leftCols) && rightFieldsBitSet.contains(rightCols)) ||
+        leftFieldsBitSet.contains(leftCols) && leftFieldsBitSet.contains(rightCols)) {
+      return null;
+    }
+
     /*
      * flip column references if join condition specified in reverse order to
      * join sources.

@@ -1416,3 +1416,22 @@ limit 21
 ---- TYPES
 INT,STRING,BOOLEAN,BIGINT
 ====
+---- QUERY
+explain with l as (select * from tpch.lineitem a LIMIT 1)
+select * from l where l_partkey=155190;
+---- RESULTS: VERIFY_IS_SUBSET
+row_regex:.*cardinality=1 *.*
+====
+---- QUERY
+SELECT a.string_col ts2
+FROM functional.alltypes a
+FULL OUTER JOIN (
+  select * from functional.alltypessmall where id < 0
+  ) b
+ON a.id=b.id AND a.id = 1
+ORDER BY ts2 DESC LIMIT 1;
+---- RESULTS
+'9'
+---- RUNTIME_PROFILE
+row_regex: .*PlannerType: CalcitePlanner.*
+====
