@@ -1342,3 +1342,9 @@ select '\"';
 ---- RESULTS
 '"'
 ====
+---- QUERY
+explain with l as (select * from tpch.lineitem a LIMIT 1)
+select * from l where l_partkey=155190;
+---- RESULTS: VERIFY_IS_SUBSET
+row_regex:.*cardinality=1 *.*
+====

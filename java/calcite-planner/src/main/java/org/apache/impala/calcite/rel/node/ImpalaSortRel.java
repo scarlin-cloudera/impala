@@ -108,8 +108,9 @@ public class ImpalaSortRel extends Sort
       // all PlanNodes containing the limit so the PlanNode constructor can set the
       // limit, or leave the code here to mutate.
       inputNodeWithExprs.planNode_.setLimit(limit_);
+      inputNodeWithExprs.planNode_.computeStats(context.ctx_.getRootAnalyzer());
       return NodeCreationUtils.wrapInSelectNodeIfNeeded(context,
-          inputNodeWithExprs, getCluster().getRexBuilder());
+          inputNodeWithExprs, getCluster().getRexBuilder(), limit_);
     }
 
     List<Expr> inputExprs = inputNodeWithExprs.outputExprs_;
@@ -153,7 +154,7 @@ public class ImpalaSortRel extends Sort
     // If there is a filter condition, a SelectNode will get added on top
     // of the retNode.
     return NodeCreationUtils.wrapInSelectNodeIfNeeded(context, retNode,
-        getCluster().getRexBuilder());
+        getCluster().getRexBuilder(), limit_);
   }
 
   private NodeWithExprs getChildPlanNode(ParentPlanRelContext context

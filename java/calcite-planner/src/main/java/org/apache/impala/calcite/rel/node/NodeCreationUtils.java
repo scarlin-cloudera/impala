@@ -48,7 +48,7 @@ public class NodeCreationUtils {
    * handle a filter expression, so we need a standalone node to do the filter.
    */
   public static NodeWithExprs createSelectNode(RexNode filterCondition, Analyzer analyzer,
-      NodeWithExprs nodeWithExprs, PlanNodeId nodeId, RexBuilder rexBuilder
+      NodeWithExprs nodeWithExprs, PlanNodeId nodeId, RexBuilder rexBuilder, long limit
       ) throws ImpalaException {
     Preconditions.checkNotNull(filterCondition);
     ExprConjunctsConverter converter = new ExprConjunctsConverter(filterCondition,
@@ -56,6 +56,9 @@ public class NodeCreationUtils {
     List<Expr> filterConjuncts = converter.getImpalaConjuncts();
     SelectNode selectNode =
         SelectNode.createFromCalcite(nodeId, nodeWithExprs.planNode_, filterConjuncts);
+    if (limit != -1) {
+      selectNode.setLimit(limit);
+    }
     selectNode.init(analyzer);
     return new NodeWithExprs(selectNode, nodeWithExprs);
   }
@@ -116,12 +119,17 @@ public class NodeCreationUtils {
    * in this case.
    */
   public static NodeWithExprs wrapInSelectNodeIfNeeded(ParentPlanRelContext context,
-      NodeWithExprs planNode, RexBuilder rexBuilder) throws ImpalaException {
+      NodeWithExprs planNode, RexBuilder rexBuilder, long limit) throws ImpalaException {
     return context.filterCondition_ != null
       ? NodeCreationUtils.createSelectNode(context.filterCondition_,
           context.ctx_.getRootAnalyzer(), planNode,
-          context.ctx_.getNextNodeId(), rexBuilder)
+          context.ctx_.getNextNodeId(), rexBuilder, limit)
       : planNode;
+  }
+
+  public static NodeWithExprs wrapInSelectNodeIfNeeded(ParentPlanRelContext context,
+      NodeWithExprs planNode, RexBuilder rexBuilder) throws ImpalaException {
+    return wrapInSelectNodeIfNeeded(context, planNode, rexBuilder, -1);
   }
 
   /**
