@@ -144,6 +144,10 @@ public class RexCallConverter {
       case POSIX_REGEX_CASE_SENSITIVE:
       case POSIX_REGEX_CASE_INSENSITIVE:
         return createRegexExpr(fn, params, impalaRetType, rexCall);
+      case IS_NULL:
+        return new IsNullPredicate(params.get(0), false);
+      case IS_NOT_NULL:
+        return new IsNullPredicate(params.get(0), true);
       default:
         return new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
     }

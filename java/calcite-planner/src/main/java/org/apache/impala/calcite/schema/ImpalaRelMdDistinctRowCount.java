@@ -82,19 +82,8 @@ public class ImpalaRelMdDistinctRowCount extends RelMdDistinctRowCount {
   @Override
   public Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    // For the distinct row count, we take the number of distinct rows before the
-    // filter and multiply it by the selectivity
-    // TODO: We can do a little better if the "groupKey" is for the column being
-    // selected. Specifically, if we find the selectivity for col1 and the condition
-    // is "col1 is null", we know there is only one distinct row, but it will multiply
-    // by the selectivity of all the distinct rows.
-    Double rowCount = mq.getRowCount(rel);
-    Preconditions.checkState(rowCount >= 0.0);
-    Double childRowCount = mq.getRowCount(rel.getInput(0));
-    Double distinctRowCount =
-        mq.getDistinctRowCount(rel.getInput(0), groupKey, predicate);
-    Preconditions.checkState(rowCount <= childRowCount);
-    return Math.max(1.0, distinctRowCount * rowCount / childRowCount);
+    return Math.min(mq.getRowCount(rel),
+        super.getDistinctRowCount(rel, mq, groupKey, predicate));
   }
 
   @Override

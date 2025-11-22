@@ -66,6 +66,13 @@ public class ImpalaRexExecutor implements RexExecutor {
   // Reducer class used for testing purposes for injection.
   private final Reducer reducer_;
 
+  public ImpalaRexExecutor() {
+    analyzer_ = null;
+    queryCtx_ = null;
+    reducer_ = null;
+
+  }
+
   public ImpalaRexExecutor(Analyzer analyzer, TQueryCtx queryCtx,
       Reducer reducer) {
     analyzer_ = analyzer;
@@ -95,7 +102,12 @@ public class ImpalaRexExecutor implements RexExecutor {
     Preconditions.checkState(reducedValues.size() == constExps.size());
   }
 
-  private static boolean isReducible(RexNode rexNode) {
+  private static boolean isReducible(RexNode rexNode, Reducer reducer) {
+    //XXX: might not need this
+    if (reducer == null) {
+      return false;
+    }
+
     // may already be reduced to a literal
     if (!(rexNode instanceof RexCall)) {
       return false;
@@ -247,7 +259,7 @@ public class ImpalaRexExecutor implements RexExecutor {
     public RexNode visitCall(RexCall call) {
       // recursively call children first.
       RexNode reducedNode = super.visitCall(call);
-      if (!isReducible(reducedNode)) {
+      if (!isReducible(reducedNode, reducer_)) {
         return reducedNode;
       }
       RexCall reducedCall = (RexCall) reducedNode;

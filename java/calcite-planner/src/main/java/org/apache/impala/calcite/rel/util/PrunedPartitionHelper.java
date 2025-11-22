@@ -20,13 +20,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.SlotId;
 import org.apache.impala.analysis.TupleDescriptor;
+import org.apache.impala.calcite.operators.ImpalaRexSimplify;
 import org.apache.impala.calcite.rel.util.ExprConjunctsConverter.CalciteImpalaConjunct;
+import org.apache.impala.calcite.rules.ImpalaRexExecutor;
 import org.apache.impala.calcite.schema.CalciteTable;
 import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeFsTable;
@@ -100,7 +103,10 @@ public class PrunedPartitionHelper {
               ImmutableList.of(tmpCalciteConjunct, conjunct.calciteConjunct_));
       }
     }
-    nonPartitionedCalciteConjunct_ = tmpCalciteConjunct;
+    // XXX: make this a little better
+    ImpalaRexExecutor executor = new ImpalaRexExecutor();
+    ImpalaRexSimplify simplifier = new ImpalaRexSimplify(rexBuilder, executor);
+    nonPartitionedCalciteConjunct_ = RexUtil.flatten(rexBuilder, simplifier.simplify(tmpCalciteConjunct));
 
     partitionedConjuncts_ = partitionedConjBuilder.build();
     nonPartitionedConjuncts_ = nonPartitionedConjBuilder.build();

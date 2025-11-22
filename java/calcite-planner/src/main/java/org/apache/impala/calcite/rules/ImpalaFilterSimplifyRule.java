@@ -39,9 +39,17 @@ public class ImpalaFilterSimplifyRule extends RelOptRule {
 
   private final ImpalaRexSimplify simplifier_;
 
+  private boolean tmpToAvoid_ = false;
+
   public ImpalaFilterSimplifyRule(ImpalaRexSimplify simplifier) {
     super(operand(Filter.class, none()));
     this.simplifier_ = simplifier;
+  }
+
+  public ImpalaFilterSimplifyRule(ImpalaRexSimplify simplifier, boolean tmp) {
+    super(operand(Filter.class, none()));
+    this.simplifier_ = simplifier;
+    tmpToAvoid_ = true;
   }
 
   @Override
@@ -54,7 +62,11 @@ public class ImpalaFilterSimplifyRule extends RelOptRule {
 
     RexNode newCondition = simplifier_.simplify(condition);
     List<RexNode> reducedExprs = new ArrayList<>();
-    executor.reduce(rexBuilder, ImmutableList.of(newCondition), reducedExprs);
+    if (!tmpToAvoid_) {
+      executor.reduce(rexBuilder, ImmutableList.of(newCondition), reducedExprs);
+    } else {
+      reducedExprs.add(newCondition);
+    }
     newCondition = reducedExprs.get(0);
 
     if (newCondition.equals(condition)) {

@@ -49,6 +49,9 @@ public class ImpalaRexSimplify extends RexSimplify {
 
   @Override
   public RexNode simplify(RexNode rexNode) {
+    if (rexNode == null) {
+      return null;
+    }
     return hasApproximateTypeIssues(rexNode) ? rexNode : super.simplify(rexNode);
   }
 
