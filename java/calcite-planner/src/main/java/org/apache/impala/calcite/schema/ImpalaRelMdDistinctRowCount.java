@@ -18,7 +18,6 @@
 package org.apache.impala.calcite.schema;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
@@ -76,15 +75,17 @@ public class ImpalaRelMdDistinctRowCount extends RelMdDistinctRowCount {
       ImmutableBitSet groupKey, RexNode predicate) {
     // Use Calcite distinct row calculation
     // number of distinct rows can never be more than number of total rows
-    return Math.min(mq.getRowCount(rel),
-        super.getDistinctRowCount(rel, mq, groupKey, predicate));
+    Double rows = mq.getRowCount(rel);
+    Double ndv = super.getDistinctRowCount(rel, mq, groupKey, predicate);
+    return ndv == null ? rows : Math.min(rows, ndv);
   }
 
   @Override
   public Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    return Math.min(mq.getRowCount(rel),
-        super.getDistinctRowCount(rel, mq, groupKey, predicate));
+    Double rows = mq.getRowCount(rel);
+    Double ndv = super.getDistinctRowCount(rel, mq, groupKey, predicate);
+    return ndv == null ? rows : Math.min(rows, ndv);
   }
 
   @Override
@@ -92,8 +93,9 @@ public class ImpalaRelMdDistinctRowCount extends RelMdDistinctRowCount {
       ImmutableBitSet groupKey, RexNode predicate) {
     // Use Calcite distinct row calculation
     // number of distinct rows can never be more than number of total rows
-    return Math.min(mq.getRowCount(rel),
-        super.getDistinctRowCount(rel, mq, groupKey, predicate));
+    Double rows = mq.getRowCount(rel);
+    Double ndv = super.getDistinctRowCount(rel, mq, groupKey, predicate);
+    return ndv == null ? rows : Math.min(rows, ndv);
   }
 
   public Double getDistinctRowCount(ImpalaCTEConsumer rel, RelMetadataQuery mq,

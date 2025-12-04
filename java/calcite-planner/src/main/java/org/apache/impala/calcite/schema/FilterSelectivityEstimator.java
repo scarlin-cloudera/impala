@@ -37,7 +37,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Sarg;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.calcite.rel.util.RexInputRefCollector;
-import org.apache.impala.calcite.schema.JoinRelationInfo.EqualityConjunction;
 import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.ColumnStats;
 
@@ -362,7 +361,10 @@ public class FilterSelectivityEstimator {
 
     double maxNDV = 1.0;
     for (Integer index : inputRefs) {
-      maxNDV = Math.max(getDistinctRowCount(index), maxNDV);
+      Double ndv = getDistinctRowCount(index);
+      if (ndv != null) {
+        maxNDV = Math.max(ndv, maxNDV);
+      }
     }
 
     return maxNDV;
