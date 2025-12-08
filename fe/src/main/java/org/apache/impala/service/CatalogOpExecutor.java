@@ -479,14 +479,13 @@ public class CatalogOpExecutor {
           tTableName = Optional.of(alter_table_params.getTable_name());
           catalogOpTracker_.increment(ddlRequest, tTableName);
           alterTable(alter_table_params, debugAction, wantMinimalResult, response,
-              catalogTimeline, queryId);
+              catalogTimeline);
           break;
         case ALTER_VIEW:
           TCreateOrAlterViewParams alter_view_params = ddlRequest.getAlter_view_params();
           tTableName = Optional.of(alter_view_params.getView_name());
           catalogOpTracker_.increment(ddlRequest, tTableName);
-          alterView(alter_view_params, wantMinimalResult, response, catalogTimeline,
-              queryId);
+          alterView(alter_view_params, wantMinimalResult, response, catalogTimeline);
           break;
         case CREATE_DATABASE:
           TCreateDbParams create_db_params = ddlRequest.getCreate_db_params();
@@ -516,7 +515,7 @@ public class CatalogOpExecutor {
           tTableName = Optional.of(create_table_like_params.getTable_name());
           catalogOpTracker_.increment(ddlRequest, tTableName);
           createTableLike(create_table_like_params, response, catalogTimeline, syncDdl,
-              wantMinimalResult, debugAction, queryId);
+              wantMinimalResult, debugAction);
           break;
         case CREATE_VIEW:
           TCreateOrAlterViewParams create_view_params =
@@ -548,7 +547,7 @@ public class CatalogOpExecutor {
           tTableName = Optional.of(drop_stats_params.getTable_name());
           catalogOpTracker_.increment(ddlRequest, tTableName);
           dropStats(drop_stats_params, wantMinimalResult, response, catalogTimeline,
-              ddlRequest.getQuery_options().getDebug_action(), queryId);
+              ddlRequest.getQuery_options().getDebug_action());
           break;
         case DROP_DATABASE:
           TDropDbParams drop_db_params = ddlRequest.getDrop_db_params();
@@ -569,7 +568,7 @@ public class CatalogOpExecutor {
           dropTableOrView(drop_table_or_view_params, response,
               ddlRequest.getQuery_options().getLock_max_wait_time_s(),
               ddlRequest.getQuery_options().getKudu_table_reserve_seconds(),
-              catalogTimeline, queryId);
+              catalogTimeline);
           break;
         case TRUNCATE_TABLE:
           TTruncateParams truncate_params = ddlRequest.getTruncate_params();
@@ -577,7 +576,7 @@ public class CatalogOpExecutor {
           catalogOpTracker_.increment(ddlRequest, tTableName);
           truncateTable(truncate_params, wantMinimalResult, response,
               ddlRequest.getQuery_options().getLock_max_wait_time_s(), catalogTimeline,
-              ddlRequest.getQuery_options().getDebug_action(), queryId);
+              ddlRequest.getQuery_options().getDebug_action());
           break;
         case DROP_FUNCTION:
           TDropFunctionParams drop_func_params = ddlRequest.getDrop_fn_params();
@@ -1210,8 +1209,8 @@ public class CatalogOpExecutor {
    * serialized.
    */
   private void alterTable(TAlterTableParams params, @Nullable String debugAction,
-      boolean wantMinimalResult, TDdlExecResponse response, EventSequence catalogTimeline,
-      TUniqueId queryId) throws ImpalaException {
+      boolean wantMinimalResult, TDdlExecResponse response, EventSequence catalogTimeline)
+      throws ImpalaException {
     // When true, loads the file/block metadata.
     boolean reloadFileMetadata = false;
     // When true, loads the table schema and the column stats from the Hive Metastore.
@@ -1221,7 +1220,7 @@ public class CatalogOpExecutor {
 
     TableName tableName = TableName.fromThrift(params.getTable_name());
     Table tbl = getExistingTable(tableName.getDb(), tableName.getTbl(),
-        "Load for ALTER TABLE", queryId, catalogTimeline);
+        "Load for ALTER TABLE", catalogTimeline);
     if (params.getAlter_type() == TAlterTableType.RENAME_VIEW
         || params.getAlter_type() == TAlterTableType.RENAME_TABLE) {
       TableName newTableName = TableName.fromThrift(
@@ -1889,15 +1888,14 @@ public class CatalogOpExecutor {
    * a table instead of a a view.
    */
    private void alterView(TCreateOrAlterViewParams params, boolean wantMinimalResult,
-       TDdlExecResponse resp, EventSequence catalogTimeline, TUniqueId queryId)
-       throws ImpalaException {
+       TDdlExecResponse resp, EventSequence catalogTimeline) throws ImpalaException {
     TableName tableName = TableName.fromThrift(params.getView_name());
     Preconditions.checkState(tableName != null && tableName.isFullyQualified());
     Preconditions.checkState(params.getColumns() != null &&
         params.getColumns().size() > 0,
           "Null or empty column list given as argument to DdlExecutor.alterView");
     Table tbl = getExistingTable(tableName.getDb(), tableName.getTbl(),
-        "Load for ALTER VIEW", queryId, catalogTimeline);
+        "Load for ALTER VIEW", catalogTimeline);
     Preconditions.checkState(tbl instanceof View, "Expected view: %s",
         tableName);
     tryWriteLock(tbl, catalogTimeline);
@@ -2790,11 +2788,10 @@ public class CatalogOpExecutor {
    * to protect against concurrent modifications.
    */
   private void dropStats(TDropStatsParams params, boolean wantMinimalResult,
-      TDdlExecResponse resp, EventSequence catalogTimeline, @Nullable String debugAction,
-      TUniqueId queryId) throws ImpalaException {
+      TDdlExecResponse resp, EventSequence catalogTimeline, @Nullable String debugAction)
+      throws ImpalaException {
     Table table = getExistingTable(params.getTable_name().getDb_name(),
-        params.getTable_name().getTable_name(), "Load for DROP STATS", queryId,
-        catalogTimeline);
+        params.getTable_name().getTable_name(), "Load for DROP STATS", catalogTimeline);
     Preconditions.checkNotNull(table);
     // There is no transactional HMS API to drop stats at the moment (HIVE-22104).
     Preconditions.checkState(!AcidUtils.isTransactionalTable(table));
@@ -3173,8 +3170,8 @@ public class CatalogOpExecutor {
    * executing the drop operation.
    */
   private void dropTableOrView(TDropTableOrViewParams params, TDdlExecResponse resp,
-      int lockMaxWaitTime, int kudu_table_reserve_seconds, EventSequence catalogTimeline,
-      TUniqueId queryId) throws ImpalaException {
+      int lockMaxWaitTime, int kudu_table_reserve_seconds, EventSequence catalogTimeline)
+      throws ImpalaException {
     TableName tableName = TableName.fromThrift(params.getTable_name());
     Preconditions.checkState(tableName != null && tableName.isFullyQualified());
     Preconditions.checkState(!catalog_.isBlacklistedTable(tableName) || params.if_exists,
@@ -3200,7 +3197,7 @@ public class CatalogOpExecutor {
       // we pass null validWriteIdList here since we don't really care what version of
       // table is loaded, eventually its going to be dropped below.
       catalog_.getOrLoadTable(params.getTable_name().db_name,
-          params.getTable_name().table_name, "Load for DROP TABLE/VIEW", queryId, null,
+          params.getTable_name().table_name, "Load for DROP TABLE/VIEW", null,
           TABLE_ID_UNAVAILABLE, catalogTimeline);
       catalogTimeline.markEvent("Loaded catalog table");
     } catch (CatalogException e) {
@@ -3438,12 +3435,12 @@ public class CatalogOpExecutor {
    */
   private void truncateTable(TTruncateParams params, boolean wantMinimalResult,
       TDdlExecResponse resp, int lockMaxWaitTime, EventSequence catalogTimeline,
-      @Nullable String debugAction, TUniqueId queryId) throws ImpalaException {
+      @Nullable String debugAction) throws ImpalaException {
     TTableName tblName = params.getTable_name();
     Table table = null;
     try {
       table = getExistingTable(tblName.getDb_name(), tblName.getTable_name(),
-          "Load for TRUNCATE TABLE", queryId, catalogTimeline);
+          "Load for TRUNCATE TABLE", catalogTimeline);
     } catch (TableNotFoundException e) {
       if (params.if_exists) {
         addSummary(resp, "Table does not exist.");
@@ -4506,7 +4503,7 @@ public class CatalogOpExecutor {
    */
   private void createTableLike(TCreateTableLikeParams params, TDdlExecResponse response,
       EventSequence catalogTimeline, boolean syncDdl, boolean wantMinimalResult,
-      @Nullable String debugAction, TUniqueId queryId) throws ImpalaException {
+      @Nullable String debugAction) throws ImpalaException {
     Preconditions.checkNotNull(params);
     THdfsFileFormat fileFormat =
         params.isSetFile_format() ? params.getFile_format() : null;
@@ -4551,7 +4548,7 @@ public class CatalogOpExecutor {
       return;
     }
     Table srcTable = getExistingTable(srcTblName.getDb(), srcTblName.getTbl(),
-        "Load source for CREATE TABLE LIKE", queryId, catalogTimeline);
+        "Load source for CREATE TABLE LIKE", catalogTimeline);
     org.apache.hadoop.hive.metastore.api.Table tbl =
         srcTable.getMetaStoreTable().deepCopy();
     tbl.setDbName(tblName.getDb());
@@ -7370,10 +7367,8 @@ public class CatalogOpExecutor {
           // If the table is not loaded, no need to perform refresh after the initial
           // metadata load.
           boolean isTableLoadedInCatalog = tbl.isLoaded();
-          TUniqueId queryId = req.isSetHeader() && req.getHeader().isSetQuery_id() ?
-              req.header.query_id : null;
           tbl = getExistingTable(tblName.getDb(), tblName.getTbl(),
-              "Load triggered by " + cmdString, queryId, catalogTimeline);
+              "Load triggered by " + cmdString, catalogTimeline);
           CatalogObject.ThriftObjectType resultType =
               req.header.want_minimal_response ?
                   CatalogObject.ThriftObjectType.INVALIDATION :
@@ -7592,11 +7587,9 @@ public class CatalogOpExecutor {
       throws ImpalaException {
     EventSequence catalogTimeline = new EventSequence(CATALOG_TIMELINE_NAME);
     TUpdateCatalogResponse response = new TUpdateCatalogResponse();
-    TUniqueId queryId = update.isSetHeader() && update.header.isSetQuery_id() ?
-        update.header.query_id : null;
     // Only update metastore for Hdfs tables.
     Table table = getExistingTable(update.getDb_name(), update.getTarget_table(),
-        "Load for INSERT", queryId, catalogTimeline);
+        "Load for INSERT", catalogTimeline);
     if (!(table instanceof FeFsTable)) {
       throw new InternalException("Unexpected table type: " +
           update.getTarget_table());
@@ -8230,10 +8223,10 @@ public class CatalogOpExecutor {
    * know when a table has been dropped and re-created with the same name.
    */
   public Table getExistingTable(String dbName, String tblName, String reason,
-      TUniqueId queryId, EventSequence catalogTimeline) throws CatalogException {
+      EventSequence catalogTimeline) throws CatalogException {
     // passing null validWriteIdList makes sure that we return the table if it is
     // already loaded.
-    Table tbl = catalog_.getOrLoadTable(dbName, tblName, reason, queryId, null,
+    Table tbl = catalog_.getOrLoadTable(dbName, tblName, reason, null,
         TABLE_ID_UNAVAILABLE, catalogTimeline);
     if (tbl == null) {
       throw new TableNotFoundException("Table not found: " + dbName + "." + tblName);
@@ -8264,8 +8257,6 @@ public class CatalogOpExecutor {
       throws ImpalaRuntimeException, CatalogException, InternalException {
     Preconditions.checkState(tTableName.isPresent());
     TCommentOnParams params = ddlRequest.getComment_on_params();
-    TUniqueId queryId = ddlRequest.isSetHeader() && ddlRequest.header.isSetQuery_id() ?
-        ddlRequest.header.query_id : null;
     if (params.getDb() != null) {
       Preconditions.checkArgument(!params.isSetTable_name() &&
           !params.isSetColumn_name());
@@ -8280,7 +8271,7 @@ public class CatalogOpExecutor {
       catalogOpTracker_.increment(ddlRequest, tTableName);
       alterCommentOnTableOrView(TableName.fromThrift(params.getTable_name()),
           params.getComment(), wantMinimalResult, response, catalogTimeline,
-          ddlRequest.getQuery_options().getDebug_action(), queryId);
+          ddlRequest.getQuery_options().getDebug_action());
     } else if (params.getColumn_name() != null) {
       Preconditions.checkArgument(!params.isSetDb() && !params.isSetTable_name());
       TColumnName columnName = params.getColumn_name();
@@ -8289,7 +8280,7 @@ public class CatalogOpExecutor {
       catalogOpTracker_.increment(ddlRequest, tTableName);
       alterCommentOnColumn(TableName.fromThrift(columnName.getTable_name()),
           columnName.getColumn_name(), params.getComment(), wantMinimalResult, response,
-          catalogTimeline, ddlRequest.getQuery_options().getDebug_action(), queryId);
+          catalogTimeline, ddlRequest.getQuery_options().getDebug_action());
     } else {
       throw new UnsupportedOperationException("Unsupported COMMENT ON operation");
     }
@@ -8411,10 +8402,10 @@ public class CatalogOpExecutor {
 
   private void alterCommentOnTableOrView(TableName tableName, String comment,
       boolean wantMinimalResult, TDdlExecResponse response, EventSequence catalogTimeline,
-      @Nullable String debugAction, TUniqueId queryId)
+      @Nullable String debugAction)
       throws CatalogException, InternalException, ImpalaRuntimeException {
     Table tbl = getExistingTable(tableName.getDb(), tableName.getTbl(),
-        "Load for ALTER COMMENT", queryId, catalogTimeline);
+        "Load for ALTER COMMENT", catalogTimeline);
     tryWriteLock(tbl, catalogTimeline);
     try {
       InProgressTableModification modification =
@@ -8443,10 +8434,10 @@ public class CatalogOpExecutor {
 
   private void alterCommentOnColumn(TableName tableName, String columnName,
       String comment, boolean wantMinimalResult, TDdlExecResponse response,
-      EventSequence catalogTimeline, @Nullable String debugAction, TUniqueId queryId)
+      EventSequence catalogTimeline, @Nullable String debugAction)
       throws CatalogException, InternalException, ImpalaRuntimeException {
     Table tbl = getExistingTable(tableName.getDb(), tableName.getTbl(),
-        "Load for ALTER COLUMN COMMENT", queryId, catalogTimeline);
+        "Load for ALTER COLUMN COMMENT", catalogTimeline);
     tryWriteLock(tbl, catalogTimeline);
     try {
       InProgressTableModification modification =
