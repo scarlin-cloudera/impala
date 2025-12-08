@@ -49,7 +49,6 @@ import org.apache.impala.extdatasource.thrift.TColumnDesc;
 import org.apache.impala.extdatasource.thrift.TComparisonOp;
 import org.apache.impala.extdatasource.thrift.TPrepareParams;
 import org.apache.impala.extdatasource.thrift.TPrepareResult;
-import org.apache.impala.service.BackendConfig;
 import org.apache.impala.service.FeSupport;
 import org.apache.impala.thrift.TCacheJarResult;
 import org.apache.impala.thrift.TColumnValue;
@@ -103,7 +102,7 @@ public class DataSourceScanNode extends ScanNode {
   @Override
   public void init(Analyzer analyzer) throws ImpalaException {
     checkForSupportedFileFormats();
-    prepareDataSource(analyzer.getQueryOptions());
+    prepareDataSource();
     conjuncts_ = orderConjunctsByCost(conjuncts_);
     computeStats(analyzer);
     // materialize slots in remaining conjuncts_
@@ -180,7 +179,7 @@ public class DataSourceScanNode extends ScanNode {
    * stats. The accepted predicates are moved from conjuncts_ into acceptedConjuncts_
    * and the associated TBinaryPredicates are set in acceptedPredicates_.
    */
-  private void prepareDataSource(TQueryOptions queryOptions) throws InternalException {
+  private void prepareDataSource() throws InternalException {
     // Binary predicates that will be offered to the data source.
     List<List<TBinaryPredicate>> offeredPredicates = new ArrayList<>();
     // The index into conjuncts_ for each element in offeredPredicates.
@@ -224,7 +223,6 @@ public class DataSourceScanNode extends ScanNode {
       TPrepareParams prepareParams = new TPrepareParams();
       prepareParams.setInit_string(table_.getInitString());
       prepareParams.setPredicates(offeredPredicates);
-      prepareParams.setClean_dbcp_ds_cache(queryOptions.isClean_dbcp_ds_cache());
       // TODO: Include DB (i.e. getFullName())?
       prepareParams.setTable_name(table_.getName());
       prepareResult = executor.prepare(prepareParams);
@@ -334,15 +332,8 @@ public class DataSourceScanNode extends ScanNode {
     super.computeStats(analyzer);
     inputCardinality_ = numRowsEstimate_;
     cardinality_ = numRowsEstimate_;
-    // Use estimate from the data source if present
-    if (numRowsEstimate_ > 0) {
-      cardinality_ = numRowsEstimate_;
-    } else {
-      cardinality_ = table_.getNumRows(); // fallback
-    }
     cardinality_ = applyConjunctsSelectivity(cardinality_);
-    int minCard = BackendConfig.INSTANCE.getMinJdbcScanCardinality();
-    cardinality_ = Math.max(minCard, cardinality_);
+    cardinality_ = Math.max(1, cardinality_);
     cardinality_ = capCardinalityAtLimit(cardinality_);
 
     if (LOG.isTraceEnabled()) {

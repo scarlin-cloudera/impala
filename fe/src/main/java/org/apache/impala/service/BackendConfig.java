@@ -192,13 +192,6 @@ public class BackendConfig {
     return backendCfg_.blacklisted_dbs;
   }
 
-  public int getMinJdbcScanCardinality() {
-    if (backendCfg_.isSetMin_jdbc_scan_cardinality()) {
-      return backendCfg_.getMin_jdbc_scan_cardinality();
-    }
-    return 10;
-  }
-
   public String getBlacklistedTables() {
     return backendCfg_.blacklisted_tables;
   }
