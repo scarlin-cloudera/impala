@@ -233,8 +233,6 @@ public class SortInfo {
     List<Expr> tupleIsNullPreds = new ArrayList<>();
     TreeNode.collect(resultExprs, Predicates.instanceOf(TupleIsNullPredicate.class),
         tupleIsNullPreds);
-    TreeNode.collect(sortExprs_, Predicates.instanceOf(TupleIsNullPredicate.class),
-        tupleIsNullPreds);
     Expr.removeDuplicates(tupleIsNullPreds);
     addMaterializedExprs(tupleIsNullPreds, analyzer);
 
