@@ -1138,9 +1138,9 @@ SqlNode SqlStmt() :
 }
 {
     (
-        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) (<SEMICOLON>)*
+        stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
-        stmt = SqlExplain() (<SEMICOLON>)*
+        stmt = SqlExplain()
     )
     {
         return stmt;
