@@ -622,9 +622,7 @@ public class FunctionCallExpr extends Expr {
   // the needed memory for that precision value which is 2^precision.
   // This method must be identical to function ComputeHllLengthFromScale()
   // defined in aggregate-functions-ir.cc.
-  public static int ComputeHllLengthFromScale(int scale) {
-    return 1 << (scale + 8);
-  }
+  private int ComputeHllLengthFromScale(int scale) { return 1 << (scale + 8); }
 
   @Override
   protected void analyzeImpl(Analyzer analyzer) throws AnalysisException {
