@@ -577,6 +577,9 @@ public class ImpalaJoinRel extends Join
         case HDFSSCAN:
         case UNION:
         case JOIN:
+        case SEQUENCE:
+        case CTECONSUMER:
+        case CTEPRODUCER:
           return false;
         case AGGREGATE:
         case VALUES:
