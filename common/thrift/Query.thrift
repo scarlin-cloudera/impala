@@ -825,7 +825,7 @@ struct TQueryOptions {
   // See comment in ImpalaService.thrift
   199: optional i32 show_create_table_partition_limit = 1000
 
-  200: optional TCalciteFallback calcite_fallback = TCalciteFallback.ALL_EXCEPTIONS
+  200: optional TCalciteFallback calcite_fallback = TCalciteFallback.UNSUPPORTED_AND_NONQUERY
 
   // See comment in ImpalaService.thrift
   201: optional i32 cte_threshold = -1;
