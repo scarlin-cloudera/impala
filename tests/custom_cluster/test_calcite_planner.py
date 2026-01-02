@@ -45,7 +45,6 @@ class TestCalcitePlanner(CustomClusterTestSuite):
     self.execute_query("select int_array_col from functional.allcomplextypes where 0 = 1",
         options)
 
-  @pytest.mark.execute_serially
   def test_semicolon(self, cursor):
     cursor.execute("set use_calcite_planner=true;")
     cursor.execute("select 4;")
