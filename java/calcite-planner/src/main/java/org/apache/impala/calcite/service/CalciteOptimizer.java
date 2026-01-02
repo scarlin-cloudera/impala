@@ -371,7 +371,7 @@ public class CalciteOptimizer implements CompilerStep {
   private RelNode runJoinProgram(RelNode currentNode, HepProgram program,
       ImpalaRexSimplify simplifier) {
     HepPlanner planner = new HepPlanner(program,
-        new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo(), true, null,
+        new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo(queryOptions_), true, null,
         RelOptCostImpl.FACTORY);
     planner.setRoot(currentNode);
 
@@ -382,7 +382,7 @@ public class CalciteOptimizer implements CompilerStep {
   private RelNode runProgram(RelNode currentNode, HepProgram program,
       ImpalaRexSimplify simplifier) {
     HepPlanner planner = new HepPlanner(program,
-        new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo(), true, null,
+        new ImpalaLoptOptimizeJoinRule.RuntimeFilterInfo(queryOptions_), true, null,
         RelOptCostImpl.FACTORY);
     planner.setRoot(currentNode);
     planner.setExecutor(simplifier.getRexExecutor());

@@ -1445,6 +1445,14 @@ Status impala::SetQueryOption(TImpalaQueryOptions::type option, const string& va
         query_options->__set_cte_threshold(int32_t_val);
         break;
       }
+      case TImpalaQueryOptions::CALCITE_JOIN_TEST_1: {
+        query_options->__set_calcite_join_test_1(IsTrue(value));
+        break;
+      }
+      case TImpalaQueryOptions::CALCITE_JOIN_TEST_2: {
+        query_options->__set_calcite_join_test_2(IsTrue(value));
+        break;
+      }
       default:
         string key = to_string(option);
         if (IsRemovedQueryOption(key)) {

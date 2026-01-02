@@ -67,6 +67,7 @@ import org.apache.impala.calcite.schema.ImpalaCost;
 import org.apache.impala.calcite.schema.ImpalaRelColumnOrigin;
 import org.apache.impala.calcite.schema.ImpalaRelMdNonCumulativeCost;
 import org.apache.impala.catalog.Column;
+import org.apache.impala.thrift.TQueryOptions;
 
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -206,7 +207,12 @@ public class ImpalaLoptOptimizeJoinRule
 
     findRemovableSelfJoins(mq, multiJoin);
 
-    findBestOrderings(mq, call.builder(), multiJoin, semiJoinOpt, call);
+    RuntimeFilterInfo runtimeFilterInfo = multiJoinRel.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+    if (runtimeFilterInfo != null && runtimeFilterInfo.queryOptions_ != null && runtimeFilterInfo.queryOptions_.calcite_join_test_2) {
+      findBestOrderingsOld(mq, call.builder(), multiJoin, semiJoinOpt, call);
+    } else {
+      findBestOrderings(mq, call.builder(), multiJoin, semiJoinOpt, call);
+    }
   }
 
   /**
@@ -513,6 +519,51 @@ public class ImpalaLoptOptimizeJoinRule
   }
 
   /**
+   * OLD
+   */
+  private static void findBestOrderingsOld(
+      RelMetadataQuery mq,
+      RelBuilder relBuilder,
+      LoptMultiJoin multiJoin,
+      LoptSemiJoinOptimizer semiJoinOpt,
+      RelOptRuleCall call) {
+    final List<RelNode> plans = new ArrayList<>();
+
+    final List<String> fieldNames =
+        multiJoin.getMultiJoinRel().getRowType().getFieldNames();
+
+    // generate the N join orderings
+    for (int i = 0; i < multiJoin.getNumJoinFactors(); i++) {
+      // first factor cannot be null generating
+      if (multiJoin.isNullGenerating(i)) {
+        continue;
+      }
+      LoptJoinTree joinTree =
+          createOrdering(
+              mq,
+              relBuilder,
+              multiJoin,
+              semiJoinOpt,
+              i);
+      if (joinTree == null) {
+        continue;
+      }
+
+      RelNode newProject =
+          createTopProject(call.builder(), multiJoin, joinTree, fieldNames);
+      plans.add(newProject);
+    }
+
+    // transform the selected plans; note that we wait till then the end to
+    // transform everything so any intermediate RelNodes we create are not
+    // converted to RelSubsets The HEP planner will choose the join subtree
+    // with the best cumulative cost. Volcano planner keeps the alternative
+    // join subtrees and cost the final plan to pick the best one.
+    for (RelNode plan : plans) {
+      call.transformTo(plan);
+    }
+  }
+  /**
    * Generates N optimal join orderings. Each ordering contains each factor as
    * the first factor in the ordering.
    *
@@ -804,7 +855,19 @@ public class ImpalaLoptOptimizeJoinRule
           nextFactor = selfJoinFactor;
           selfJoin = true;
         } else {
-          nextFactor =
+          RuntimeFilterInfo runtimeFilterInfo = multiJoin.getMultiJoinRel().getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+          if (runtimeFilterInfo != null && runtimeFilterInfo.queryOptions_ != null && runtimeFilterInfo.queryOptions_.calcite_join_test_2) {
+            nextFactor =
+              getBestNextFactorOld(
+                  mq,
+                  multiJoin,
+                  factorsToAdd,
+                  factorsAdded,
+                  semiJoinOpt,
+                  joinTree,
+                  filtersToAdd);
+          } else {
+            nextFactor =
               getBestNextFactor(
                   mq,
                   multiJoin,
@@ -813,6 +876,7 @@ public class ImpalaLoptOptimizeJoinRule
                   semiJoinOpt,
                   joinTree,
                   filtersToAdd);
+          }
         }
       }
 
@@ -848,6 +912,86 @@ public class ImpalaLoptOptimizeJoinRule
     return joinTree;
   }
 
+  /*
+   * OLD
+   */
+  private static int getBestNextFactorOld(
+      RelMetadataQuery mq,
+      LoptMultiJoin multiJoin,
+      BitSet factorsToAdd,
+      BitSet factorsAdded,
+      LoptSemiJoinOptimizer semiJoinOpt,
+      @Nullable LoptJoinTree joinTree,
+      List<RexNode> filtersToAdd) {
+    // iterate through the remaining factors and determine the
+    // best one to add next
+    int nextFactor = -1;
+    int bestWeight = 0;
+    Double bestCardinality = null;
+    int [][] factorWeights = multiJoin.getFactorWeights();
+    for (int factor : BitSets.toIter(factorsToAdd)) {
+      // if the factor corresponds to a dimension table whose
+      // join we can remove, make sure the corresponding fact
+      // table is in the current join tree
+      Integer factIdx = multiJoin.getJoinRemovalFactor(factor);
+      if (factIdx != null) {
+        if (!factorsAdded.get(factIdx)) {
+          continue;
+        }
+      }
+
+      // can't add a null-generating factor if its dependent,
+      // non-null generating factors haven't been added yet
+      if (multiJoin.isNullGenerating(factor)
+          && !BitSets.contains(factorsAdded,
+              multiJoin.getOuterJoinFactors(factor))) {
+        continue;
+      }
+
+      // determine the best weight between the current factor
+      // under consideration and the factors that have already
+      // been added to the tree
+      int dimWeight = 0;
+      for (int prevFactor : BitSets.toIter(factorsAdded)) {
+        int[] factorWeight = requireNonNull(factorWeights, "factorWeights")[prevFactor];
+        if (factorWeight[factor] > dimWeight) {
+          dimWeight = factorWeight[factor];
+        }
+      }
+
+      // only compute the join cardinality if we know that
+      // this factor joins with some part of the current join
+      // tree and is potentially better than other factors
+      // already considered
+      Double cardinality = null;
+      if ((dimWeight > 0)
+          && ((dimWeight > bestWeight) || (dimWeight == bestWeight))) {
+        cardinality =
+            computeJoinCardinality(
+              mq,
+                multiJoin,
+                semiJoinOpt,
+                requireNonNull(joinTree, "joinTree"),
+                filtersToAdd,
+                factor);
+      }
+
+      // if two factors have the same weight, pick the one
+      // with the higher cardinality join key, relative to
+      // the join being considered
+      if ((dimWeight > bestWeight)
+          || ((dimWeight == bestWeight)
+          && ((bestCardinality == null)
+          || ((cardinality != null)
+          && (cardinality > bestCardinality))))) {
+        nextFactor = factor;
+        bestWeight = dimWeight;
+        bestCardinality = cardinality;
+      }
+    }
+
+    return nextFactor;
+  }
   /**
    * Determines the best factor to be added next into a join tree.
    *
@@ -1086,23 +1230,42 @@ public class ImpalaLoptOptimizeJoinRule
     } else {
       requireNonNull(costPushDown, "costPushDown");
       requireNonNull(costTop, "costTop");
-      if (costPushDown.isEqWithEpsilon(costTop)) {
-        // IMPALA CHANGE
-        // if both plans cost the same (with an allowable round-off
-        // margin of error), the left side will be the one that contains
-        // more rows. This could allow the opportunity for a runtime filter
-        // to be created.
-        Double topRowWidth = getLeftestRowCount(mq, topTree.getJoinTree());
-        Double pushRowWidth = getLeftestRowCount(mq, pushDownTree.getJoinTree());
-        if (pushRowWidth > topRowWidth) {
+        RuntimeFilterInfo runtimeFilterInfo = multiJoin.getMultiJoinRel().getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+      if (runtimeFilterInfo != null && runtimeFilterInfo.queryOptions_ != null && runtimeFilterInfo.queryOptions_.calcite_join_test_1) {
+        if (costPushDown.isEqWithEpsilon(costTop)) {
+          // if both plans cost the same (with an allowable round-off
+          // margin of error), favor the one that passes
+          // around the wider rows further up in the tree
+          if (rowWidthCost(pushDownTree.getJoinTree())
+              < rowWidthCost(topTree.getJoinTree())) {
+            bestTree = pushDownTree;
+          } else {
+            bestTree = topTree;
+          }
+        } else if (costPushDown.isLt(costTop)) {
           bestTree = pushDownTree;
         } else {
           bestTree = topTree;
         }
-      } else if (costPushDown.isLt(costTop)) {
-        bestTree = pushDownTree;
       } else {
-        bestTree = topTree;
+        if (costPushDown.isEqWithEpsilon(costTop)) {
+          // IMPALA CHANGE
+          // if both plans cost the same (with an allowable round-off
+          // margin of error), the left side will be the one that contains
+          // more rows. This could allow the opportunity for a runtime filter
+          // to be created.
+          Double topRowWidth = getLeftestRowCount(mq, topTree.getJoinTree());
+          Double pushRowWidth = getLeftestRowCount(mq, pushDownTree.getJoinTree());
+          if (pushRowWidth > topRowWidth) {
+            bestTree = pushDownTree;
+          } else {
+            bestTree = topTree;
+          }
+        } else if (costPushDown.isLt(costTop)) {
+          bestTree = pushDownTree;
+        } else {
+          bestTree = topTree;
+        }
       }
     }
 
@@ -2671,6 +2834,11 @@ public class ImpalaLoptOptimizeJoinRule
     public final Map<TableScan, List<RuntimeFilterReductionContext>> reductionMap_ = new HashMap<>();
     public boolean useLeft_;
     public ImmutableBitSet inputRefs_;
+    public TQueryOptions queryOptions_;
+
+    public RuntimeFilterInfo(TQueryOptions queryOptions) {
+      queryOptions_ = queryOptions;
+    }
 
     @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
       return clazz.isInstance(this) ? clazz.cast(this) : null;
