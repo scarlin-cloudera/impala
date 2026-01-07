@@ -113,24 +113,19 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
     double cardinality = mq.getRowCount(scan);
     double avgTupleSize = 0.0;
     RuntimeFilterInfo runtimeFilterInfo = scan.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
-    Double reductionPercentage = 1.0;
-    if (runtimeFilterInfo != null) {
-      if (runtimeFilterInfo.reductionMap_.containsKey(scan)) {
-        reductionPercentage = RuntimeFilterReductionContext.getTotalReductionPercentage(runtimeFilterInfo.useLeft_, runtimeFilterInfo.reductionMap_.get(scan));
-      }
+    RuntimeFilterReductionContext context = runtimeFilterInfo.reductionMap_.get(scan);
+    Double reductionPercentage = (context != null)
+            ? context.reductionPercentage_
+            : 1.0;
+    //XXX: use streaming stuff
+    if (runtimeFilterInfo.inputRefs_ != null) {
       List<Double> avgColumnSizes = mq.getAverageColumnSizes(scan);
-      if (runtimeFilterInfo.inputRefs_ != null) {
-        for (Integer i : runtimeFilterInfo.inputRefs_) {
-          avgTupleSize += avgColumnSizes.get(i);
-        }
-      } else {
-        avgTupleSize = mq.getAverageRowSize(scan);
+      for (Integer i : runtimeFilterInfo.inputRefs_) {
+        avgTupleSize += avgColumnSizes.get(i);
       }
     } else {
       avgTupleSize = mq.getAverageRowSize(scan);
     }
-
-
 
     return new ImpalaCost(0, hdfsRead * cardinality * avgTupleSize * reductionPercentage);
   }

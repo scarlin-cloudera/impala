@@ -92,112 +92,54 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public class ImpalaLoptOptimizeExtension {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaLoptOptimizeExtension.class.getName());
 
-  public static boolean swapInputs(RelMetadataQuery mq, LoptMultiJoin multiJoin, LoptJoinTree leftTree, LoptJoinTree rightTree, RexNode condition, RexBuilder rexBuilder, boolean adjust) {
-    MultiJoin multiJoinRel = multiJoin.getMultiJoinRel();
-    RuntimeFilterInfo runtimeFilterInfo = multiJoinRel.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
-    if (runtimeFilterInfo != null) {
-      runtimeFilterInfo.clear();
-    } else {
-    }
-    Context context = multiJoinRel.getCluster().getPlanner().getContext();
-
-
-    int [] adjustments = new int[multiJoin.getNumTotalFields()];
-    List<RexNode> andConditions = ExprConjunctsConverter.getAndConjuncts(condition);
+  public static boolean swapInputs(RelMetadataQuery mq, LoptMultiJoin multiJoin,
+      LoptJoinTree leftTree, LoptJoinTree rightTree, RexNode condition,
+      RexBuilder rexBuilder, boolean adjust) {
+    MultiJoin mjRel = multiJoin.getMultiJoinRel();
     RelNode leftSide = leftTree.getJoinTree();
     RelNode rightSide = rightTree.getJoinTree();
-    Map<CalciteTable, Double> leftReductionMap = new HashMap<>();
-    Map<CalciteTable, Double> rightReductionMap = new HashMap<>();
+    RuntimeFilterInfo runtimeFilterInfo =
+        mjRel.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
 
-    if (andConditions.size() > 1) {
-      return false;
-    }
-    for (RexNode andCondition : andConditions) { 
-      runtimeFilterInfo.reductionMap_.putAll(createRuntimeFilterReductionContext(andCondition, adjust,
-          multiJoinRel, leftSide, rightSide, rightTree, mq));
-    }
+    runtimeFilterInfo.clear();
+    RelOptCost leftSideWithoutFilterCost =
+        getCumulativeCost(unwrapHepRelVertex(leftSide), mq);
+    RelOptCost rightSideWithoutFilterCost =
+        getCumulativeCost(unwrapHepRelVertex(rightSide), mq);
 
-    //XXX: ugly, but will fix with cost model, hopefully
-    /*
-    List<RuntimeFilterReductionContext> leftReductionList = null;
-    List<RuntimeFilterReductionContext> rightReductionList = null;
-    for (TableScan ts : runtimeFilterInfo.reductionMap_.keySet()) {
-      Preconditions.checkState(runtimeFilterInfo.reductionMap_.size() == 2);
-      if (runtimeFilterInfo.reductionMap_.get(ts).get(0).isLeft_) {
-        leftReductionList = runtimeFilterInfo.reductionMap_.get(ts);
-      } else {
-        rightReductionList = runtimeFilterInfo.reductionMap_.get(ts);
-      }
+    List<RexNode> andConditions = ExprConjunctsConverter.getAndConjuncts(condition);
+
+    RuntimeFilterReductionContext leftContext = createRuntimeFilterReductionContext(condition, adjust,
+        mjRel, leftSide, rightSide, rightTree, mq, true);
+    if (leftContext != null) {
+      runtimeFilterInfo.reductionMap_.put(leftContext.tableScan_, leftContext);
+    }
+    RuntimeFilterReductionContext rightContext = createRuntimeFilterReductionContext(condition, adjust,
+        mjRel, leftSide, rightSide, rightTree, mq, false);
+    if (rightContext != null) {
+      runtimeFilterInfo.reductionMap_.put(rightContext.tableScan_, rightContext);
     }
 
-    Double leftTotalReduction = 0.0;
-    Double rightTotalReduction = 0.0;
-    if (leftReductionList != null) {
-      leftTotalReduction = RuntimeFilterReductionContext.getTotalReduction(leftReductionList);
-    } else {
-    }
-    if (rightReductionList != null) {
-      rightTotalReduction = RuntimeFilterReductionContext.getTotalReduction(rightReductionList);
-    } else {
-    }
+    RelOptCost leftSideWithFilterCost =
+        getCumulativeCost(unwrapHepRelVertex(leftSide), mq);
+    RelOptCost rightSideWithFilterCost =
+        getCumulativeCost(unwrapHepRelVertex(rightSide), mq);
 
-
-//    Double totalLeftReduction = leftTable.getRowCount() - leftTable.getRowCount() * leftReduction;
-//    Double totalRightReduction = rightTable.getRowCount() - rightTable.getRowCount() * rightReduction;
-
-*/
-    RelNode relNode3 = leftSide;
-    if (relNode3 instanceof HepRelVertex) {
-      relNode3 = ((HepRelVertex)relNode3).getCurrentRel();
-    }
-
-    runtimeFilterInfo.useLeft_ = true;
-    RelOptCost leftSideWithFilterCost = getCumulativeCost(relNode3, mq);
-    runtimeFilterInfo.useLeft_ = false;
-    RelOptCost leftSideWithoutFilterCost = getCumulativeCost(relNode3, mq);
-    relNode3 = rightSide;
-    if (relNode3 instanceof HepRelVertex) {
-      relNode3 = ((HepRelVertex)relNode3).getCurrentRel();
-    }
-    runtimeFilterInfo.useLeft_ = false;
-    RelOptCost rightSideWithFilterCost = getCumulativeCost(relNode3, mq);
-    runtimeFilterInfo.useLeft_ = true;
-    RelOptCost rightSideWithoutFilterCost = getCumulativeCost(relNode3, mq);
     RelOptCost totalPreJoinNonSwapCost = leftSideWithFilterCost.plus(rightSideWithoutFilterCost);
+    RelOptCost totalJoinNonSwapCost = totalPreJoinNonSwapCost.plus(ImpalaRelMdNonCumulativeCost.getJoinCost(leftSide, rightSide, mq));
     RelOptCost totalPreJoinSwapCost = leftSideWithoutFilterCost.plus(rightSideWithFilterCost);
 
-    RelOptCost totalJoinNonSwapCost = totalPreJoinNonSwapCost.plus(ImpalaRelMdNonCumulativeCost.getJoinCost(leftSide, rightSide, mq));
     RelOptCost totalJoinSwapCost = totalPreJoinSwapCost.plus(ImpalaRelMdNonCumulativeCost.getJoinCost(rightSide, leftSide, mq));
     return totalJoinSwapCost.isLe(totalJoinNonSwapCost);
-    /*
-    if (mq.getRowCount(leftSide) > mq.getRowCount(rightSide)) {
-      if (leftSideCost.isLe(rightSideCost)) {
-        return true;
-      }
-      if (rightReductionList == null) {
-        return false;
-      } else if (rightTotalReduction > mq.getRowCount(leftSide)) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      if (leftReductionList == null) {
-        return true;
-    } else if (leftTotalReduction > mq.getRowCount(rightSide)) {
-        return false;
-      } else {
-        return true;
-      }
-    }
-    */
   }
 
-  private static boolean swapBitSides(ImmutableBitSet bitSet, boolean adjust, LoptJoinTree rightTree, MultiJoin multiJoin) {
-    if (!adjust) {
+  private static boolean swapBitSides(ImmutableBitSet bitSet, boolean adjust, LoptJoinTree rightTree, RelNode join) {
+    if (!adjust || !(join instanceof MultiJoin)) {
       return false;
     }
+    MultiJoin multiJoin = (MultiJoin) join;
 
     final List<Integer> joinOrder = new ArrayList<>();
     rightTree.getTreeOrder(joinOrder);
@@ -214,62 +156,55 @@ public class ImpalaLoptOptimizeExtension {
     return bitSet.nth(0) >= startOfRightSideFields && bitSet.nth(0) < endOfRightSideFields;
   }
 
-  private static Map<TableScan, List<RuntimeFilterReductionContext>> createRuntimeFilterReductionContext(
+  private static RuntimeFilterReductionContext createRuntimeFilterReductionContext(
       RexNode condition, boolean adjust,
-      MultiJoin multiJoinRel, RelNode leftSide, RelNode rightSide, LoptJoinTree rightTree,
-      RelMetadataQuery mq) {
-    Map<TableScan, List<RuntimeFilterReductionContext>> reductionMap = new HashMap<>();
-    JoinRelNodes joinRelNodes = new JoinRelNodes(leftSide, rightSide);
-    ImmutableBitSet bitSet = RelOptUtil.InputFinder.bits(condition);
+      RelNode joinRel, RelNode leftSide, RelNode rightSide, LoptJoinTree rightTree,
+      RelMetadataQuery mq, boolean isLeft) {
 
-    if (bitSet.cardinality() != 2) {
-      return reductionMap;
-    }
+    TableScan ts = null;
+    Double reduction = 1.0;
+    Map<TableScan, RuntimeFilterReductionContext> reductionMap = new HashMap<>();
+    List<RexNode> andConditions = ExprConjunctsConverter.getAndConjuncts(condition);
+    for (RexNode andCondition : andConditions) { 
+      ImmutableBitSet bitSet = RelOptUtil.InputFinder.bits(andCondition);
 
-    Double leftReduction = 1.0;
-    Double rightReduction = 1.0;
-    int leftBit = bitSet.nth(0);
-    int rightBit = bitSet.nth(1);
-    if (swapBitSides(bitSet, adjust, rightTree, multiJoinRel)) {
-      leftBit = bitSet.nth(1);
-      rightBit = bitSet.nth(0);
-    }
-    int leftIndex = adjust ? getAdjustedIndex(multiJoinRel, leftBit) : leftBit;
-    int rightIndex = adjust ? getAdjustedIndex(multiJoinRel, rightBit) : rightBit - leftSide.getRowType().getFieldList().size();
-//    Set<Integer> rightPreAdjustedIndexList = getRightPreAdjustedIndexList(bitSet, adjust, rightTree, multiJoinRel);
-//    Set<Integer> leftPreAdjustedIndexList = getLeftPreAdjustedIndexList(bitSet, rightPreAdjustedIndexList);
-    ImpalaRelColumnOrigin leftOrigin = (ImpalaRelColumnOrigin) mq.getColumnOrigin(leftSide, leftIndex);
-    ImpalaRelColumnOrigin rightOrigin = (ImpalaRelColumnOrigin) mq.getColumnOrigin(rightSide, rightIndex);
-    if (leftOrigin != null) {
-      CalciteTable leftTable = (CalciteTable) leftOrigin.getOriginTable();
-      Column leftTableColumn = leftTable.getColumn(leftOrigin.getOriginColumnOrdinal());
-      ImmutableBitSet leftBitSet = ImmutableBitSet.of(leftIndex);
-      rightReduction = mq.getDistinctRowCount(leftSide, leftBitSet, null) / leftTableColumn.getStats().getNumDistinctValues();
-      if (leftTable.getName().equals("store_sales") && rightReduction < .1) {
+      if (bitSet.cardinality() != 2) {
+        continue;
+      }
+
+      boolean swapBits = swapBitSides(bitSet, adjust, rightTree, joinRel);
+      int leftIndex = getLeftIndex(joinRel, bitSet, swapBits, adjust);
+      int rightIndex = getRightIndex(joinRel, bitSet, swapBits, adjust, leftSide);
+
+      ImpalaRelColumnOrigin leftOrigin = (ImpalaRelColumnOrigin) mq.getColumnOrigin(leftSide, leftIndex);
+      ImpalaRelColumnOrigin rightOrigin = (ImpalaRelColumnOrigin) mq.getColumnOrigin(rightSide, rightIndex);
+      if (leftOrigin == null || rightOrigin == null) {
+        continue;
+      }
+
+      if (isLeft) {
+        ts = leftOrigin.getTableScan();
+        reduction *= getReduction(rightSide, rightOrigin, rightIndex, mq);
+      } else {
+        reduction *= getReduction(leftSide, leftOrigin, leftIndex, mq);
+        ts = rightOrigin.getTableScan();
       }
     }
-    rightReduction = Math.min(rightReduction, 1.0);
+    return ts != null ? new RuntimeFilterReductionContext(ts, reduction) : null;
+  }
 
-    if (rightOrigin != null) {
-      CalciteTable rightTable = (CalciteTable) rightOrigin.getOriginTable();
-      Column rightTableColumn = rightTable.getColumn(rightOrigin.getOriginColumnOrdinal());
-      ImmutableBitSet rightBitSet = ImmutableBitSet.of(rightIndex);
-      leftReduction = mq.getDistinctRowCount(rightSide, rightBitSet, null) / rightTableColumn.getStats().getNumDistinctValues();
+  public static Double getReduction(RelNode input, ImpalaRelColumnOrigin originCol,
+      int inputColumnIndex, RelMetadataQuery mq) {
+    ImmutableBitSet bitSet = ImmutableBitSet.of(inputColumnIndex);
+    Double distinctRowCount = mq.getDistinctRowCount(input, bitSet, null);
+    if (distinctRowCount == null) {
+      return 1.0;
     }
-    leftReduction = Math.min(leftReduction, 1.0);
+    CalciteTable table = (CalciteTable) originCol.getOriginTable();
+    Column tableColumn = table.getColumn(originCol.getOriginColumnOrdinal());
+    Double reduction = distinctRowCount / tableColumn.getStats().getNumDistinctValues();
+    return Math.min(reduction, 1.0);
 
-    List<RuntimeFilterReductionContext> contextList;
-    if (rightOrigin != null) {
-      contextList =
-           reductionMap.computeIfAbsent(rightOrigin.getTableScan(), k -> new ArrayList<>());
-      contextList.add(new RuntimeFilterReductionContext(joinRelNodes, rightOrigin.getTableScan(), rightReduction, false, false));
-    }
-    if (leftOrigin != null) {
-      contextList =
-           reductionMap.computeIfAbsent(leftOrigin.getTableScan(), k -> new ArrayList<>());
-      contextList.add(new RuntimeFilterReductionContext(joinRelNodes, leftOrigin.getTableScan(), leftReduction, true, false));
-    }
-    return reductionMap;
   }
 
   public static RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
@@ -281,6 +216,18 @@ public class ImpalaLoptOptimizeExtension {
   }
 
   public static RelOptCost getCumulativeCostInternal(RelNode rel, RelMetadataQuery mq) {
+    if (rel instanceof Join) {
+      Join join = (Join) rel;
+      RuntimeFilterInfo runtimeFilterInfo = join.getCluster().getPlanner().getContext().unwrap(RuntimeFilterInfo.class);
+      List<RexNode> andConditions = ExprConjunctsConverter.getAndConjuncts(join.getCondition());
+      if (andConditions.size() <= 1 && join.getJoinType() != JoinRelType.INNER) {
+        RuntimeFilterReductionContext context = createRuntimeFilterReductionContext(andConditions.get(0), false,
+            join, join.getInput(0), join.getInput(1), null, mq, true);
+        if (shouldUseContext(runtimeFilterInfo.reductionMap_, context)) {
+          runtimeFilterInfo.reductionMap_.put(context.tableScan_, context);
+        }
+      }
+    }
     ImpalaRelMdNonCumulativeCost noncumulativeCostHandler =
         new ImpalaRelMdNonCumulativeCost();
     RelOptCost cost = noncumulativeCostHandler.getNonCumulativeCost(rel, mq);
@@ -302,6 +249,19 @@ public class ImpalaLoptOptimizeExtension {
       cost = cost.plus(inputCost);
     }
     return cost;
+  }
+
+  public static boolean shouldUseContext(
+      Map<TableScan, RuntimeFilterReductionContext> map,
+      RuntimeFilterReductionContext context) {
+    if (context == null) {
+      return false;
+    }
+    if (!map.containsKey(context.tableScan_)) {
+      return true;
+    }
+    RuntimeFilterReductionContext currentContext = map.get(context.tableScan_);
+    return context.reductionPercentage_ < currentContext.reductionPercentage_;
   }
 
   private static ImmutableBitSet getInputRefsForContext(RelNode rel, ImmutableBitSet currentSet, int i) {
@@ -330,7 +290,23 @@ public class ImpalaLoptOptimizeExtension {
     }
   }
 
-  private static int getAdjustedIndex(MultiJoin multiJoin, int index) {
+  private static int getLeftIndex(RelNode multiJoinRel, ImmutableBitSet bitSet,
+      boolean swapBits, boolean adjust) {
+    int leftBit = swapBits ? bitSet.nth(1) : bitSet.nth(0);
+    return adjust ? getAdjustedIndex(multiJoinRel, leftBit) : leftBit;
+  }
+
+  private static int getRightIndex(RelNode multiJoinRel, ImmutableBitSet bitSet,
+      boolean swapBits, boolean adjust, RelNode leftSide) {
+    int rightBit = swapBits ? bitSet.nth(0) : bitSet.nth(1);
+    return adjust
+        ? getAdjustedIndex(multiJoinRel, rightBit)
+        : rightBit - leftSide.getRowType().getFieldList().size();
+  }
+
+  private static int getAdjustedIndex(RelNode relNode, int index) {
+    Preconditions.checkState(relNode instanceof MultiJoin);
+    MultiJoin multiJoin = (MultiJoin) relNode;
     int totalFieldsSoFar = 0;
     for (RelNode r : multiJoin.getInputs()) {
       if (index - totalFieldsSoFar < r.getRowType().getFieldList().size()) {
@@ -339,6 +315,12 @@ public class ImpalaLoptOptimizeExtension {
       totalFieldsSoFar += r.getRowType().getFieldList().size();
     }
     throw new RuntimeException("SJC: EXCEPTION");
+  }
+
+  private static RelNode unwrapHepRelVertex(RelNode relNode) {
+    return relNode instanceof HepRelVertex
+        ? ((HepRelVertex)relNode).getCurrentRel()
+        : relNode;
   }
 
   public static class JoinRelNodes {
@@ -364,8 +346,7 @@ public class ImpalaLoptOptimizeExtension {
   }
 
   public static class RuntimeFilterInfo implements Context {
-    public final Map<TableScan, List<RuntimeFilterReductionContext>> reductionMap_ = new HashMap<>();
-    public boolean useLeft_;
+    public final Map<TableScan, RuntimeFilterReductionContext> reductionMap_ = new HashMap<>();
     public ImmutableBitSet inputRefs_;
     public TQueryOptions queryOptions_;
 
@@ -383,29 +364,21 @@ public class ImpalaLoptOptimizeExtension {
   }
 
   public static class RuntimeFilterReductionContext {
-    public final JoinRelNodes joinRelNodes_;
     public final TableScan tableScan_;
     public final Double reductionPercentage_;
     //XXX: temp variable
-    public final boolean isLeft_;
-    public final boolean useAlways_;
 
-    public RuntimeFilterReductionContext(JoinRelNodes joinRelNodes, TableScan tableScan,
-        Double reductionPercentage, boolean isLeft, boolean useAlways) {
-      this.joinRelNodes_ = joinRelNodes;
+    public RuntimeFilterReductionContext(TableScan tableScan,
+        Double reductionPercentage) {
       this.tableScan_ = tableScan;
       this.reductionPercentage_ = reductionPercentage;
-      this.isLeft_ = isLeft;
-      this.useAlways_ = useAlways;
     }
 
     public static Double getTotalReductionPercentage(boolean useLeft,
         List<RuntimeFilterReductionContext> reductionList) {
       Double totalReduction = 1.0;
       for (RuntimeFilterReductionContext r : reductionList) {
-        if (useLeft == r.isLeft_ || r.useAlways_) {
-          totalReduction *=  r.reductionPercentage_;
-        }
+        totalReduction = Math.min(totalReduction, r.reductionPercentage_);
       }
       return totalReduction;
     }

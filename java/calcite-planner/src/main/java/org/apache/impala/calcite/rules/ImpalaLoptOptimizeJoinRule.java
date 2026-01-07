@@ -1215,12 +1215,18 @@ public class ImpalaLoptOptimizeJoinRule
     LoptJoinTree bestTree;
     RelOptCost costPushDown = null;
     RelOptCost costTop = null;
+    RelOptCost costPushDown2 = null;
+    RelOptCost costTop2 = null;
     if (pushDownTree != null) {
 //      costPushDown = mq.getCumulativeCost(pushDownTree.getJoinTree());
+      ImpalaLoptOptimizeExtension.RuntimeFilterInfo runtimeFilterInfo = multiJoin.getMultiJoinRel().getCluster().getPlanner().getContext().unwrap(ImpalaLoptOptimizeExtension.RuntimeFilterInfo.class);
+      runtimeFilterInfo.clear();
       costPushDown = ImpalaLoptOptimizeExtension.getCumulativeCost(pushDownTree.getJoinTree(), mq);
     }
     if (topTree != null) {
 //      costTop = mq.getCumulativeCost(topTree.getJoinTree());
+      ImpalaLoptOptimizeExtension.RuntimeFilterInfo runtimeFilterInfo = multiJoin.getMultiJoinRel().getCluster().getPlanner().getContext().unwrap(ImpalaLoptOptimizeExtension.RuntimeFilterInfo.class);
+      runtimeFilterInfo.clear();
       costTop = ImpalaLoptOptimizeExtension.getCumulativeCost(topTree.getJoinTree(), mq);
     }
 
