@@ -91,7 +91,8 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = analysisResult.getTypeFactory();
     this.reader_ = analysisResult.getCatalogReader();
     this.sqlValidator_ = analysisResult.getSqlValidator();
-    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaMQContext());
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY,
+        new ImpalaMQContext( analysisResult.getAnalyzer().getQueryOptions()));
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =
@@ -105,7 +106,7 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = validator.getTypeFactory();
     this.reader_ = validator.getCatalogReader();
     this.sqlValidator_ = validator.getSqlValidator();
-    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaMQContext());
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaMQContext(null));
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =

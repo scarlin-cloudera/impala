@@ -211,9 +211,9 @@ public class ImpalaCoreRules {
  public static final ImpalaLoptOptimizeJoinRule MULTI_JOIN_OPTIMIZE =
       ImpalaLoptOptimizeJoinRule.Config.DEFAULT
             .withCostFunction((c, r)
-                -> ImpalaLoptOptimizeExtension.getCumulativeCost(c, r))
+                -> ImpalaLoptOptimizeJoinHooks.getCumulativeCost(c, r))
             .withSwapInputsFunction((mq, mj, left, right, sj, cond, rexB, adjust)
-                -> ImpalaLoptOptimizeExtension.swapInputs(mq, mj, left, right, cond,
+                -> ImpalaLoptOptimizeJoinHooks.swapInputs(mq, mj, left, right, cond,
                     rexB, adjust))
             .toRule();
 

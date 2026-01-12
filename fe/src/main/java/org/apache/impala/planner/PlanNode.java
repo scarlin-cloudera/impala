@@ -85,6 +85,7 @@ import com.google.common.collect.Sets;
  * its children (= are bound by tupleIds_).
  */
 abstract public class PlanNode extends TreeNode<PlanNode> {
+  public boolean invertJoins_; 
   private final static Logger LOG = LoggerFactory.getLogger(PlanNode.class);
 
   // The default row batch size used if the BATCH_SIZE query option is not set

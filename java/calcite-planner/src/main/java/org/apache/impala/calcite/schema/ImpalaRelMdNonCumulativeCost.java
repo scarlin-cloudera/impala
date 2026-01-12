@@ -31,6 +31,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.impala.calcite.rules.ImpalaMQContext;
+import org.apache.impala.calcite.rules.ImpalaMQContext.RuntimeFilterReductionInfo;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -112,6 +113,10 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
     double avgTupleSize = 0.0;
     ImpalaMQContext mqContext =
         scan.getCluster().getPlanner().getContext().unwrap(ImpalaMQContext.class);
+    RuntimeFilterReductionInfo reductionInfo = mqContext.reductionMap_.get(scan);
+    Double reductionPercentage = (reductionInfo != null)
+            ? reductionInfo.reductionPercentage_
+            : 1.0;
     if (!mqContext.getInputRefs().isEmpty()) {
       List<Double> avgColumnSizes = mq.getAverageColumnSizes(scan);
       for (Integer i : mqContext.getInputRefs()) {
@@ -121,7 +126,7 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
       avgTupleSize = mq.getAverageRowSize(scan);
     }
 
-    return new ImpalaCost(0, hdfsRead * cardinality * avgTupleSize);
+    return new ImpalaCost(0, hdfsRead * cardinality * avgTupleSize * reductionPercentage);
   }
 
   private RelOptCost getAggregateCost(Aggregate agg, RelMetadataQuery mq) {

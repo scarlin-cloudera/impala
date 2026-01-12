@@ -367,7 +367,7 @@ public class CalciteOptimizer implements CompilerStep {
 
   private RelNode runProgram(RelNode currentNode, HepProgram program,
       ImpalaRexSimplify simplifier) {
-    HepPlanner planner = new HepPlanner(program, new ImpalaMQContext(), true,
+    HepPlanner planner = new HepPlanner(program, new ImpalaMQContext(queryOptions_), true,
         null, RelOptCostImpl.FACTORY);
     planner.setRoot(currentNode);
     planner.setExecutor(simplifier.getRexExecutor());

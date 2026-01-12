@@ -141,6 +141,7 @@ public class Planner {
     checkForSmallQueryOptimization(singleNodePlan);
 
     // Join rewrites.
+    singleNodePlan.invertJoins_ = ctx_.getQueryOptions().isInvert_joins();
     invertJoins(singleNodePlan, ctx_.isSingleNodeExec());
     singleNodePlan = useNljForSingularRowBuilds(singleNodePlan, ctx_.getRootAnalyzer());
 
@@ -751,10 +752,15 @@ public class Planner {
    */
   public static void invertJoins(PlanNode root, boolean isLocalPlan) {
     if (root instanceof SubplanNode) {
+      root.getChild(0).invertJoins_ = root.invertJoins_;
+      root.getChild(1).invertJoins_ = root.invertJoins_;
       invertJoins(root.getChild(0), isLocalPlan);
       invertJoins(root.getChild(1), true);
     } else {
-      for (PlanNode child: root.getChildren()) invertJoins(child, isLocalPlan);
+      for (PlanNode child: root.getChildren()) {
+        child.invertJoins_ = root.invertJoins_;
+        invertJoins(child, isLocalPlan);
+      }
     }
 
     if (root instanceof JoinNode) {
@@ -778,7 +784,9 @@ public class Planner {
         // which has no backend support. Invert the join to make it executable.
         joinNode.invertJoin();
       } else if (isInvertedJoinCheaper(joinNode, isLocalPlan)) {
-        joinNode.invertJoin();
+        if (joinNode.invertJoins_) {
+          joinNode.invertJoin();
+        }
       }
       // Re-compute the numNodes and numInstances based on the new input order
       joinNode.recomputeNodes();

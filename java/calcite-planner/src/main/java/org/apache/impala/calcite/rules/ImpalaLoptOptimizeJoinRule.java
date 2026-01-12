@@ -65,6 +65,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -84,16 +86,30 @@ import static java.util.Objects.requireNonNull;
  * will allow us to compare the modifications made for Impala directly against the
  * original Calcite code.
  *
- * We need to copy the rule instead of extending the rule class because the
- * modifications needed for Impala are changing parts of the core algorithm. This
- * core is found in some of the private methods within this class. Because the
- * changes are being made in private methods, extending the class with our own
- * modifications is not possible.
+ * On top of the original version, there are some changes added here to work with
+ * the Impala planner:
+ *
+ * - The rule name has been changed to ImpalaLoptOptimizationJoinRule, moved into an
+ *   impala package, and various constructors/configs have been changed to get this
+ *   to compile.
+ * - CALCITE-6788 was created in version 1.41 to allow a hook for calculating the
+ *   cost of a given join order when doing comparisions. The change has been imported
+ *   into this version. The main change is to add the withCostFunction() interface into
+ *   the configuration. Various method signatures were changed within CALCITE-6788 to
+ *   make this work.
+ * - Similar to CALCITE-6788, the swapInputs() hook was added. This is not currently
+ *   present in Calcite.
+ * - Some code was commented out of the internal swapInputs() because it tried to
+ *   reference an inaccessible package protected method (the package for this rule was
+ *   moved to an Impala package). This code is not used in the default implementation
+ *   for Impala, since the withSwapInputs() function is provided that overrides this
+ *   method.
  */
 @Value.Enclosing
 public class ImpalaLoptOptimizeJoinRule
     extends RelRule<ImpalaLoptOptimizeJoinRule.Config>
     implements TransformationRule {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaLoptOptimizeJoinRule.class.getName());
 
   /** Creates an LoptOptimizeJoinRule. */
   protected ImpalaLoptOptimizeJoinRule(Config config) {
@@ -1787,6 +1803,25 @@ public class ImpalaLoptOptimizeJoinRule
     RexBuilder rexBuilder =
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
 
+    ImpalaMQContext mqContext =
+        multiJoin.getMultiJoinRel().getCluster().getPlanner().getContext().unwrap(ImpalaMQContext.class);
+    mqContext.calculateRuntimeFilters_ = true;
+    boolean swap1 = config.swapInputsFunction().swapInputs(mq, multiJoin, left, right, selfJoin,
+        condition, rexBuilder, fullAdjust);
+    mqContext.calculateRuntimeFilters_ = false;
+    boolean swap2 = config.swapInputsFunction().swapInputs(mq, multiJoin, left, right, selfJoin,
+        condition, rexBuilder, fullAdjust);
+    mqContext.calculateRuntimeFilters_ = true;
+    if (swap1 != swap2) {
+      LOG.info("SJC: FOUND A CASE WHERE SWAP CHANGED WITH RUNTIME FILTERS");
+      mqContext.calculateRuntimeFilters_ = true;
+      boolean swap3 = config.swapInputsFunction().swapInputs(mq, multiJoin, left, right, selfJoin,
+          condition, rexBuilder, fullAdjust);
+      mqContext.calculateRuntimeFilters_ = false;
+      boolean swap4 = config.swapInputsFunction().swapInputs(mq, multiJoin, left, right, selfJoin,
+          condition, rexBuilder, fullAdjust);
+      mqContext.calculateRuntimeFilters_ = true;
+    }
     // swap the inputs if beneficial
     // IMPALA CHANGE: using a swapInputs function interface which is defined with the
     // withSwapInputs() method in the config.

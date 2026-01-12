@@ -17,9 +17,14 @@
 package org.apache.impala.calcite.rules;
 
 import org.apache.calcite.plan.Context;
-
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.impala.thrift.TQueryOptions;
+import org.apache.impala.thrift.TRuntimeFilterMode;
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * ImpalaMQContext is a context class that can be used inside a Calcite Planner
@@ -27,8 +32,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * passed while traversing the RelMetadataQuery framework.
  */
 public class ImpalaMQContext implements Context {
+  // Map of a given TableScan to "reduction" information as to how effective
+  // runtime filters are when applied to the TableScan
+  public final Map<TableScan, RuntimeFilterReductionInfo> reductionMap_ = new HashMap<>();
   // Input columns from a parent RelNode passed through the RelMetadataQuery framework.
   private ImmutableBitSet inputRefs_ = ImmutableBitSet.of();
+
+  // Query options for the query.
+  public boolean calculateRuntimeFilters_;
+
+  public ImpalaMQContext(TQueryOptions queryOptions) {
+    calculateRuntimeFilters_ =
+        queryOptions.getRuntime_filter_mode() != TRuntimeFilterMode.OFF &&
+        queryOptions.isUse_calcite_runtime_filter_stats();
+  }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;
@@ -43,6 +60,22 @@ public class ImpalaMQContext implements Context {
   }
 
   public void clear() {
+    reductionMap_.clear();
     inputRefs_ = ImmutableBitSet.of();
+  }
+
+  /**
+   * RuntimeFilterReductionInfo is a simple java object just containing
+   * the table scan and its runtime reduction precentage.
+   */
+  public static class RuntimeFilterReductionInfo {
+    public final TableScan tableScan_;
+    public final Double reductionPercentage_;
+
+    public RuntimeFilterReductionInfo(TableScan tableScan,
+        Double reductionPercentage) {
+      this.tableScan_ = tableScan;
+      this.reductionPercentage_ = reductionPercentage;
+    }
   }
 }

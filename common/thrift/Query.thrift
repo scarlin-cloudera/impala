@@ -829,6 +829,11 @@ struct TQueryOptions {
 
   // See comment in ImpalaService.thrift
   201: optional i32 cte_threshold = -1;
+
+  // See comment in ImpalaService.thrift
+  202: optional bool use_calcite_runtime_filter_stats = true;
+
+  203: optional bool invert_joins = true;
 }
 
 // Impala currently has three types of sessions: Beeswax, HiveServer2 and external
