@@ -208,6 +208,15 @@ public class ImpalaCoreRules {
               .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
               .as(SortRemoveConstantKeysRule.Config.class));
 
+ public static final ImpalaLoptOptimizeJoinRule MULTI_JOIN_OPTIMIZE =
+      ImpalaLoptOptimizeJoinRule.Config.DEFAULT
+            .withCostFunction((c, r)
+                -> ImpalaLoptOptimizeExtension.getCumulativeCost(c, r))
+            .withSwapInputsFunction((mq, mj, left, right, sj, cond, rexB, adjust)
+                -> ImpalaLoptOptimizeExtension.swapInputs(mq, mj, left, right, cond,
+                    rexB, adjust))
+            .toRule();
+
   // If the straight join hint is seen, we exclude applying the JOIN_TO_MULTI_JOIN
   // rule which will ensure no join optimization is done on the join.
   public static HintStrategyTable HINT_STRATEGIES = HintStrategyTable.builder()

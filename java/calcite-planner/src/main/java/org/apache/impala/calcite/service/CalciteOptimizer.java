@@ -61,6 +61,7 @@ import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.rules.ImpalaCoreRules;
 import org.apache.impala.calcite.rules.ImpalaFilterSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaJoinSimplifyRule;
+import org.apache.impala.calcite.rules.ImpalaMQContext;
 import org.apache.impala.calcite.rules.ImpalaProjectSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaRexExecutor;
 import org.apache.impala.calcite.util.LogUtil;
@@ -314,7 +315,7 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleInstance(ImpalaCoreRules.JOIN_CONDITION_PUSH);
     builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_MULTI_JOIN);
-    builder.addRuleInstance(CoreRules.MULTI_JOIN_OPTIMIZE);
+    builder.addRuleInstance(ImpalaCoreRules.MULTI_JOIN_OPTIMIZE);
 
     return runProgram(plan, builder.build(), simplifier);
   }
@@ -366,9 +367,8 @@ public class CalciteOptimizer implements CompilerStep {
 
   private RelNode runProgram(RelNode currentNode, HepProgram program,
       ImpalaRexSimplify simplifier) {
-    HepPlanner planner = new HepPlanner(program,
-        currentNode.getCluster().getPlanner().getContext(), true, null,
-        RelOptCostImpl.FACTORY);
+    HepPlanner planner = new HepPlanner(program, new ImpalaMQContext(), true,
+        null, RelOptCostImpl.FACTORY);
     planner.setRoot(currentNode);
     planner.setExecutor(simplifier.getRexExecutor());
 
