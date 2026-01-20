@@ -2028,7 +2028,8 @@ SqlNode Join() :
 SqlNode JoinTable(SqlNode e) :
 {
     SqlNode e2, condition;
-    final SqlLiteral natural, joinType, on, using;
+    final SqlLiteral joinType, on, using;
+    SqlLiteral natural;
     SqlNodeList list;
 }
 {
@@ -2072,6 +2073,9 @@ SqlNode JoinTable(SqlNode e) :
         }
     |
         {
+            natural = joinType.getValue().equals(JoinType.INNER)
+                ? SqlLiteral.createBoolean(true, getPos())
+                : SqlLiteral.createBoolean(false, getPos());
             return new SqlJoin(joinType.getParserPosition(),
                 e,
                 natural,
