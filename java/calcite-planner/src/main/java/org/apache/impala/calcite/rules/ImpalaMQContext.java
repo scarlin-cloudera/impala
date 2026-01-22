@@ -39,12 +39,15 @@ public class ImpalaMQContext implements Context {
   private ImmutableBitSet inputRefs_ = ImmutableBitSet.of();
 
   // Query options for the query.
-  public boolean calculateRuntimeFilters_;
+  public final boolean calculateRuntimeFilters_;
+
+  public final boolean useNewDistinctFilterCode_;
 
   public ImpalaMQContext(TQueryOptions queryOptions) {
     calculateRuntimeFilters_ =
         queryOptions.getRuntime_filter_mode() != TRuntimeFilterMode.OFF &&
         queryOptions.isUse_calcite_runtime_filter_stats();
+    useNewDistinctFilterCode_ = queryOptions.isUse_new_distinct_filter_code();
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {

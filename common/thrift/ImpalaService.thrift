@@ -1088,6 +1088,8 @@ enum TImpalaQueryOptions {
   USE_CALCITE_RUNTIME_FILTER_STATS = 201
 
   INVERT_JOINS = 202
+
+  USE_NEW_DISTINCT_FILTER_CODE = 203
 }
 
 // The summary of a DML statement.

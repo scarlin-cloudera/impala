@@ -834,6 +834,8 @@ struct TQueryOptions {
   202: optional bool use_calcite_runtime_filter_stats = true;
 
   203: optional bool invert_joins = true;
+
+  204: optional bool use_new_distinct_filter_code = true;
 }
 
 // Impala currently has three types of sessions: Beeswax, HiveServer2 and external

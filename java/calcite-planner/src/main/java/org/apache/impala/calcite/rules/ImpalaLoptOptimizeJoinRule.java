@@ -1803,6 +1803,7 @@ public class ImpalaLoptOptimizeJoinRule
     RexBuilder rexBuilder =
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
 
+/*
     ImpalaMQContext mqContext =
         multiJoin.getMultiJoinRel().getCluster().getPlanner().getContext().unwrap(ImpalaMQContext.class);
     mqContext.calculateRuntimeFilters_ = true;
@@ -1822,6 +1823,7 @@ public class ImpalaLoptOptimizeJoinRule
           condition, rexBuilder, fullAdjust);
       mqContext.calculateRuntimeFilters_ = true;
     }
+    */
     // swap the inputs if beneficial
     // IMPALA CHANGE: using a swapInputs function interface which is defined with the
     // withSwapInputs() method in the config.

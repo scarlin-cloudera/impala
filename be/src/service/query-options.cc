@@ -1453,6 +1453,10 @@ Status impala::SetQueryOption(TImpalaQueryOptions::type option, const string& va
         query_options->__set_invert_joins(IsTrue(value));
         break;
       }
+      case TImpalaQueryOptions::USE_NEW_DISTINCT_FILTER_CODE: {
+        query_options->__set_use_new_distinct_filter_code(IsTrue(value));
+        break;
+      }
       default:
         string key = to_string(option);
         if (IsRemovedQueryOption(key)) {

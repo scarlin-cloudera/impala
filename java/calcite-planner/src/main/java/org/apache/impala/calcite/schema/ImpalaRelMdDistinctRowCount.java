@@ -31,6 +31,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.calcite.rel.node.ImpalaCTEConsumer;
+import org.apache.impala.calcite.rules.ImpalaMQContext;
+import org.apache.calcite.plan.RelOptUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +86,31 @@ public class ImpalaRelMdDistinctRowCount extends RelMdDistinctRowCount {
   public Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
     Double rows = mq.getRowCount(rel);
+    ImpalaMQContext mqContext =
+        rel.getCluster().getPlanner().getContext().unwrap(ImpalaMQContext.class);
     Double ndv = super.getDistinctRowCount(rel, mq, groupKey, predicate);
+    if (ndv != null && mqContext != null && mqContext.useNewDistinctFilterCode_) {
+      RexNode condition = rel.getCondition();
+      if (condition != null && groupKey != null &&
+          RelOptUtil.InputFinder.bits(condition).equals(groupKey)) {
+        Double childRowCount = mq.getRowCount(rel.getInput(0));
+        ndv = Math.max(1.0, ndv * rows / childRowCount);
+      }
+    }
     return ndv == null ? rows : Math.min(rows, ndv);
+    // For the distinct row count, we take the number of distinct rows before the
+    // filter and multiply it by the selectivity
+    // TODO: We can do a little better if the "groupKey" is for the column being
+    // selected. Specifically, if we find the selectivity for col1 and the condition
+    // is "col1 is null", we know there is only one distinct row, but it will multiply
+    // by the selectivity of all the distinct rows.
+//    Double rowCount = mq.getRowCount(rel);
+//    Preconditions.checkState(rowCount >= 0.0);
+//    Double childRowCount = mq.getRowCount(rel.getInput(0));
+//    Double distinctRowCount =
+//        mq.getDistinctRowCount(rel.getInput(0), groupKey, predicate);
+//    Preconditions.checkState(rowCount <= childRowCount);
+//    return Math.max(1.0, distinctRowCount * rowCount / childRowCount);
   }
 
   @Override
