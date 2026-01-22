@@ -23,6 +23,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -49,10 +50,9 @@ public class ImpalaRexSimplify extends RexSimplify {
 
   @Override
   public RexNode simplify(RexNode rexNode) {
-    if (rexNode == null) {
-      return null;
-    }
-    return hasApproximateTypeIssues(rexNode) ? rexNode : super.simplify(rexNode);
+    return rexNode == null || hasApproximateTypeIssues(rexNode)
+        ? rexNode
+        : super.simplifyUnknownAs(rexNode, RexUnknownAs.FALSE);
   }
 
   private boolean hasApproximateTypeIssues(RexNode rexNode) {
