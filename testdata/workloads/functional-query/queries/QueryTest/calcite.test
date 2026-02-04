@@ -1283,3 +1283,9 @@ row_regex: .*PlannerType: CalcitePlanner.*
 row_regex:.*01:SCAN HDFS \[functional.alltypessmall\]*
 row_regex:.*00:SCAN HDFS \[functional.alltypestiny\]*
 ====
+---- QUERY
+# IMPALA-14429: Ensure correct type is used when decimal and ints are in an IN clause.
+select count(*) from tpch.lineitem where l_quantity in (1, 2)
+---- RESULTS
+239861
+====
