@@ -1461,3 +1461,9 @@ ORDER BY ts2 DESC LIMIT 1;
 ---- RUNTIME_PROFILE
 row_regex: .*PlannerType: CalcitePlanner.*
 ====
+---- QUERY
+# IMPALA-14429: Ensure correct type is used when decimal and ints are in an IN clause.
+select count(*) from tpch.lineitem where l_quantity in (1, 2)
+---- RESULTS
+239861
+====
