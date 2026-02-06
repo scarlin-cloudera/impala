@@ -22,6 +22,9 @@ import com.google.common.base.Preconditions;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -32,13 +35,18 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorScope.Resolve;
 import org.apache.calcite.sql.validate.SqlValidatorScope.ResolvedImpl;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
@@ -52,6 +60,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The ImpalaSqlValidatorImpl is responsible for registering column-level and
@@ -61,6 +74,9 @@ import java.math.BigDecimal;
 public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
 
   private Analyzer analyzer_;
+
+  private static ViewValidatorAliasHelper NOOP_HELPER = new NoopValidatorHelper();
+  private ViewValidatorAliasHelper viewAliasHelper_ = NOOP_HELPER;
 
   protected static final Logger LOG =
       LoggerFactory.getLogger(ImpalaSqlValidatorImpl.class.getName());
@@ -154,5 +170,179 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
           builder -> builder.allOf(Privilege.VIEW_METADATA)
               .onDb(BuiltinsDb.getInstance().getName(), null).build());
     }
+  }
+
+  public void startValidatingView(boolean attemptCorrection) {
+    if (attemptCorrection) {
+      viewAliasHelper_ = new ViewAttemptAliasCorrection(viewAliasHelper_);
+    } else {
+      viewAliasHelper_ = new ViewGatherAliases();
+    }
+  }
+
+  public void endValidatingView() {
+    viewAliasHelper_.validateFinished();
+    viewAliasHelper_ = NOOP_HELPER;
+  }
+
+  public boolean foundAliasIssue() {
+    return !viewAliasHelper_.getItemsWithAliasIssue().isEmpty();
+  }
+
+  @Override
+  protected void validateSelect(
+      SqlSelect select,
+      RelDataType targetRowType) {
+    viewAliasHelper_.processSelect(select);
+    super.validateSelect(select, targetRowType);
+    viewAliasHelper_.endProcessSelect();
+  }
+
+  @Override
+  protected void validateValues(
+      SqlCall node,
+      RelDataType targetRowType,
+      final SqlValidatorScope scope) {
+    super.validateValues(node, targetRowType, scope);
+  }
+
+  @Override
+  public SqlNode expandSelectExpr(SqlNode expr,
+      SelectScope scope, SqlSelect select, Map<String, SqlNode> expansions) {
+    expr = viewAliasHelper_.processSelectItem(expr);
+    return super.expandSelectExpr(expr, scope, select, expansions);
+  }
+
+  private abstract static class ViewValidatorAliasHelper {
+    protected List<SqlNode> topLevelSqlNodes_;
+
+    protected List<SqlNode> secondLevelSqlNodes_;
+
+    protected int selectStackCounter_ = 0;
+
+    public void processWith() {
+      //TODO:
+    }
+
+    public void processSelect(SqlSelect select) {
+      selectStackCounter_++;
+      processSelectImpl(select);
+    }
+
+    public void endProcessSelect() {
+      selectStackCounter_--;
+    }
+
+    public void validateFinished() {
+      Preconditions.checkState(selectStackCounter_ == 0);
+    }
+
+    public Set<Integer> getItemsWithAliasIssue() {
+      Set<Integer> itemsWithAliasIssue = new HashSet<>();
+      if (topLevelSqlNodes_ == null || secondLevelSqlNodes_ == null) {
+        return itemsWithAliasIssue;
+      }
+      if (topLevelSqlNodes_.size() != secondLevelSqlNodes_.size()) {
+        return itemsWithAliasIssue;
+      }
+      // XXX: maybe use streaming?
+      for (int i = 0; i < topLevelSqlNodes_.size(); ++i) {
+        if (hasAliasIssue(topLevelSqlNodes_.get(i), secondLevelSqlNodes_.get(i))) {
+          itemsWithAliasIssue.add(i);
+        }
+      }
+      return itemsWithAliasIssue;
+    }
+
+    protected boolean hasAliasIssue(SqlNode topLevelItem, SqlNode secondLevelItem) {
+      //XXX: should be well structured since it's an Impala view
+      SqlBasicCall call = (SqlBasicCall) topLevelItem;
+      SqlIdentifier topLevelIdentifier = (SqlIdentifier) call.getOperandList().get(0);
+      return !topLevelIdentifier.names.get(1).equals(
+          SqlValidatorUtil.alias(secondLevelItem));
+    }
+
+    abstract public void processSelectImpl(SqlSelect select);
+    //XXX: make this abstract?  make it similar to processSelectImpl?
+    public SqlNode processSelectItem(SqlNode expr) {
+      return expr;
+    }
+  }
+
+  private static class ViewGatherAliases extends ViewValidatorAliasHelper {
+    @Override
+    public void processSelectImpl(SqlSelect select) {
+      if (selectStackCounter_ == 1) {
+        topLevelSqlNodes_ = select.getSelectList();
+      }
+      if (selectStackCounter_ == 2) {
+        secondLevelSqlNodes_ = select.getSelectList();
+      }
+    }
+  }
+
+  private static class ViewAttemptAliasCorrection extends ViewValidatorAliasHelper {
+    private Set<Integer> itemsWithAliasIssue_;
+    
+    private int secondLevelSelectItemCounter_ = 0;
+
+    private int aliasCounter_ = 0;
+
+    public ViewAttemptAliasCorrection(ViewValidatorAliasHelper helper) {
+      // XXX: processed twice?
+      this.itemsWithAliasIssue_ = helper.getItemsWithAliasIssue();
+    }
+
+    public void processWith() {
+      //TODO:
+    }
+
+    @Override
+    public void processSelectImpl(SqlSelect select) {
+      if (selectStackCounter_ != 1) {
+        return;
+      }
+      List<SqlNode> selectList = new ArrayList<>();
+      for (int i = 0; i < select.getSelectList().size(); ++i) {
+        SqlBasicCall call = (SqlBasicCall) select.getSelectList().get(i);
+        if (!itemsWithAliasIssue_.contains(i)) {
+          selectList.add(call);
+          continue;
+        }
+        SqlIdentifier identifier = (SqlIdentifier) call.getOperandList().get(0);
+        SqlIdentifier newIdentifier = identifier.setName(1, "EXPR$" + i);
+        // XXX:add to previous line
+        SqlNode asNode = 
+            SqlStdOperatorTable.AS.createCall(
+                newIdentifier.getParserPosition(),
+                newIdentifier,
+                call.getOperandList().get(1));
+        selectList.add(asNode);
+      }
+      select.setSelectList(new SqlNodeList(selectList, SqlParserPos.ZERO));
+    }
+
+    public SqlNode processSelectItem(SqlNode sqlNode) {
+      SqlNode returnNode = sqlNode;
+      if (selectStackCounter_ != 2) {
+        return returnNode;
+      }
+      
+      if (itemsWithAliasIssue_.contains(secondLevelSelectItemCounter_)) {
+        String alias = "EXPR$" + secondLevelSelectItemCounter_;
+        returnNode = SqlStdOperatorTable.AS.createCall(
+            sqlNode.getParserPosition(),
+            sqlNode,
+            new SqlIdentifier(alias, SqlParserPos.ZERO));
+      }
+      
+      secondLevelSelectItemCounter_++;
+      return returnNode;
+    }
+  }
+
+  private static class NoopValidatorHelper extends ViewValidatorAliasHelper {
+    @Override
+    public void processSelectImpl(SqlSelect select) {}
   }
 }

@@ -17,9 +17,13 @@
 
 package org.apache.impala.calcite.service;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -29,7 +33,13 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.impala.analysis.AnalysisContext;
@@ -46,6 +56,7 @@ import org.apache.impala.authorization.Privilege;
 import org.apache.impala.authorization.PrivilegeRequestBuilder;
 import org.apache.impala.calcite.operators.ImpalaOperatorTable;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
+import org.apache.impala.calcite.schema.ImpalaViewTable;
 import org.apache.impala.calcite.type.ImpalaTypeCoercionFactory;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
 import org.apache.impala.calcite.util.SimplifiedAnalyzer;
@@ -62,11 +73,16 @@ import org.apache.impala.planner.PlannerContext;
 import org.apache.impala.planner.SingleNodePlannerIntf;
 import org.apache.impala.thrift.TQueryCtx;
 
+import com.google.common.base.Preconditions;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * The CalciteAnalysisDriver is the implementation of AnalysisDriver which validates
  * the AST produced by Calcite.
  */
 public class CalciteAnalysisDriver implements AnalysisDriver {
+  protected static final Logger LOG = LoggerFactory.getLogger(CalciteAnalysisDriver.class.getName());
 
   public final TQueryCtx queryCtx_;
 
@@ -241,7 +257,12 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
           analyzer_.setMaskPrivChecks(null);
         }
         // Register privilege requests for columns referenced by the child view.
-        validator.validate(parsedSqlNode);
+        parsedSqlNode = validate(validator, parsedSqlNode, queryParser);
+
+        ImpalaViewTable calciteView =
+            reader_.getTable(tableName.toPath()).unwrap(ImpalaViewTable.class);
+        Preconditions.checkNotNull(calciteView);
+        calciteView.setValidatedNode(parsedSqlNode);
 
         // Recurse if 'feTable' is also a view. Note that the privilege requests for the
         // tables referenced by 'feTable' will be registered within the recursive call.
@@ -253,6 +274,26 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
         if (!shouldMaskPrivChecks && childViewCreatedBySuperuser) {
           analyzer_.unsetMaskPrivChecks();
         }
+      }
+    }
+  }
+
+  private SqlNode validate(ImpalaSqlValidatorImpl validator, SqlNode parsedSqlNode,
+      CalciteQueryParser queryParser) throws ParseException {
+    try {
+      validator.startValidatingView(false);
+      validator.validate(parsedSqlNode);
+      validator.endValidatingView();
+      return parsedSqlNode;
+    } catch (Exception e) { //XXX: have a more specific exception here
+      if (validator.foundAliasIssue()) {
+        parsedSqlNode = queryParser.parse();
+        validator.startValidatingView(true);
+        validator.validate(parsedSqlNode);
+        validator.endValidatingView();
+        return parsedSqlNode;
+      } else {
+        throw e;
       }
     }
   }
@@ -277,5 +318,53 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       return null;
     }
     return db.getTable(tableName.getTbl());
+  }
+
+  public static SqlNode retryValidationWithModifiedSqlNode(SqlNode parsedSqlNode,
+      int columnNum) {
+      /*
+    LOG.info("SJC: in retry");
+    Pattern p = Pattern.compile(".*Column '_c(\\d+)' not found in table.*");
+    Matcher m = p.matcher(e.getMessage());
+    if (m.matches()) {
+      LOG.info("SJC: FOUND A COLUMN, _c" + m.group(1));
+    } else {
+      LOG.info("SJC: DID NOT FIND MESSAGE");
+      throw e;
+    }
+    */
+    //int columnNum = Integer.valueOf(m.group(1));
+    List<SqlNode> selectList = new ArrayList<>();
+    if (!(parsedSqlNode instanceof SqlSelect)) {
+     // throw e;
+    }
+    SqlSelect select = (SqlSelect) parsedSqlNode;
+    for (int i = 0; i < select.getSelectList().size(); ++i) {
+      if (i != columnNum) {
+        selectList.add(select.getSelectList().get(i));
+      } else {
+        SqlBasicCall call = (SqlBasicCall) select.getSelectList().get(i);
+        if (call.getOperandList().get(0) instanceof SqlIdentifier) {
+          SqlIdentifier identifier = (SqlIdentifier) call.getOperandList().get(0);
+          if (identifier.names.size() > 1 &&
+            identifier.names.get(1).startsWith("_c")) {
+//              SqlIdentifier newIdentifier = identifier.setName(1, "$EXPR" + m.group(1));
+              SqlIdentifier newIdentifier = identifier.setName(1, "EXPR$0");
+              SqlNode asNode = 
+                  SqlStdOperatorTable.AS.createCall(
+                      newIdentifier.getParserPosition(),
+                      newIdentifier,
+                      call.getOperandList().get(1));
+            selectList.add(asNode);
+          } else {
+      //      throw e;
+          }
+        } else {
+       //   throw e;
+        }
+      }
+    }
+    select.setSelectList(new SqlNodeList(selectList, SqlParserPos.ZERO));
+    return select;
   }
 }
