@@ -17,22 +17,81 @@
 
 package org.apache.impala.calcite.schema;
 
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.impala.calcite.rules.ImpalaMQContext;
+import org.apache.impala.calcite.service.CalciteRelNodeConverter;
 import org.apache.impala.catalog.FeView;
 
 import java.lang.reflect.Type;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 public class ImpalaViewTable extends ViewTable {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaViewTable.class.getName());
+
   private final FeView table_;
+
+  private final String viewSql_;
+
+  private SqlNode validatedNode_;
+
   public ImpalaViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
       List<String> schemaPath, List<String> viewPath, FeView feTable) {
     super(elementType, rowType, viewSql, schemaPath, viewPath);
     this.table_ = feTable;
+    this.viewSql_ = viewSql;
   }
 
   public FeView getFeView() {
     return table_;
+  }
+
+  public void setValidatedNode(SqlNode validatedNode) {
+    validatedNode_ = validatedNode;
+  }
+
+  @Override
+  public RelNode toRel(
+      RelOptTable.ToRelContext context,
+      RelOptTable relOptTable) {
+    RelOptCluster cluster = context.getCluster();
+    ImpalaMQContext converterContext = (ImpalaMQContext) cluster.getPlanner().getContext();
+    CalciteRelNodeConverter relNodeConverter = converterContext.relNodeConverter_;
+
+    try {
+      final RelRoot root = relNodeConverter.convertQuery(validatedNode_);
+      final RelNode rel =
+          RelOptUtil.createCastRel(root.rel, relOptTable.getRowType(), true);
+      // Expand any views
+      final RelNode rel2 =
+          rel.accept(new RelShuttleImpl() {
+            @Override public RelNode visit(TableScan scan) {
+              final RelOptTable table = scan.getTable();
+              final TranslatableTable translatableTable =
+                  table.unwrap(TranslatableTable.class);
+              if (translatableTable != null) {
+                return translatableTable.toRel(context, table);
+              }
+              return super.visit(scan);
+            }
+          });
+      return root.withRel(rel2).rel;
+    } catch (Exception e) {
+      LOG.info("SJC: STACK: " + ExceptionUtils.getStackTrace(e));
+      throw new RuntimeException("SJC: need good error message here." + e);
+    }
   }
 }
