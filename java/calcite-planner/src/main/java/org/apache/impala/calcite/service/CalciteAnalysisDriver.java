@@ -173,14 +173,16 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       return new CalciteAnalysisResult(this);
     } catch (ImpalaException e) {
       try {
-        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_);
+        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
+            queryCtx_.client_request.stmt);
       } catch (ImpalaException u) {
         e = u;
       }
       return new CalciteAnalysisResult(this, e);
     } catch (CalciteContextException e) {
       try {
-        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_);
+        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
+            queryCtx_.client_request.stmt);
       } catch (ImpalaException u) {
         return new CalciteAnalysisResult(this, u);
       }
