@@ -29,6 +29,7 @@ import org.apache.impala.analysis.StmtMetadataLoader;
 import org.apache.impala.analysis.ColumnLineageGraph.OperationType;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
 
 /**
@@ -55,6 +56,11 @@ public class CalciteParsedStatement implements ParsedStatement {
         new CalciteMetadataHandler.TableVisitor(queryCtx.session.database);
 
     parsedNode_.accept(tableVisitor);
+
+    if (tableVisitor.errorTables_.size() > 0) {
+      throw new UnsupportedFeatureException("Table " + tableVisitor.errorTables_.get(0)
+          + " is not supported.");
+    }
 
     tableNames_ = tableVisitor.tableNames_;
   }
