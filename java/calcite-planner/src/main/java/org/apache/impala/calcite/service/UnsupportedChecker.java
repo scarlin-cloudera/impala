@@ -70,7 +70,7 @@ public class UnsupportedChecker {
   }
 
   public static void throwUnsupportedIfKnownException(Exception e,
-      StmtTableCache stmtTableCache) throws ImpalaException {
+      StmtTableCache stmtTableCache, String stmt) throws ImpalaException {
     throwUnsupportedIfKnownException(e);
     String s = e.toString().replace("\n"," ");
     Matcher m = TABLE_NOT_FOUND.matcher(s);
@@ -95,6 +95,10 @@ public class UnsupportedChecker {
       if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
             "Complex column " + m.group(1) + " not supported.");
+      }
+      if (stmt.contains("`" + m.group(1) + "`")) {
+        throw new UnsupportedFeatureException(
+            "Backticks around column " + m.group(1) + " is not supported.");
       }
     }
   }
