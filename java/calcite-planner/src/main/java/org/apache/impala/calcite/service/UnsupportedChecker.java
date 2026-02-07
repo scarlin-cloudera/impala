@@ -52,6 +52,9 @@ public class UnsupportedChecker {
   private static Pattern TABLE_NOT_FOUND =
       Pattern.compile(".*\\bTable '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern OBJECT_NOT_FOUND =
+      Pattern.compile(".*\\bObject '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
+
   private static Pattern COLUMN_NOT_FOUND =
       Pattern.compile(".*\\bColumn '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
 
@@ -83,6 +86,14 @@ public class UnsupportedChecker {
     // it might actually be a table that also is a column name in another table.
     // However, that case should be extremely rare, and the result would be that
     // the wrong error message will show up.
+    if (m.matches()) {
+      if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Complex column " + m.group(1) + " not supported.");
+      }
+    }
+
+    Matcher m = OBJECT_NOT_FOUND.matcher(s);
     if (m.matches()) {
       if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
