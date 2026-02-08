@@ -180,6 +180,10 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       }
       return new CalciteAnalysisResult(this, e);
     } catch (CalciteContextException e) {
+      if (e.getCause() instanceof UnsupportedFeatureException) {
+        return new CalciteAnalysisResult(this,
+            (UnsupportedFeatureException)e.getCause());
+      }
       try {
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
             queryCtx_.client_request.stmt);
