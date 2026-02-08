@@ -93,7 +93,7 @@ public class UnsupportedChecker {
       }
     }
 
-    Matcher m = OBJECT_NOT_FOUND.matcher(s);
+    m = OBJECT_NOT_FOUND.matcher(s);
     if (m.matches()) {
       if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
