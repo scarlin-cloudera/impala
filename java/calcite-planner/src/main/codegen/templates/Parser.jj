@@ -911,6 +911,56 @@ SqlNodeList ParenthesizedQueryOrCommaList(
     }
 }
 
+SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
+    ExprContext exprContext) :
+{
+    SqlNode e;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    ExprContext firstExprContext = exprContext;
+    SqlIdentifier alias;
+    final Span s;
+}
+{
+    <LPAREN>
+    {
+      s = span();
+    }
+    (
+    e = OrderedQueryOrExpr(firstExprContext)
+      (
+        [ <AS> ]
+        (
+            // Added Impala code to handle when there are quotes and no quotes
+            alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
+        )
+        { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias)); }
+        |
+        { list.add(e); }
+      ) 
+    )
+    (
+        <COMMA>
+        {
+            // a comma-list can't appear where only a query is expected
+            checkNonQueryExpression(exprContext);
+        }
+        (
+            e = Expression(exprContext) 
+            [ <AS> ]
+            (
+                // Added Impala code to handle when there are quotes and no quotes
+                alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
+            )
+            { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias)); }
+            |
+            { list.add(e); }
+        )
+    )*
+    <RPAREN>
+    {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
 /** As ParenthesizedQueryOrCommaList, but allows DEFAULT
  * in place of any of the expressions. For example,
  * {@code (x, DEFAULT, null, DEFAULT)}. */
@@ -2453,6 +2503,7 @@ SqlNode RowConstructor() :
 {
     final SqlNodeList valueList;
     final SqlNode value;
+    final SqlIdentifier id;
     final Span s;
 }
 {
@@ -2464,7 +2515,8 @@ SqlNode RowConstructor() :
         LOOKAHEAD(3)
         <LPAREN> { s = span(); }
         <ROW>
-        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
+        valueList =
+            ParenthesizedQueryOrCommaListWithPossibleAlias(ExprContext.ACCEPT_NONCURSOR)
         <RPAREN> { s.add(this); }
     |
         LOOKAHEAD(3)
@@ -2473,7 +2525,8 @@ SqlNode RowConstructor() :
         |
             { s = Span.of(); }
         )
-        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
+        valueList =
+            ParenthesizedQueryOrCommaListWithPossibleAlias(ExprContext.ACCEPT_NONCURSOR)
     |
         value = Expression(ExprContext.ACCEPT_NONCURSOR)
         {
