@@ -73,7 +73,8 @@ public class CalciteRelNodeConverter implements CompilerStep {
   protected static final Logger LOG =
       LoggerFactory.getLogger(CalciteRelNodeConverter.class.getName());
 
-  private final RelOptTable.ViewExpander viewExpander_;
+  private static final RelOptTable.ViewExpander NOOP_EXPANDER =
+      (type, query, schema, path) -> null;
 
   private final RelOptCluster cluster_;
 
@@ -89,54 +90,18 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.typeFactory_ = analysisResult.getTypeFactory();
     this.reader_ = analysisResult.getCatalogReader();
     this.sqlValidator_ = analysisResult.getSqlValidator();
-    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaMQContext());
+    this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaMQContext(this));
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     cluster_ =
         RelOptCluster.create(planner_, new RexBuilder(typeFactory_));
-    viewExpander_ = createViewExpander(
-        analysisResult.getSqlValidator().getCatalogReader().getRootSchema().plus());
     cluster_.setMetadataProvider(ImpalaRelMetadataProvider.DEFAULT);
   }
 
-  private static RelOptTable.ViewExpander createViewExpander(SchemaPlus schemaPlus) {
-    SqlParser.Config parserConfig =
-        SqlParser.configBuilder().setCaseSensitive(false).build()
-            // This makes SqlParser expect identifiers that require quoting to be
-            // enclosed by backticks.
-            .withQuoting(Quoting.BACK_TICK);
-    FrameworkConfig config = Frameworks.newConfigBuilder()
-        .defaultSchema(schemaPlus)
-        // This makes 'connectionConfig' in PlannerImpl case-insensitive, which in turn
-        // makes the CalciteCatalogReader used to validate the view in
-        // PlannerImpl#expandView() case-insensitive. Otherwise,
-        // CalciteRelNodeConverter#convert() would fail.
-        .parserConfig(parserConfig)
-        // We need to add ConventionTraitDef.INSTANCE to avoid the call to
-        // table.getStatistic() in LogicalTableScan#create().
-        .traitDefs(ConventionTraitDef.INSTANCE)
-        .build();
-    return new PlannerImpl(config);
-  }
-
   public RelNode convert(SqlNode validatedNode) {
-    // Use the NO_SIMPLIFY RelBuilderFactory. Starting around Calcite 1.40, there
-    // are cases where Calcite finds a common type for literal strings that do not
-    // have the same length to the higher CHAR type. Impala treats literal strings
-    // as STRING type. The simplify() method removes some vital information needed
-    // to convert the CHAR to a STRING type later in coerce nodes, so we avoid the
-    // simplify step until after coerce nodes is complete.
-    SqlToRelConverter relConverter = new SqlToRelConverter(
-        viewExpander_,
-        sqlValidator_,
-        reader_,
-        cluster_,
-        ImpalaConvertletTable.INSTANCE,
-        SqlToRelConverter.config().withCreateValuesRel(false)
-            .withRelBuilderFactory(ImpalaCoreRules.LOGICAL_BUILDER_NO_SIMPLIFY));
 
     // Convert the valid AST into a logical plan
-    RelRoot root = relConverter.convertQuery(validatedNode, false, true);
+    RelRoot root = convertQuery(validatedNode);
     RelNode relNode = root.project();
     LogUtil.logDebug(relNode, "Plan after conversion from Abstract Syntax Tree");
 
@@ -158,6 +123,25 @@ public class CalciteRelNodeConverter implements CompilerStep {
 
     LogUtil.logDebug(decorrelatedPlan, "Plan after subquery decorrelation phase");
     return decorrelatedPlan;
+  }
+
+  public RelRoot convertQuery(SqlNode validatedNode) {
+    // Use the NO_SIMPLIFY RelBuilderFactory. Starting around Calcite 1.40, there
+    // are cases where Calcite finds a common type for literal strings that do not
+    // have the same length to the higher CHAR type. Impala treats literal strings
+    // as STRING type. The simplify() method removes some vital information needed
+    // to convert the CHAR to a STRING type later in coerce nodes, so we avoid the
+    // simplify step until after coerce nodes is complete.
+    SqlToRelConverter relConverter = new SqlToRelConverter(
+        NOOP_EXPANDER,
+        sqlValidator_,
+        reader_,
+        cluster_,
+        ImpalaConvertletTable.INSTANCE,
+        SqlToRelConverter.config().withCreateValuesRel(false)
+            .withRelBuilderFactory(ImpalaCoreRules.LOGICAL_BUILDER_NO_SIMPLIFY));
+    // Convert the valid AST into a logical plan
+    return relConverter.convertQuery(validatedNode, false, true);
   }
 
   /**
