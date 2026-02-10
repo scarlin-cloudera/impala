@@ -75,7 +75,6 @@ import java.util.Set;
  * invoked via SqlValidatorImpl#validate(SqlNode topNode).
  */
 public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
-
   private Analyzer analyzer_;
 
   private static ViewValidatorAliasHelper NOOP_HELPER = new NoopValidatorHelper();
@@ -222,6 +221,9 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
       SqlCall node,
       RelDataType targetRowType,
       final SqlValidatorScope scope) {
+    if (isDoubleParenValues(node)) {
+      LOG.info("SJC: IT'S A DOUBLE PAREN");
+    }
     super.validateValues(node, targetRowType, scope);
   }
 
@@ -363,5 +365,31 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
   private static class NoopValidatorHelper extends ViewValidatorAliasHelper {
     @Override
     public void processSelectImpl(SqlSelect select) {}
+  }
+
+  private boolean isDoubleParenValues(SqlNode sqlNode) {
+    SqlBasicCall row = (SqlBasicCall) sqlNode;
+    if (row.operandCount() > 1) {
+      return false;
+    }
+
+    if (!(row.operand(0) instanceof SqlBasicCall)) {
+      return false;
+    }
+    SqlBasicCall topLevelRow = (SqlBasicCall) row.operand(0);
+    if (!(topLevelRow.operand(0) instanceof SqlBasicCall)) {
+      return false;
+    }
+    int numParams = ((SqlBasicCall)topLevelRow.operand(0)).operandCount();
+    for (int i = 1; i < topLevelRow.operandCount(); ++i) {
+      if (!(topLevelRow.operand(i) instanceof SqlBasicCall)) {
+        return false;
+      }
+      SqlBasicCall subrow = (SqlBasicCall) topLevelRow.operand(i);
+      if (subrow.getKind() != SqlKind.ROW || subrow.operandCount() != numParams) {
+        return false;
+      }
+    }
+    return true;
   }
 }

@@ -917,7 +917,7 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
     SqlNode e;
     final List<SqlNode> list = new ArrayList<SqlNode>();
     ExprContext firstExprContext = exprContext;
-    SqlIdentifier alias;
+    SqlIdentifier alias = null;
     final Span s;
 }
 {
@@ -926,9 +926,9 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
       s = span();
     }
     (
-    e = OrderedQueryOrExpr(firstExprContext)
+    e = Expression(firstExprContext)
       (
-        [ <AS> ]
+        <AS>
         (
             // Added Impala code to handle when there are quotes and no quotes
             alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
@@ -940,21 +940,19 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
     )
     (
         <COMMA>
-        {
-            // a comma-list can't appear where only a query is expected
-            checkNonQueryExpression(exprContext);
-        }
-        (
             e = Expression(exprContext) 
-            [ <AS> ]
             (
+            <AS>
                 // Added Impala code to handle when there are quotes and no quotes
                 alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
-            )
-            { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias)); }
-            |
-            { list.add(e); }
-        )
+            )?   
+            {
+              if (alias == null) {
+                list.add(e);
+              } else {
+                list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias));
+              }
+            }
     )*
     <RPAREN>
     {
@@ -2463,7 +2461,7 @@ SqlNode ExplicitTable(SqlParserPos pos) :
 SqlNode TableConstructor() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
-    final Span s;
+    Span s = null;
 }
 {
     (
@@ -2477,11 +2475,12 @@ SqlNode TableConstructor() :
             }
         }
     )
-    AddRowConstructor(list)
-    (
-        LOOKAHEAD(2)
-        <COMMA> AddRowConstructor(list)
-    )*
+      (
+        AddRowConstructor(list)
+        (
+            <COMMA> AddRowConstructor(list)
+        )*
+      )  
     {
         return SqlStdOperatorTable.VALUES.createCall(s.end(this), list);
     }
