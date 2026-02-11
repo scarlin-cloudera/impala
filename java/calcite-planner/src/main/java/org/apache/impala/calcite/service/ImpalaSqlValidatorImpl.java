@@ -224,6 +224,7 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
       RelDataType targetRowType,
       final SqlValidatorScope scope) {
     validateImpalaValues(node);
+    validateImpalaValues2(node);
     super.validateValues(node, targetRowType, scope);
   }
 
@@ -392,6 +393,22 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     }
     potentialCauseOfError_ = new UnsupportedFeatureException("Values clause not " +
         "supported with double parentheses.");
+  }
+
+  private void validateImpalaValues2(SqlNode sqlNode) {
+    SqlBasicCall row = (SqlBasicCall) sqlNode;
+    if (!(row.operand(0) instanceof SqlBasicCall)) {
+      return;
+    }
+    SqlBasicCall firstRow = (SqlBasicCall) row.operand(0);
+    if (firstRow.operandCount() > 1 || !(firstRow instanceof SqlBasicCall)) {
+      return;
+    }
+    if (((SqlBasicCall) firstRow.operand(0)).getKind() == SqlKind.AS) {
+      potentialCauseOfError_ = new UnsupportedFeatureException("Error handling " +
+          "values clause in Calcite with only one column that has an alias " +
+          "(IMPALA-XXXXX)");
+    }
   }
 
   public UnsupportedFeatureException getPossibleValidationException() {
