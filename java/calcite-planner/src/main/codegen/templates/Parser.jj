@@ -928,7 +928,7 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
     (
     e = Expression(firstExprContext)
       (
-        <AS>
+        (<AS>)?
         (
             // Added Impala code to handle when there are quotes and no quotes
             alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
@@ -942,7 +942,7 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
         <COMMA>
             e = Expression(exprContext) 
             (
-            <AS>
+            (<AS>)?
                 // Added Impala code to handle when there are quotes and no quotes
                 alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
             )?   
