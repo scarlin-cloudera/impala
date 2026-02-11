@@ -1031,6 +1031,7 @@ List<SqlNode> FunctionParameterList(ExprContext exprContext) :
 {
     final SqlLiteral qualifier;
     final List<SqlNode> list = new ArrayList<SqlNode>();
+    final Pair<SqlParserPos, SqlOperator> nullTreatment;
 }
 {
     <LPAREN>
@@ -4130,6 +4131,38 @@ SqlCall PercentileFunctionCall() :
    )
 }
 
+SqlCall FirstLastValueFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+   (
+       <FIRST_VALUE> { op = SqlStdOperatorTable.FIRST_VALUE; }
+   |   <LAST_VALUE> { op = SqlStdOperatorTable.LAST_VALUE; }
+   )
+   { s = span(); }
+   <LPAREN>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
+       (
+           nullTreatment = NullTreatment()
+       |   { nullTreatment = null; }
+       )
+       <RPAREN>
+       {
+           SqlCall call = op.createCall(s.end(this), args);
+           if (nullTreatment != null) {
+               // Wrap in RESPECT_NULLS or IGNORE_NULLS.
+               call = nullTreatment.right.createCall(nullTreatment.left, call);
+           }
+           return call;
+       }
+   )
+}
 
 /**
  * Parses an atomic row expression.
@@ -7337,6 +7370,9 @@ SqlNode NamedFunctionCall() :
     |
         LOOKAHEAD(1)
         call = PercentileFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = FirstLastValueFunctionCall()
     |
         call = NamedCall()
     )
