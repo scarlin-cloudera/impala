@@ -404,7 +404,8 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     if (firstRow.operandCount() > 1 || !(firstRow instanceof SqlBasicCall)) {
       return;
     }
-    if (((SqlBasicCall) firstRow.operand(0)).getKind() == SqlKind.AS) {
+    if (firstRow instanceof SqlBasicCall &&
+        ((SqlBasicCall) firstRow.operand(0)).getKind() == SqlKind.AS) {
       potentialCauseOfError_ = new UnsupportedFeatureException("Error handling " +
           "values clause in Calcite with only one column that has an alias " +
           "(IMPALA-XXXXX)");
