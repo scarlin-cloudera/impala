@@ -236,7 +236,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
    */
   private void registerPrivReqsInTables(Set<TableName> tableNamesInQuery,
       boolean shouldMaskPrivChecks, FeCatalog catalog, ImpalaSqlValidatorImpl validator)
-      throws ParseException {
+      throws ParseException, ImpalaException {
 
     for (TableName tableName : tableNamesInQuery) {
       FeTable feTable = registerTablePrivReq(tableName, catalog);
@@ -290,7 +290,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
   }
 
   private SqlNode validate(ImpalaSqlValidatorImpl validator, SqlNode parsedSqlNode,
-      CalciteQueryParser queryParser) throws ParseException {
+      CalciteQueryParser queryParser) throws ParseException, ImpalaException {
     try {
       validator.startValidatingView(false);
       validator.validate(parsedSqlNode);
