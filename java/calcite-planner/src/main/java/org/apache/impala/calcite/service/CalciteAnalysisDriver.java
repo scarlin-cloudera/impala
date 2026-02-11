@@ -170,7 +170,8 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       // referenced by views assuming that those tables and columns referenced by views
       // could be successfully resolved.
       validatedNode_ = sqlValidator_.validate(parsedStmt_.getParsedSqlNode());
-      return new CalciteAnalysisResult(this);
+      return CalciteAnalysisResult.createValidAnalysisResult(this,
+          sqlValidator_.getPossibleValidationException());
     } catch (ImpalaException e) {
       try {
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
@@ -178,19 +179,23 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       } catch (ImpalaException u) {
         e = u;
       }
-      return new CalciteAnalysisResult(this, e);
+      return CalciteAnalysisResult.createErrorAnalysisResult(this, e);
     } catch (CalciteContextException e) {
       if (e.getCause() instanceof UnsupportedFeatureException) {
-        return new CalciteAnalysisResult(this,
+        return CalciteAnalysisResult.createErrorAnalysisResult(this,
             (UnsupportedFeatureException)e.getCause());
+      }
+      if (sqlValidator_.getPossibleValidationException() != null) {
+        return CalciteAnalysisResult.createErrorAnalysisResult(this,
+            sqlValidator_.getPossibleValidationException());
       }
       try {
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
             queryCtx_.client_request.stmt);
       } catch (ImpalaException u) {
-        return new CalciteAnalysisResult(this, u);
+        return CalciteAnalysisResult.createErrorAnalysisResult(this, u);
       }
-      return new CalciteAnalysisResult(this,
+      return CalciteAnalysisResult.createErrorAnalysisResult(this,
           new AnalysisException(e.getMessage(), e.getCause()));
     }
   }
