@@ -59,26 +59,36 @@ public class CalciteSingleNodePlanner implements SingleNodePlannerIntf {
   }
 
   public PlanNode createSingleNodePlan() throws ImpalaException {
-    // Convert the query to RelNodes which can be optimized
-    CalciteRelNodeConverter relNodeConverter =
-        new CalciteRelNodeConverter(analysisResult_);
-    RelNode logicalPlan = relNodeConverter.convert(analysisResult_.getValidatedNode());
-    fieldNames_ = relNodeConverter.getFieldNames(analysisResult_.getValidatedNode());
-
-    // Optimize the query
-    CalciteOptimizer optimizer =
-        new CalciteOptimizer(analysisResult_, ctx_.getTimeline());
-    ImpalaPlanRel optimizedPlan = optimizer.optimize(logicalPlan);
-
-    returnsMoreThanOneRow_ = returnsMoreThanOneRow(optimizedPlan);
-
-    // Create Physical Impala PlanNodes
-    CalcitePhysPlanCreator physPlanCreator =
-        new CalcitePhysPlanCreator(analysisResult_.getAnalyzer(), ctx_);
-    rootNode_ = physPlanCreator.create(optimizedPlan);
-
-    analysisResult_.getAnalyzer().computeValueTransferGraph();
-    return rootNode_.planNode_;
+    try {
+      // Convert the query to RelNodes which can be optimized
+      CalciteRelNodeConverter relNodeConverter =
+          new CalciteRelNodeConverter(analysisResult_);
+      RelNode logicalPlan = relNodeConverter.convert(analysisResult_.getValidatedNode());
+      fieldNames_ = relNodeConverter.getFieldNames(analysisResult_.getValidatedNode());
+ 
+      // Optimize the query
+      CalciteOptimizer optimizer =
+          new CalciteOptimizer(analysisResult_, ctx_.getTimeline());
+      ImpalaPlanRel optimizedPlan = optimizer.optimize(logicalPlan);
+ 
+      returnsMoreThanOneRow_ = returnsMoreThanOneRow(optimizedPlan);
+ 
+      // Create Physical Impala PlanNodes
+      CalcitePhysPlanCreator physPlanCreator =
+          new CalcitePhysPlanCreator(analysisResult_.getAnalyzer(), ctx_);
+      rootNode_ = physPlanCreator.create(optimizedPlan);
+ 
+      analysisResult_.getAnalyzer().computeValueTransferGraph();
+      return rootNode_.planNode_;
+    } catch (Exception e) {
+      if (analysisResult_.potentialException_ != null) {
+         throw analysisResult_.potentialException_;
+      } else if (e instanceof ImpalaException) {
+        throw (ImpalaException) e;
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /**

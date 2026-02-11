@@ -80,6 +80,8 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
   private static ViewValidatorAliasHelper NOOP_HELPER = new NoopValidatorHelper();
   private ViewValidatorAliasHelper viewAliasHelper_ = NOOP_HELPER;
 
+  private UnsupportedFeatureException potentialCauseOfError_;
+
   protected static final Logger LOG =
       LoggerFactory.getLogger(ImpalaSqlValidatorImpl.class.getName());
 
@@ -221,9 +223,7 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
       SqlCall node,
       RelDataType targetRowType,
       final SqlValidatorScope scope) {
-    if (isDoubleParenValues(node)) {
-      LOG.info("SJC: IT'S A DOUBLE PAREN");
-    }
+    validateImpalaValues(node);
     super.validateValues(node, targetRowType, scope);
   }
 
@@ -367,29 +367,34 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     public void processSelectImpl(SqlSelect select) {}
   }
 
-  private boolean isDoubleParenValues(SqlNode sqlNode) {
+  private void validateImpalaValues(SqlNode sqlNode) {
     SqlBasicCall row = (SqlBasicCall) sqlNode;
     if (row.operandCount() > 1) {
-      return false;
+      return;
     }
 
     if (!(row.operand(0) instanceof SqlBasicCall)) {
-      return false;
+      return;
     }
     SqlBasicCall topLevelRow = (SqlBasicCall) row.operand(0);
     if (!(topLevelRow.operand(0) instanceof SqlBasicCall)) {
-      return false;
+      return;
     }
     int numParams = ((SqlBasicCall)topLevelRow.operand(0)).operandCount();
     for (int i = 1; i < topLevelRow.operandCount(); ++i) {
       if (!(topLevelRow.operand(i) instanceof SqlBasicCall)) {
-        return false;
+        return;
       }
       SqlBasicCall subrow = (SqlBasicCall) topLevelRow.operand(i);
       if (subrow.getKind() != SqlKind.ROW || subrow.operandCount() != numParams) {
-        return false;
+        return;
       }
     }
-    return true;
+    potentialCauseOfError_ = new UnsupportedFeatureException("Values clause not " +
+        "supported with double parentheses.");
+  }
+
+  public UnsupportedFeatureException getPossibleValidationException() {
+    return potentialCauseOfError_;
   }
 }
