@@ -7401,6 +7401,11 @@ SqlCall NamedCall() :
         }
         <RPAREN>
     |
+        LOOKAHEAD(3) <LPAREN> <ALL> <STAR> {
+            args = ImmutableList.of(SqlIdentifier.star(getPos()));
+        }
+        <RPAREN>
+    |
         LOOKAHEAD(2) <LPAREN> <RPAREN> {
             args = ImmutableList.of();
         }
