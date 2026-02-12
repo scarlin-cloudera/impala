@@ -4168,6 +4168,52 @@ SqlCall FirstLastValueFunctionCall() :
    )
 }
 
+SqlCall ExtractFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   boolean flipArgs = false;
+   ImpalaSqlIntervalQualifier i = null;
+}
+{
+   (
+       <EXTRACT> { op = SqlStdOperatorTable.EXTRACT; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     i = IntervalQualifier()
+     <FROM>
+     {
+       args.add(SqlLiteral.createCharString(i.toString(), i.getParserPosition()));
+       flipArgs = true;
+     }
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   |
+   (
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+     <COMMA>
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   )
+   <RPAREN>
+   {
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     if (flipArgs) {
+       finalArgs.add(args.get(1));
+       finalArgs.add(args.get(0));
+     } else {
+       finalArgs = args;
+     }
+
+     return op.createCall(s.end(this), finalArgs);
+   }
+}
 /**
  * Parses an atomic row expression.
  */
@@ -7377,6 +7423,9 @@ SqlNode NamedFunctionCall() :
     |
         LOOKAHEAD(1)
         call = FirstLastValueFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = ExtractFunctionCall()
     |
         call = NamedCall()
     )
