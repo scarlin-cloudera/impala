@@ -1319,7 +1319,7 @@ void AddHint(List<SqlNode> hints) :
 }
 {
     (
-      <IDENTIFIER>  | <STRAIGHT_JOIN>
+      <STRAIGHT_JOIN> | SimpleIdentifierFromAllQuotesOrNonQuotes()
     )
     {
     hint = getToken(0).image;
@@ -2001,6 +2001,8 @@ SqlLiteral Natural() :
 SqlLiteral JoinType() :
 {
     JoinType joinType;
+    //XXX: hints are just being swallowed, not processed.
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
 }
 {
     (
@@ -2021,6 +2023,16 @@ SqlLiteral JoinType() :
     |
         <CROSS> <JOIN> { joinType = JoinType.CROSS; }
     )
+    (
+    (
+      <HINT_BEG> AddHint(hints) ( <COMMA> AddHint(hints) )* <COMMENT_END>
+    )
+    |
+    (
+      <LBRACKET> AddHint(hints) ( <COMMA> AddHint(hints) )* <RBRACKET>
+    )
+    )?
+
     {
         return joinType.symbol(getPos());
     }
