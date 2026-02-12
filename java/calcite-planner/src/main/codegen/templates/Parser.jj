@@ -933,7 +933,10 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
             // Added Impala code to handle when there are quotes and no quotes
             alias = SimpleIdentifierFromAllQuotesOrNonQuotes()
         )
-        { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias)); }
+        {
+          list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias));
+          alias = null;
+        }
         |
         { list.add(e); }
       ) 
@@ -952,6 +955,7 @@ SqlNodeList ParenthesizedQueryOrCommaListWithPossibleAlias(
               } else {
                 list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, alias));
               }
+              alias = null;
             }
     )*
     <RPAREN>
