@@ -46,6 +46,7 @@ import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeTable;
+import org.apache.impala.catalog.IcebergTable;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
@@ -117,6 +118,11 @@ public class CalciteMetadataHandler {
       if (feTable == null) {
         notFoundTables.add(tableName.toString());
         continue;
+      }
+
+      if (feTable instanceof IcebergTable) {
+        throw new UnsupportedFeatureException("Iceberg tables not supported " +
+            "with Calcite Planner.");
       }
 
       // populate the dbschema with its table, creating the dbschema if it's the
