@@ -252,4 +252,14 @@ public class CalciteMetadataHandler {
     }
     return false;
   }
+
+  public static boolean isIcebergTable(TQueryCtx queryCtx, Analyzer analyzer,
+      StmtMetadataLoader.StmtTableCache stmtTableCache, String tableName) {
+    try {
+      String db = queryCtx.session.database;
+      return stmtTableCache.catalog.getTable(db, tableName) != null;
+    } catch (Exception e) {
+      return false;
+    }
+  }
 }
