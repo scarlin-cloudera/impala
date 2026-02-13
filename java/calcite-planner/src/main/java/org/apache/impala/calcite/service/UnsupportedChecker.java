@@ -18,9 +18,11 @@
 package org.apache.impala.calcite.service;
 
 import org.apache.impala.analysis.StmtMetadataLoader.StmtTableCache;
+import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.ParseException;
 import org.apache.impala.common.UnsupportedFeatureException;
+import org.apache.impala.thrift.TQueryCtx;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -80,7 +82,9 @@ public class UnsupportedChecker {
   }
 
   public static void throwUnsupportedIfKnownException(Exception e,
-      StmtTableCache stmtTableCache, String stmt) throws ImpalaException {
+      StmtTableCache stmtTableCache, TQueryCtx queryCtx, Analyzer analyzer)
+      throws ImpalaException {
+    String stmt = queryCtx.client_request.stmt;
     throwUnsupportedIfKnownException(e);
     String s = e.toString().replace("\n"," ");
     Matcher m = TABLE_NOT_FOUND.matcher(s);
@@ -105,6 +109,11 @@ public class UnsupportedChecker {
       if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
             "Complex column " + m.group(1) + " not supported.");
+      }
+      if (CalciteMetadataHandler.isIcebergTable(queryCtx, analyzer, stmtTableCache,
+          m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Table " + m.group(1) + " is an Iceberg table which is not supported.");
       }
     }
 
