@@ -167,6 +167,16 @@ public class ImpalaCustomOperatorTable extends ReflectiveSqlOperatorTable {
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
 
+  public static final SqlBinaryOperator INT_DIVIDE =
+      new SqlBinaryOperator(
+          "DIV",
+          SqlKind.OTHER,
+          60,
+          true,
+          ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
   // UNARY_MINUS is the same as the one in Calcite. We need it in
   // our custom operators because "subtract" is here, and all
   // operators with "-" need to be in the same operator table.

@@ -86,6 +86,7 @@ public class FunctionResolver {
       ImmutableMap.<String, String> builder()
       .put("explicit_cast", "cast")
       .put("||", "concat")
+      .put("div", "quotient")
       .build();
 
   public static Set<SqlKind> ARITHMETIC_TYPES =

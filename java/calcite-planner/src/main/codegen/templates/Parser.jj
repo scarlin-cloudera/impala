@@ -7919,6 +7919,7 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <MINUS> { return ImpalaCustomOperatorTable.MINUS; }
 |   <STAR> { return ImpalaCustomOperatorTable.MULTIPLY; }
 |   <SLASH> { return ImpalaCustomOperatorTable.DIVIDE; }
+|   <DIV> { return ImpalaCustomOperatorTable.INT_DIVIDE; }
 |   <PERCENT_REMAINDER> {
         if (!this.conformance.isPercentRemainderAllowed()) {
             throw SqlUtil.newContextException(getPos(), RESOURCE.percentRemainderNotAllowed());
