@@ -455,6 +455,7 @@ parser: {
   # Binary operators tokens.
   # Example: "< INFIX_CAST: \"::\" >".
   binaryOperatorsTokens: [
+    "< AMPERSAND_AND: \"&&\" >"
   ]
 
   # Binary operators initialization.
