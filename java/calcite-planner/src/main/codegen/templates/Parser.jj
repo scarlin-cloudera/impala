@@ -776,7 +776,7 @@ void LimitClause(Span s, SqlNode[] offsetFetch) :
     (
         // MySQL-style syntax. "LIMIT start, count" or "LIMIT start, ALL"
         LOOKAHEAD(2)
-        offsetFetch[0] = UnsignedNumericLiteralOrParam()
+        offsetFetch[0] = Expression(ExprContext.ACCEPT_NONQUERY)
         <COMMA>
         (
             offsetFetch[1] = UnsignedNumericLiteralOrParam() {
