@@ -2918,7 +2918,7 @@ SqlSnapshot Snapshot(SqlNode tableRef) :
     final SqlNode e;
 }
 {
-    { s = span(); } <FOR> <SYSTEM_TIME> <AS> <OF>
+    { s = span(); } <FOR> <SYSTEM_VERSION> <AS> <OF>
     // Syntax for temporal table in
     // standard SQL 2011 IWD 9075-2:201?(E) 7.6 <table reference>
     // supports grammar as following:
@@ -8632,8 +8632,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SUNDAY: "SUNDAY" >
 |   < SYMMETRIC: "SYMMETRIC" >
 |   < SYSTEM: "SYSTEM" >
-|   < SYSTEM_TIME: "SYSTEM_TIME" >
 |   < SYSTEM_USER: "SYSTEM_USER" >
+|   < SYSTEM_VERSION: "SYSTEM_VERSION" >
 |   < TABLE: "TABLE" > { beforeTableName(); }
 |   < TABLE_NAME: "TABLE_NAME" >
 |   < TABLESAMPLE: "TABLESAMPLE" >
