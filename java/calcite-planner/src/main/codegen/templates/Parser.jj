@@ -125,6 +125,7 @@ import org.apache.impala.analysis.TypesUtil;
 import org.apache.impala.calcite.type.ImpalaSqlIntervalQualifier;
 import org.apache.impala.calcite.operators.ImpalaCustomOperatorTable;
 import org.apache.impala.calcite.operators.ImpalaConcatOrOperator;
+import org.apache.impala.calcite.operators.ImpalaOperator;
 import org.apache.impala.calcite.operators.ImpalaSqlNumericLiteral;
 import org.apache.impala.calcite.util.ParserUtil;
 import org.apache.impala.catalog.ScalarType;
@@ -4211,6 +4212,9 @@ SqlCall ExtractFunctionCall() :
      AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
      <COMMA>
      AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+     {
+       flipArgs = false;
+     }
    )
    )
    <RPAREN>
@@ -4223,7 +4227,8 @@ SqlCall ExtractFunctionCall() :
        finalArgs = args;
      }
 
-     return op.createCall(s.end(this), finalArgs);
+     SqlOperator operator = new ImpalaOperator("extract");
+     return operator.createCall(s.end(this), finalArgs);
    }
 }
 /**
