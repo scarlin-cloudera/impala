@@ -42,6 +42,7 @@ import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.rules.ImpalaCoreRules;
 import org.apache.impala.calcite.rules.ImpalaFilterSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaProjectSimplifyRule;
+import org.apache.impala.calcite.rules.ImpalaSortSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaMQContext;
 import org.apache.impala.calcite.rules.ImpalaRexExecutor;
 import org.apache.impala.calcite.schema.ImpalaCost;
@@ -179,6 +180,7 @@ public class CalciteOptimizer implements CompilerStep {
     List<RelOptRule> interRules = ImmutableList.of(
         new ImpalaFilterSimplifyRule(simplifier),
         new ImpalaProjectSimplifyRule(simplifier),
+        new ImpalaSortSimplifyRule(simplifier),
         ImpalaCoreRules.UNION_PULL_UP_CONSTANTS,
         ImpalaCoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS,
         ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE,

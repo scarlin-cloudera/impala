@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.fun.ImpalaGroupingFunction;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
@@ -176,6 +177,18 @@ public class ImpalaCustomOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
           InferTypes.FIRST_KNOWN,
           OperandTypes.DIVISION_OPERATOR);
+
+  // UNARY_MINUS is the same as the one in Calcite. We need it in
+  // our custom operators because "subtract" is here, and all
+  // operators with "-" need to be in the same operator table.
+  public static final SqlPostfixOperator FACTORIAL =
+      new SqlPostfixOperator(
+          "factorial",
+          SqlKind.OTHER,
+          80,
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.NUMERIC);
 
   // UNARY_MINUS is the same as the one in Calcite. We need it in
   // our custom operators because "subtract" is here, and all
