@@ -773,6 +773,7 @@ void LimitClause(Span s, SqlNode[] offsetFetch) :
 {
     // Postgres-style syntax. "LIMIT ... OFFSET ..."
     <LIMIT> { s.add(this); }
+    /*
     (
         // MySQL-style syntax. "LIMIT start, count" or "LIMIT start, ALL"
         LOOKAHEAD(2)
@@ -793,10 +794,11 @@ void LimitClause(Span s, SqlNode[] offsetFetch) :
             }
         }
     |
-        offsetFetch[1] = UnsignedNumericLiteralOrParam()
-    |
-        <ALL>
-    )
+    */
+        offsetFetch[1] = Expression(ExprContext.ACCEPT_NONQUERY)
+//    |
+//        <ALL>
+//    )
 }
 
 /**
@@ -2571,9 +2573,15 @@ SqlNode RowConstructor() :
 SqlNode Where() :
 {
     SqlNode condition;
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
 }
 {
-    <WHERE> condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+    <WHERE>
+    (
+      <HINT_BEG> AddHint(hints) ( <COMMA> AddHint(hints) )* <COMMENT_END>
+    )?
+
+    condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
         return condition;
     }
 }
@@ -7996,6 +8004,10 @@ SqlPostfixOperator PostfixRowOperator() :
         |   LOOKAHEAD(2) <JSON> <SCALAR> { return SqlStdOperatorTable.IS_JSON_SCALAR; }
         |   <JSON> { return SqlStdOperatorTable.IS_JSON_VALUE; }
         )
+    )
+    |
+    (
+      <BANG_NOT> { return ImpalaCustomOperatorTable.FACTORIAL; }
     )
 |
     <FORMAT>
