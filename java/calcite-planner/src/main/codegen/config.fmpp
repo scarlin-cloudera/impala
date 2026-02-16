@@ -457,6 +457,7 @@ parser: {
   binaryOperatorsTokens: [
     "< AMPERSAND_AND: \"&&\" >"
     "< DIV: \"DIV\" >"
+    "< BITAND_OPERATOR: \"&\" >"
   ]
 
   # Binary operators initialization.
