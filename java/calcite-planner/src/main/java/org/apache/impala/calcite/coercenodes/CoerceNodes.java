@@ -215,13 +215,17 @@ public class CoerceNodes{
       isInputChanged = true;
       List<RexNode> changedList =
           processRexNodes(sort, inputs, ImmutableList.of(sort.fetch));
-      newFetch = changedList.get(0); 
+      if (changedList != null) {
+        newFetch = changedList.get(0); 
+      }
     }
     if (sort.offset instanceof RexCall) {
       isInputChanged = true;
       List<RexNode> changedList =
           processRexNodes(sort, inputs, ImmutableList.of(sort.offset));
-      newOffset = changedList.get(0); 
+      if (changedList != null) {
+        newOffset= changedList.get(0); 
+      }
     }
     return isInputChanged
         ? LogicalSort.create(inputs.get(0), sort.getCollation(), newOffset, newFetch)
