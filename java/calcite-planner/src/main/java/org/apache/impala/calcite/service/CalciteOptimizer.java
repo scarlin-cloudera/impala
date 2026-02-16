@@ -171,6 +171,16 @@ public class CalciteOptimizer implements CompilerStep {
   private RelNode runOptimizeNodesProgram(RelBuilder relBuilder, RexBuilder rexBuilder,
       RelNode plan, ImpalaRexSimplify simplifier) throws ImpalaException {
 
+    //XXX: need to fix this
+    HepProgramBuilder preBuilder = new HepProgramBuilder();
+    List<RelOptRule> preInterRules = ImmutableList.of(
+        new ImpalaSortSimplifyRule(simplifier)
+        );
+    preBuilder.addMatchOrder(HepMatchOrder.TOP_DOWN);
+    preBuilder.addRuleCollection(preInterRules);
+    plan = runProgram(plan, preBuilder.build(), simplifier);
+
+
     RelFieldTrimmer trimmer =
         new RelFieldTrimmer(validator_, relBuilder);
     RelNode trimmedPlan = trimmer.trim(plan);

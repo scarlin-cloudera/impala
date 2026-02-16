@@ -61,6 +61,7 @@ public class ImpalaSortSimplifyRule extends RelOptRule {
       executor.reduce(rexBuilder, ImmutableList.of(sort.fetch), reducedExprs);
       newFetch = reducedExprs.get(0);
     }
+    reducedExprs.clear();
     if (sort.offset != null) {
       executor.reduce(rexBuilder, ImmutableList.of(sort.offset), reducedExprs);
       newOffset = reducedExprs.get(0);
