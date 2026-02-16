@@ -7990,7 +7990,7 @@ SqlBinaryOperator BinaryRowOperator() :
         if (!this.conformance.isPercentRemainderAllowed()) {
             throw SqlUtil.newContextException(getPos(), RESOURCE.percentRemainderNotAllowed());
         }
-        return SqlStdOperatorTable.PERCENT_REMAINDER;
+        return ImpalaCustomOperatorTable.PERCENT_REMAINDER;
     }
 |   <CONCAT> { return ImpalaCustomOperatorTable.CONCAT_OR; }
 |   <AND> { return SqlStdOperatorTable.AND; }

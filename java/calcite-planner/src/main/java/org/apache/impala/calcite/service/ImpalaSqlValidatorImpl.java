@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
@@ -215,6 +216,14 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
       RelDataType targetRowType) {
     viewAliasHelper_.processSelect(select);
     super.validateSelect(select, targetRowType);
+    if (select.getOffset() instanceof SqlCall) {
+      setValidatedNodeType(select.getOffset(),
+          typeFactory.createSqlType(SqlTypeName.BIGINT));
+    }    
+    if (select.getFetch() instanceof SqlCall) {
+      setValidatedNodeType(select.getFetch(),
+          typeFactory.createSqlType(SqlTypeName.BIGINT));
+    }    
     viewAliasHelper_.endProcessSelect();
   }
 
