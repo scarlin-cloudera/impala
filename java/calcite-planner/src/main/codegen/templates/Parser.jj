@@ -1932,7 +1932,7 @@ void AddValuesItem(List<SqlNode> list) :
     final SqlIdentifier id;
 }
 {
-    e = AtomicRowExpression()
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
     (
         [ <AS> ]
         (
