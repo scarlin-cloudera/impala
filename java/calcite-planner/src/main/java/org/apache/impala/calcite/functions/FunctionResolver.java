@@ -87,6 +87,7 @@ public class FunctionResolver {
       .put("explicit_cast", "cast")
       .put("||", "concat")
       .put("div", "quotient")
+      .put("&", "bitand")
       .build();
 
   public static Set<SqlKind> ARITHMETIC_TYPES =
