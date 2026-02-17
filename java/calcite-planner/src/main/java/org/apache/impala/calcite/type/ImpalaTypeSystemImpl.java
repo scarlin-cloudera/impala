@@ -68,7 +68,7 @@ public class ImpalaTypeSystemImpl extends RelDataTypeSystemImpl {
   public int getMaxScale(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
-      return ScalarType.MAX_SCALE;
+      return getMaxNumericScale();
     case INTERVAL_YEAR:
     case INTERVAL_MONTH:
     case INTERVAL_YEAR_MONTH:
@@ -136,7 +136,7 @@ public class ImpalaTypeSystemImpl extends RelDataTypeSystemImpl {
     case VARCHAR:
       return Integer.MAX_VALUE;
     case DECIMAL:
-      return ScalarType.MAX_PRECISION;
+      return getMaxNumericPrecision();
     case INTERVAL_YEAR:
     case INTERVAL_MONTH:
     case INTERVAL_YEAR_MONTH:
@@ -166,6 +166,16 @@ public class ImpalaTypeSystemImpl extends RelDataTypeSystemImpl {
     default:
       return -1;
     }
+  }
+
+  @Override
+  public int getMaxNumericScale() {
+    return ScalarType.MAX_SCALE;
+  }
+
+  @Override
+  public int getMaxNumericPrecision() {
+    return ScalarType.MAX_PRECISION;
   }
 
   @Override
