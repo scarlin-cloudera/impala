@@ -3,6 +3,9 @@
 create table if not exists test_char_values_string_col_tmp (s string);
 ====
 ---- QUERY
+create table if not exists test_char_values_varchar_col_tmp (v varchar(5));
+====
+---- QUERY
 insert overwrite test_char_values_string_col_tmp values
 (cast("1" as char(1))),
 (cast("12" as char(2))),
@@ -21,8 +24,6 @@ int
 ====
 ---- QUERY
 create table test_char_values_varchar_col_tmp (v varchar(5));
----- RESULTS
-'Table has been created.'
 ====
 ---- QUERY
 insert overwrite test_char_values_varchar_col_tmp values
