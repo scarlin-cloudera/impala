@@ -1,8 +1,6 @@
 ====
 ---- QUERY
-create table test_char_values_string_col_tmp (s string);
----- RESULTS
-'Table has been created.'
+create table if not exists test_char_values_string_col_tmp (s string);
 ====
 ---- QUERY
 insert overwrite test_char_values_string_col_tmp values
