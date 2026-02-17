@@ -6410,6 +6410,7 @@ SqlNode BuiltinFunctionCall() :
     final SqlNode node;
     final SqlLiteral style; // mssql convert 'style' operand
     final SqlFunction f;
+    String p;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
@@ -6423,9 +6424,13 @@ SqlNode BuiltinFunctionCall() :
         <AS>
         (
             dt = DataType() { args.add(dt); }
+            (
+            <FORMAT> p = SimpleStringLiteral() { args.add(SqlLiteral.createCharString(p, s.end(this))); }
+            )?
         |
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
         )
+
         <RPAREN> {
             return f.createCall(s.end(this), args);
         }
