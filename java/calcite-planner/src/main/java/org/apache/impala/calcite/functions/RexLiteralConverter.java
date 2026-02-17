@@ -94,8 +94,9 @@ public class RexLiteralConverter {
             ImpalaTypeConverter.createImpalaType(rexLiteral.getType()));
         return numericExpr;
       case CHAR:
+        Type charType = ImpalaTypeConverter.createImpalaType(rexLiteral.getType());
+        return new StringLiteral(rexLiteral.getValueAs(String.class), charType, false);
       case VARCHAR:
-        // Always treat all string literals as type STRING
         return new StringLiteral(rexLiteral.getValueAs(String.class), Type.STRING, false);
       case DATE:
         DateString dateStringClass = rexLiteral.getValueAs(DateString.class);
