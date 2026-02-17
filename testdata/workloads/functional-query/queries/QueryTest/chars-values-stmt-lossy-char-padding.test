@@ -1,5 +1,8 @@
 ====
 ---- QUERY
+create table if not exists test_char_values_string_col_tmp (s string);
+====
+---- QUERY
 insert overwrite test_char_values_string_col_tmp values
 (cast("1" as char(1))),
 (cast("12" as char(2))),
