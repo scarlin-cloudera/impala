@@ -3927,7 +3927,7 @@ SqlNode Expression3(ExprContext exprContext) :
     final Span rowSpan;
 }
 {
-    LOOKAHEAD(2)
+//    LOOKAHEAD(2)
     e = AtomicRowExpression()
     {
         checkNonQueryExpression(exprContext);
@@ -4306,7 +4306,7 @@ SqlNode AtomicRowExpression() :
 }
 {
     (
-        LOOKAHEAD(2)
+//        LOOKAHEAD(2)
         e = LiteralOrIntervalExpression()
     |
         e = DynamicParam()
@@ -4878,13 +4878,23 @@ String SimpleStringLiteral() :
 {
 }
 {
-    <QUOTED_STRING> {
-        return SqlParserUtil.parseString(token.image);
-    }
-|
     <BIG_QUERY_QUOTED_STRING> {
-        return SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'", Casing.UNCHANGED);
+          return SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'", Casing.UNCHANGED);
     }
+    |
+    <BIG_QUERY_DOUBLE_QUOTED_STRING> {
+          return SqlParserUtil.stripQuotes(token.image, "\"", "\"", "\\\"", Casing.UNCHANGED);
+    }
+    /*
+        if (token.image.startsWith("'")) {
+          return SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'", Casing.UNCHANGED);
+        } else if (token.image.startsWith("\"")) {
+          return SqlParserUtil.stripQuotes(token.image, "\"", "\"", "\\\"", Casing.UNCHANGED);
+        } else {
+          return token.image;
+        }
+    }
+    */
 }
 
 /**
