@@ -1,9 +1,10 @@
 ====
 ---- QUERY
 create table if not exists test_char_values_string_col_tmp (s string);
-====
----- QUERY
 create table if not exists test_char_values_varchar_col_tmp (v varchar(5));
+create table if not exists test_char_values_char_col_tmp (c char(5));
+create table if not exists test_char_values_mixed_cols_tmp (c char(5), s string, v varchar(8));
+create table if not exists test_char_values_mixed_cols_different_order_tmp (s string, c char(5), v varchar(8));
 ====
 ---- QUERY
 insert overwrite test_char_values_string_col_tmp values
