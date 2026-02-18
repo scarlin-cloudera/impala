@@ -116,7 +116,7 @@ public class ImpalaTypeSystemImpl extends RelDataTypeSystemImpl {
     case INTERVAL_SECOND:
       return SqlTypeName.DEFAULT_INTERVAL_START_PRECISION;
     default:
-      return ScalarType.MAX_PRECISION;
+      return getMaxPrecision(typeName);
     }
   }
 
