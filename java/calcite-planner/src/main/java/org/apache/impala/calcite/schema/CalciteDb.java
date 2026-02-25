@@ -20,7 +20,6 @@ package org.apache.impala.calcite.schema;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
@@ -85,9 +84,7 @@ public class CalciteDb extends AbstractSchema {
 
     private static ViewTable createViewTable(FeTable feTable) throws ImpalaException {
       RelDataType rowType = CalciteTable.buildColumnsForRelDataType(feTable);
-      JavaTypeFactory typeFactory = (JavaTypeFactory) ImpalaTypeSystemImpl.TYPE_FACTORY;
-      Type elementType = typeFactory.getJavaClass(rowType);
-      return new ImpalaViewTable(elementType,
+      return new ImpalaViewTable(rowType.getClass(),
           RelDataTypeImpl.proto(rowType), ((FeView) feTable).getQueryStmt().toSql(),
           /* schemaPath */ ImmutableList.of(),
           /* viewPath */ ImmutableList.of(feTable.getDb().getName().toLowerCase(),

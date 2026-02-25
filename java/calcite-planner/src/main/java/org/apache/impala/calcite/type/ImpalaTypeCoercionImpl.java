@@ -49,6 +49,11 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
   @Override
   public RelDataType getWiderTypeFor(List<RelDataType> typeList,
       boolean stringPromotion) {
+    return getWiderTypeFor(typeList, factory);
+  }
+
+  public static RelDataType getWiderTypeFor(List<RelDataType> typeList,
+      RelDataTypeFactory factory) {
 
     // A little hack for Calcite. Impala treats CHAR and time columns
     // as incompatible. Calcite puts string literals into char types.
@@ -162,7 +167,7 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
   }
 
-  private List<RelDataType> convertCharToStringTypes(List<RelDataType> typeList) {
+  private static List<RelDataType> convertCharToStringTypes(List<RelDataType> typeList) {
     List<RelDataType> convertedTypeList = new ArrayList<>();
     RelDataType stringType = ImpalaTypeConverter.getRelDataType(Type.STRING);
     for (RelDataType type : typeList) {
@@ -175,7 +180,7 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
     return convertedTypeList;
   }
 
-  private boolean hasOnlyTimeAndString(List<RelDataType> typeList) {
+  private static boolean hasOnlyTimeAndString(List<RelDataType> typeList) {
     boolean hasTime = false;
     boolean hasChar = false;
     for (RelDataType r : typeList) {
