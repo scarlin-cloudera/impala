@@ -343,20 +343,17 @@ public class CoerceNodes{
     // initialize list to have null values for all columns
     List<RelDataType> relDataTypes = Arrays.asList(new RelDataType[nColumns]);
 
-    boolean needProject = false;
     for (List<RexLiteral> tuple : values.getTuples()) {
       List<RexNode> rexNodes = castToRexNodeList(tuple);
       List<RexNode> changedRexNodes = processRexNodes(relNode, inputs, rexNodes);
       if (changedRexNodes == null) {
         continue;
       }
-      needProject = true;
       Preconditions.checkState(changedRexNodes.size() == relDataTypes.size());
       for (int i = 0; i < changedRexNodes.size(); ++i) {
-        if (changedRexNodes.get(i) != null) {
-          Preconditions.checkState(changedRexNodes.get(i).getKind() == SqlKind.CAST ||
-              changedRexNodes.get(i) instanceof RexLiteral);
-        }
+        Preconditions.checkState(changedRexNodes.get(i).getKind() == SqlKind.CAST ||
+            changedRexNodes.get(i) instanceof RexLiteral);
+
         // if changedRexNodes.get(i) is something other than null, the type needs to
         // be coerced. We want to take the tightest type we can. The current tightest
         // type is in the relDataTypes.get(i). On initialization, it is set to null,
@@ -365,10 +362,6 @@ public class CoerceNodes{
         relDataTypes.set(i, getCompatibleDataType(
             relDataTypes.get(i), changedRexNodes.get(i).getType(), rexBuilder));
       }
-    }
-
-    if (!needProject) {
-      return relNode;
     }
 
     // Need to create a project node on top of the values: A project node
