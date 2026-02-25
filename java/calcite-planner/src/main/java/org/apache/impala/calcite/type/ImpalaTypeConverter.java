@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -69,8 +68,7 @@ public class ImpalaTypeConverter {
   private static Map<Type, RelDataType> nonNullImpalaToCalciteMap;
 
   static {
-    RexBuilder rexBuilder =
-        new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+    RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
     Map<Type, RelDataType> map = new HashMap<>();
     map.put(Type.BOOLEAN, factory.createSqlType(SqlTypeName.BOOLEAN));
@@ -347,8 +345,7 @@ public class ImpalaTypeConverter {
     TPrimitiveType primitiveType = impalaType.getPrimitiveType().toThrift();
     if (primitiveType == TPrimitiveType.DECIMAL) {
       ScalarType scalarType = (ScalarType) impalaType;
-      RexBuilder rexBuilder =
-          new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+      RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
       RelDataTypeFactory factory = rexBuilder.getTypeFactory();
       RelDataType decimalDefinedRetType = factory.createSqlType(SqlTypeName.DECIMAL,
           scalarType.decimalPrecision(), scalarType.decimalScale());
@@ -368,8 +365,7 @@ public class ImpalaTypeConverter {
   // Converts Calcite Integer literal type into an appropriate exact type for Impala,
   // e.g. TINYINT, SMALLINT, INT, or BIGINT
   public static RelDataType getLiteralDataType(BigDecimal bd, RelDataType rdt) {
-    RexBuilder rexBuilder =
-        new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+    RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     // If value is null, just use smallest value
