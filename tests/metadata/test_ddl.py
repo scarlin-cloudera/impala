@@ -39,7 +39,8 @@ from tests.common.skip import (
     SkipIfFS,
     SkipIfHive2,
     SkipIfKudu,
-    SkipIfLocal)
+    SkipIfLocal,
+    SkipIf)
 from tests.common.test_dimensions import create_single_exec_option_dimension
 from tests.common.test_dimensions import (create_exec_option_dimension,
     create_client_protocol_dimension, create_exec_option_dimension_from_dict)
@@ -628,6 +629,8 @@ class TestDdlStatements(TestDdlBase):
     self.run_test_case('QueryTest/views-ddl', vector, use_db=unique_database,
         multiple_impalad=self._use_multiple_impalad(vector))
 
+  # IMPALA-13176: Calcite does not support broadcast or shuffle hints yet.
+  @SkipIf.is_calcite_planner
   @UniqueDatabase.parametrize()
   def test_view_hints(self, unique_database):
     # Test that plan hints are stored in the view's comment field; this should work

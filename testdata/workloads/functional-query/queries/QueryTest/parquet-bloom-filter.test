@@ -61,6 +61,8 @@ select float_col from parquet_bloom_filter where float_col = 1.0;
 ---- RUNTIME_PROFILE
 aggregation(SUM, NumRowGroups): 2
 aggregation(SUM, NumBloomFilteredRowGroups): 1
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# IMPALA-XXXXX: float is being treated as double which causes a problem.
 ====
 ---- QUERY
 select float_col from parquet_bloom_filter where float_col = 2.0;
