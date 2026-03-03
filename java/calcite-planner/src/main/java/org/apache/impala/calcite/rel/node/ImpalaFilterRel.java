@@ -83,14 +83,11 @@ public class ImpalaFilterRel extends Filter
     // potential existing projected input refs from a parent RelNode.
     // Note that if the parent RelNode hasn't set any input refs, it is assumed that all
     // input refs are needed (the default case when inputRefs_ is null).
-    builder.setInputRefs(context.inputRefs_);
-    /*
     if (context.inputRefs_ != null) {
       ImmutableBitSet inputRefs =
           RelOptUtil.InputFinder.bits(Lists.newArrayList(getCondition()), null);
       builder.setInputRefs(inputRefs.union(context.inputRefs_));
     }
-    */
     return relInput.getPlanNode(builder.build());
   }
 
