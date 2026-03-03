@@ -357,11 +357,6 @@ select count(*) from functional_orc_def.decimal_tbl where d1 > 132842.0
 0
 ---- RUNTIME_PROFILE
 aggregation(SUM, RowsRead): 0
----- CALCITE_PLANNER_RUNTIME_PROFILE
-# IMPALA-XXXXX: Calcite is casting both d1 and 132842.0 to a common type, (10,1) whereas
-# Impala avoids the cast on d1 (9,0).  This results in a predicate expression that
-# cannot be optimized by orc
-aggregation(SUM, RowsRead): 5
 ====
 ---- QUERY
 # Test on predicate x < min_val for decimal(20,10). No rows should be read by the ORC
@@ -460,9 +455,6 @@ select id, bool_col from functional_orc_def.alltypessmall where int_col < 3 - 3
 ---- RESULTS
 ---- RUNTIME_PROFILE
 aggregation(SUM, RowsRead): 100
----- CALCITE_PLANNER_RUNTIME_PROFILE
-# Calcite planner does not honor enable_expr_rewrites
-aggregation(SUM, RowsRead): 0
 ====
 ---- QUERY
 select id, bool_col from functional_orc_def.alltypessmall where 5 + 5 < int_col
@@ -478,9 +470,6 @@ select id, bool_col from functional_orc_def.alltypessmall where 5 + 5 < int_col
 ---- RESULTS
 ---- RUNTIME_PROFILE
 aggregation(SUM, RowsRead): 100
----- CALCITE_PLANNER_RUNTIME_PROFILE
-# Calcite planner does not honor enable_expr_rewrites
-aggregation(SUM, RowsRead): 0
 ====
 ---- QUERY
 # Query that has an implicit cast to a larger integer type
