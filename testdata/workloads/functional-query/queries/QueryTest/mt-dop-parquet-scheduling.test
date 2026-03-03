@@ -146,14 +146,6 @@ row_regex: 08:AGGREGATE * 3 * 6
 row_regex: 03:AGGREGATE * 3 * 6
 row_regex: 04:SCAN (?:HDFS|OZONE) * 3 * 6
 row_regex: 01:SCAN (?:HDFS|OZONE) * 3 * 6
----- CALCITE_PLANNER_RUNTIME_PROFILE
-row_regex: F07:ROOT * 1 * 1
-row_regex:AdmissionSlots: 2
-row_regex: 00:UNION * 3 * 6
-row_regex: 11:AGGREGATE * 3 * 6
-row_regex: 09:AGGREGATE * 3 * 6
-row_regex: 05:SCAN (?:HDFS|OZONE) * 3 * 6
-row_regex: 02:SCAN (?:HDFS|OZONE) * 3 * 6
 ====
 ---- QUERY: TPCDS-Q11
 with year_total as (
