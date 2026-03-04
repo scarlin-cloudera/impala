@@ -46,7 +46,7 @@ public class ImpalaCost implements RelOptCost {
         }
       };
 
-  static final ImpalaCost ZERO =
+  public static final ImpalaCost ZERO =
       new ImpalaCost(0.0, 0.0) {
         @Override public String toString() {
           return "{0}";

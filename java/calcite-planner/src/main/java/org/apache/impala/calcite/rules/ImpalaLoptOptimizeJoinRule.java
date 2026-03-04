@@ -52,7 +52,20 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.IntPair;
 import org.apache.impala.calcite.schema.ImpalaRelMdNonCumulativeCost;
+import org.apache.impala.calcite.schema.CalciteTable;
 
+import com.google.common.base.Preconditions;
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Values;
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -69,6 +82,8 @@ import java.util.TreeSet;
 
 import static java.util.Objects.requireNonNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Planner rule that implements the heuristic planner for determining optimal
  * join orderings.
@@ -103,6 +118,7 @@ import static java.util.Objects.requireNonNull;
 public class ImpalaLoptOptimizeJoinRule
     extends RelRule<ImpalaLoptOptimizeJoinRule.Config>
     implements TransformationRule {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaLoptOptimizeJoinRule.class.getName());
 
   /** Creates an LoptOptimizeJoinRule. */
   protected ImpalaLoptOptimizeJoinRule(Config config) {
@@ -510,6 +526,7 @@ public class ImpalaLoptOptimizeJoinRule
     // converted to RelSubsets The HEP planner will choose the join subtree
     // with the best cumulative cost. Volcano planner keeps the alternative
     // join subtrees and cost the final plan to pick the best one.
+      LOG.info("all iterations calculated");
     for (RelNode plan : plans) {
       call.transformTo(plan);
     }
@@ -989,10 +1006,16 @@ public class ImpalaLoptOptimizeJoinRule
     RelOptCost costPushDown = null;
     RelOptCost costTop = null;
     if (pushDownTree != null) {
+      LOG.info("calculating pushdown tree " +
+          getJoinTableString(pushDownTree.getJoinTree()));
       costPushDown = mq.getCumulativeCost(pushDownTree.getJoinTree());
+      LOG.info("cost for pushdown tree is " + costPushDown);
     }
     if (topTree != null) {
+        LOG.info("calculating top tree " +
+            getJoinTableString(topTree.getJoinTree()));
       costTop = mq.getCumulativeCost(topTree.getJoinTree());
+        LOG.info("cost for top tree is " + costTop);
     }
 
     if (pushDownTree == null) {
@@ -1017,6 +1040,12 @@ public class ImpalaLoptOptimizeJoinRule
       } else {
         bestTree = topTree;
       }
+        LOG.info("comparing trees:");
+        LOG.info(
+            getJoinTableString(pushDownTree.getJoinTree()));
+        LOG.info(getJoinTableString(topTree.getJoinTree()));
+        LOG.info("picked: " +
+            getJoinTableString(bestTree.getJoinTree()));
     }
 
     return bestTree;
@@ -1803,11 +1832,15 @@ public class ImpalaLoptOptimizeJoinRule
     RexBuilder rexBuilder =
         multiJoin.getMultiJoinRel().getCluster().getRexBuilder();
 
+      LOG.info("Checking for swap inputs");
+      LOG.info(getJoinTableString(left.getJoinTree()));
+      LOG.info(getJoinTableString(right.getJoinTree()));
     // swap the inputs if beneficial
     // IMPALA CHANGE: using a swapInputs function interface which is defined with the
     // withSwapInputs() method in the config.
     if (config.swapInputsFunction().swapInputs(mq, multiJoin, left, right, selfJoin,
         condition, rexBuilder, fullAdjust)) {
+        LOG.info("Swapping inputs");
       LoptJoinTree tmp = right;
       right = left;
       left = tmp;
@@ -2153,6 +2186,46 @@ public class ImpalaLoptOptimizeJoinRule
 
     @Override default ImpalaLoptOptimizeJoinRule toRule() {
       return new ImpalaLoptOptimizeJoinRule(this);
+    }
+  }
+
+  public static String getJoinTableString(RelNode rel) {
+    String currentString = "";
+    rel = unwrapHepRelVertex(rel);
+    if (rel instanceof Join) {
+      Join join = (Join) rel;
+      return "(" + getJoinTableString(join.getLeft()) + ", " +
+          getJoinTableString(join.getRight()) + ")";
+    } else if (rel instanceof TableScan) {
+      return getTableName((TableScan) rel);
+    } else if (rel instanceof Values) {
+      Values values = (Values) rel;
+      return "<Values (" + values.getTuples().size() + ")";
+    } else if (rel instanceof Union) {
+      int i = 0;
+      for (RelNode input : rel.getInputs()) {
+        if (i > 0) {
+          currentString += ", ";
+        }
+        currentString += "<union " + i++ + ":" + getJoinTableString(input) + ">";
+      }
+    } else if (rel.getInputs().size() > 0) {
+      Preconditions.checkState(rel.getInputs().size() == 1);
+      return getJoinTableString(rel.getInput(0));
+    }
+    return currentString;
+  }
+  public static RelNode unwrapHepRelVertex(RelNode relNode) {
+    return relNode instanceof HepRelVertex
+        ? ((HepRelVertex)relNode).getCurrentRel()
+        : relNode;
+  }
+  public static String getTableName(TableScan ts) {
+    if (ts.getTable() instanceof CalciteTable) {
+      CalciteTable table = (CalciteTable) ts.getTable();
+      return table.getName();
+    } else {
+      return "<unknown table name>";
     }
   }
 }
