@@ -102,6 +102,9 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
     // IO cost = cost of transferring small tables to join node
     final double ioCost = rightRCount * rightRAverageSize * netCost;
 
+      LOG.info("calculating join cost, left row count = " + leftRCount +
+          ", left size = " + leftRAverageSize + ", right row count = " +
+          rightRCount + ", right size = " + rightRAverageSize);
     // Result
     RelOptCost finalCost = ImpalaCost.FACTORY.makeCost(1.0, cpuCost, ioCost);
     return finalCost;
@@ -125,6 +128,9 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
     } else {
       avgTupleSize = mq.getAverageRowSize(scan);
     }
+      LOG.info("calculating scan cost for " +
+          getTableName(scan) + ", cardinality = " +
+          cardinality + ", avgTupleSize = " + avgTupleSize);
 
     return new ImpalaCost(0, hdfsRead * cardinality * avgTupleSize);
   }
@@ -159,7 +165,18 @@ public class ImpalaRelMdNonCumulativeCost implements NonCumulativeCost.Handler {
     // Net transfer cost
     ioCost += rCount * rAverageSize * netCost;
 
+      LOG.info("calculating aggregate cost " + "row count = " + rCount +
+          ", average size = " + rAverageSize);
     // Result
     return ImpalaCost.FACTORY.makeCost(1.0, cpuCost, ioCost);
+  }
+
+  public static String getTableName(TableScan ts) {
+    if (ts.getTable() instanceof CalciteTable) {
+      CalciteTable table = (CalciteTable) ts.getTable();
+      return table.getName();
+    } else {
+      return "<unknown table name>";
+    }
   }
 }
