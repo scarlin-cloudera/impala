@@ -455,6 +455,9 @@ select id, bool_col from functional_orc_def.alltypessmall where int_col < 3 - 3
 ---- RESULTS
 ---- RUNTIME_PROFILE
 aggregation(SUM, RowsRead): 100
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# Calcite planner always does constant folding
+aggregation(SUM, RowsRead): 0
 ====
 ---- QUERY
 select id, bool_col from functional_orc_def.alltypessmall where 5 + 5 < int_col
@@ -470,6 +473,9 @@ select id, bool_col from functional_orc_def.alltypessmall where 5 + 5 < int_col
 ---- RESULTS
 ---- RUNTIME_PROFILE
 aggregation(SUM, RowsRead): 100
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# Calcite planner always does constant folding
+aggregation(SUM, RowsRead): 0
 ====
 ---- QUERY
 # Query that has an implicit cast to a larger integer type
