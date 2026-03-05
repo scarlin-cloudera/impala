@@ -476,6 +476,10 @@ select count(*) from functional_parquet.decimal_tbl where d4 > 0.123456789
 ---- RUNTIME_PROFILE
 aggregation(SUM, NumRowGroups): 1
 aggregation(SUM, NumStatsFilteredRowGroups): 1
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# IMPALA-XXXXX: needs investigation
+aggregation(SUM, NumRowGroups): 1
+aggregation(SUM, NumStatsFilteredRowGroups): 0
 ====
 ---- QUERY
 select count(*) from functional_parquet.decimal_tbl where d4 >= 0.12345678
@@ -492,6 +496,10 @@ select count(*) from functional_parquet.decimal_tbl where d4 >= 0.12345679
 ---- RUNTIME_PROFILE
 aggregation(SUM, NumRowGroups): 1
 aggregation(SUM, NumStatsFilteredRowGroups): 1
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# IMPALA-XXXXX: needs investigation
+aggregation(SUM, NumRowGroups): 1
+aggregation(SUM, NumStatsFilteredRowGroups): 0
 ====
 ---- QUERY
 # Test that stats are disabled for CHAR type columns.
