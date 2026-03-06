@@ -1105,7 +1105,7 @@ order by id
 INT, BIGINT
 ---- CATCH
 A correlated scalar subquery is not supported in the expression:
----- CALCITE_PLANNER_CATCH
+---- CALCITE_PLANNER_CATCH: ANY_OF
 __NO_ERROR__
 ====
 ---- QUERY
