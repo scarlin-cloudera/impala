@@ -143,6 +143,7 @@ class TestKuduClientTimeout(CustomKuduTest):
   @pytest.mark.execute_serially
   @CustomClusterTestSuite.with_args(impalad_args="-kudu_operation_timeout_ms=1")
   @SkipIfKudu.hms_integration_enabled()
+  @SkipIf.is_calcite_planner
   def test_impalad_timeout(self, vector):
     """Check impalad behavior when -kudu_operation_timeout_ms is too low."""
     self.run_test_case('QueryTest/kudu-timeouts-impalad', vector)
