@@ -226,16 +226,4 @@ public class ImpalaCoreRules {
               -> ImpalaLoptOptimizeJoinRule.swapInputs(mq, mj, left, right, cond,
                   rexB, adjust))
           .toRule();
-
-  public static ImpalaFilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
-      new ImpalaFilterProjectTransposeRule(
-          FilterProjectTransposeRule.Config.DEFAULT
-              .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
-              .as(FilterProjectTransposeRule.Config.class));
-
-  public static ImpalaProjectMergeRule PROJECT_MERGE =
-      new ImpalaProjectMergeRule(
-          ProjectMergeRule.Config.DEFAULT
-              .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
-              .as(ProjectMergeRule.Config.class));
 }
