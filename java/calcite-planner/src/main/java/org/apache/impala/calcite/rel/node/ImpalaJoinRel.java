@@ -117,8 +117,6 @@ public class ImpalaJoinRel extends Join
     List<ConjunctInfo> conjunctInfos = getConditionConjuncts(getCondition(),
         leftInput, rightInput, analyzer);
 
-    boolean rightSideHasOneRow = isRightSideOneRow(getInput(1));
-
     List<BinaryPredicate> equiJoinConjuncts =
         conjunctInfos.stream()
             .filter(conj -> conj.isEquiJoin_)
@@ -139,9 +137,9 @@ public class ImpalaJoinRel extends Join
     if (isHashJoin) {
       otherJoinConjuncts.addAll(nonEquiJoinConjuncts);
     } else {
-      // Nested join loops keep the non-equijoin conjuncts in the other join conjuncts
+      // XXX: change commentNested join loops keep the non-equijoin conjuncts in the other join conjuncts
       // except in the special case where this is only one row on the right side.
-      if (rightSideHasOneRow) {
+      if (getJoinType().equals(JoinRelType.INNER)) {
         filterConjuncts.addAll(nonEquiJoinConjuncts);
       } else {
         otherJoinConjuncts.addAll(nonEquiJoinConjuncts);
@@ -174,10 +172,15 @@ public class ImpalaJoinRel extends Join
     // value transfer graph creation can consume it. It is only useful
     // in the value transfer graph if the value transfer is equal on
     // both sides.
+    /*
     List<Expr> equiJoinExprs = rightSideHasOneRow
         ? filterConjuncts
         : new ArrayList<Expr>(equiJoinConjuncts);
-    registerConjuncts(getJoinConjunctListToRegister(equiJoinExprs), analyzer,
+        */
+    List<Expr> exprsToRegister = new ArrayList<Expr>(equiJoinConjuncts);
+    exprsToRegister.addAll(filterConjuncts);
+    exprsToRegister.addAll(otherJoinConjuncts);
+    registerConjuncts(getJoinConjunctListToRegister(exprsToRegister), analyzer,
         joinNode, joinOp);
 
     joinNode.setOutputSmap(new ExprSubstitutionMap());
@@ -563,43 +566,6 @@ public class ImpalaJoinRel extends Join
   private boolean isStraightJoin() {
     return getHints().stream()
         .anyMatch(r -> r.hintName.toLowerCase().equals("straight_join"));
-  }
-
-  private boolean isRightSideOneRow(RelNode rightInput) {
-    boolean foundPotentialNode = false;
-    while (!foundPotentialNode) {
-      ImpalaPlanRel planRel = (ImpalaPlanRel) rightInput;
-      switch (planRel.relNodeType()) {
-        case HDFSSCAN:
-        case UNION:
-        case JOIN:
-          return false;
-        case AGGREGATE:
-        case VALUES:
-          foundPotentialNode = true;
-          break;
-        case SORT:
-          // if there is a limit clause of 1, return true. Else, this is not
-          // a node that can determine if there is only 1 row.
-          ImpalaSortRel sortRel = (ImpalaSortRel) planRel;
-          if (sortRel.fetch != null &&
-              ((BigDecimal) RexLiteral.value(sortRel.fetch)).longValue() == 1L) {
-            return true;
-          }
-          break;
-      }
-      if (!foundPotentialNode) {
-        rightInput = rightInput.getInput(0);
-      }
-    }
-
-    if (rightInput instanceof Values) {
-      Values values = (Values) rightInput;
-      // can only have one tuple with one value in it
-      return values.getTuples().size() == 1 && values.getTuples().get(0).size() == 1;
-    }
-
-    return ImpalaAggRel.returnsSingleRow((Aggregate) rightInput);
   }
 
   private static class ConjunctInfo {
