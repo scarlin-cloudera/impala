@@ -1316,3 +1316,11 @@ select * from functional.alltypessmall b, s where b.int_col > s.int_col
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+# test single row optimization with limit clause
+explain select id from functional.alltypes where bigint_col > sqrt(id) limit 1;
+---- RESULTS: VERIFY_IS_SUBSET
+'   predicates: functional.alltypes.bigint_col > sqrt(functional.alltypes.id)'
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
