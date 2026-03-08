@@ -209,27 +209,17 @@ public class ImpalaProjectRel extends Project
     if (RelOptUtil.InputFinder.bits(projects, null).size() > 0) {
       return false;
     }
-    ImpalaValuesRel values = getTrivialValuesNode(getInput(0));
-    if (values == null) {
+    ImpalaPlanRel relInput = (ImpalaPlanRel) getInput(0);
+    if (!(relInput instanceof ImpalaValuesRel)) {
       return false;
     }
 
+    ImpalaValuesRel values = (ImpalaValuesRel) relInput;
     if (values.getTuples().size() != 1) {
       return false;
     }
 
     return true;
-  }
-
-  private ImpalaValuesRel getTrivialValuesNode(RelNode node) {
-    if (node instanceof ImpalaValuesRel) {
-      return (ImpalaValuesRel) node;
-    }
-    if (!(node instanceof ImpalaProjectRel)) {
-      return null;
-    }
-    RelNode input = node.getInput(0);
-    return input instanceof ImpalaValuesRel ? (ImpalaValuesRel) input : null;
   }
 
   private NodeWithExprs createUnionPlanNode(ParentPlanRelContext context,
