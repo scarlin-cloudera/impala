@@ -148,9 +148,11 @@ public class ImpalaAggRel extends Aggregate
       simplifiedAnalyzer.setUnassignedConjuncts(converter.getImpalaConjuncts());
     }
     aggNode.init(simplifiedAnalyzer);
+    /*
     if (returnsSingleRow(this)) {
       ((AggregationNode) aggNode).setIsNonCorrelatedScalarSubquery(true);
     }
+    */
     simplifiedAnalyzer.clearUnassignedConjuncts();
 
     return new NodeWithExprs(aggNode, outputExprs, getRowType().getFieldNames());
