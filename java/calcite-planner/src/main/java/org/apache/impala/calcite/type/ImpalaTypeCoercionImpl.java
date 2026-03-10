@@ -33,6 +33,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.catalog.ScalarType;
 import org.apache.impala.catalog.Type;
 
 import java.util.ArrayList;
@@ -114,6 +115,20 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
         commonType);
 
     return coerced;
+  }
+
+  @Override
+  public RelDataType commonTypeForBinaryComparison(
+      RelDataType type1, RelDataType type2) {
+    // Boolean type is not comparable to int by default in Calcite so we
+    // handle it here.
+    if (SqlTypeUtil.isBoolean(type1) && SqlTypeUtil.isIntType(type2)) {
+      return type2;
+    }
+    if (SqlTypeUtil.isBoolean(type2) && SqlTypeUtil.isIntType(type1)) {
+      return type1;
+    }
+    return super.commonTypeForBinaryComparison(type1, type2);
   }
 
   private boolean coerceInOperand(SqlValidatorScope scope, SqlCall call,
