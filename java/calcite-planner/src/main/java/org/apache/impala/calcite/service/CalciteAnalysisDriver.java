@@ -293,14 +293,14 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       CalciteQueryParser queryParser) throws ParseException, ImpalaException {
     try {
       validator.startValidatingView(false);
-      validator.validate(parsedSqlNode);
+      parsedSqlNode = validator.validate(parsedSqlNode);
       validator.endValidatingView();
       return parsedSqlNode;
     } catch (Exception e) { //XXX: have a more specific exception here
       if (validator.foundAliasIssue()) {
         parsedSqlNode = queryParser.parse();
         validator.startValidatingView(true);
-        validator.validate(parsedSqlNode);
+        parsedSqlNode = validator.validate(parsedSqlNode);
         validator.endValidatingView();
         return parsedSqlNode;
       } else {
