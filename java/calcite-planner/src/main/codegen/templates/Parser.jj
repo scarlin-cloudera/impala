@@ -8574,7 +8574,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < RESPECT: "RESPECT" >
 |   < RESTART: "RESTART" >
 |   < RESTRICT: "RESTRICT" >
-|   < RESULT: "RESULT" >
 |   < RETURN: "RETURN" >
 |   < RETURNED_CARDINALITY: "RETURNED_CARDINALITY" >
 |   < RETURNED_LENGTH: "RETURNED_LENGTH" >
