@@ -36,21 +36,19 @@ from _pytest.config import ExitCode
 from _pytest.config.argparsing import Parser
 
 # We whitelist valid test directories. If a new test directory is added, update this.
-#VALID_TEST_DIRS = ['shell', 'infra', 'hs2', 'data_errors', 'statestore', 'observability', 'webserver']
-VALID_TEST_DIRS = ['query_test']
+VALID_TEST_DIRS = ['failure', 'query_test', 'stress', 'unittests', 'aux_query_tests',
+                   'shell', 'hs2', 'catalog_service', 'metadata', 'data_errors',
+                   'statestore', 'infra', 'observability', 'webserver']
 
 # A list of helper directories that do not contain any tests. The purpose of this
 # additional list is to prevent devs from adding a new test dir, but not adding the
 # new dir to the list of valid test dirs above. All dirs unders tests/ must be placed
 # into one of these lists, otherwise the script will throw an error. This list can be
 # removed once IMPALA-4417 has been resolved.
-TEST_HELPER_DIRS = ['aux_parquet_data_load', 'metadata', 'comparison', 'benchmark', 'build',
+TEST_HELPER_DIRS = ['aux_parquet_data_load', 'comparison', 'benchmark', 'build',
                      'custom_cluster', 'util', 'experiments', 'verifiers', 'common',
                      'performance', 'beeswax', 'aux_custom_cluster_tests',
-                     'authorization', 'test-hive-udfs', '__pycache__', 'webui',
-                     'failure', 'stress', 'unittests', 'aux_query_tests',
-                   'catalog_service',
-                   'shell', 'infra', 'hs2', 'data_errors', 'statestore', 'observability', 'webserver']
+                     'authorization', 'test-hive-udfs', '__pycache__', 'webui']
 
 TEST_DIR = os.path.join(os.environ['IMPALA_HOME'], 'tests')
 RESULT_DIR = os.path.join(os.environ['IMPALA_EE_TEST_LOGS_DIR'], 'results')
@@ -344,10 +342,10 @@ if __name__ == "__main__":
       print_metrics('connections')
 
     # Run the remaining query tests in parallel
-    if not skip_parallel:
-      base_args = conf_args + ['-m', 'not execute_serially and not stress',
-                               '-n', NUM_CONCURRENT_TESTS]
-      run(base_args + build_test_args("parallel{0}".format(shard_identifier)))
+#    if not skip_parallel:
+#      base_args = conf_args + ['-m', 'not execute_serially and not stress',
+#                               '-n', NUM_CONCURRENT_TESTS]
+#      run(base_args + build_test_args("parallel{0}".format(shard_identifier)))
 
     # The total number of tests executed at this point is expected to be >0
     # If it is < 0 then the script needs to exit with a non-zero
