@@ -36,9 +36,7 @@ from _pytest.config import ExitCode
 from _pytest.config.argparsing import Parser
 
 # We whitelist valid test directories. If a new test directory is added, update this.
-VALID_TEST_DIRS = ['failure', 'query_test', 'stress', 'unittests', 'aux_query_tests',
-                   'shell', 'hs2', 'catalog_service', 'metadata', 'data_errors',
-                   'statestore', 'infra', 'observability', 'webserver']
+VALID_TEST_DIRS = ['metadata']
 
 # A list of helper directories that do not contain any tests. The purpose of this
 # additional list is to prevent devs from adding a new test dir, but not adding the
@@ -48,7 +46,10 @@ VALID_TEST_DIRS = ['failure', 'query_test', 'stress', 'unittests', 'aux_query_te
 TEST_HELPER_DIRS = ['aux_parquet_data_load', 'comparison', 'benchmark', 'build',
                      'custom_cluster', 'util', 'experiments', 'verifiers', 'common',
                      'performance', 'beeswax', 'aux_custom_cluster_tests',
-                     'authorization', 'test-hive-udfs', '__pycache__', 'webui']
+                     'authorization', 'test-hive-udfs', '__pycache__', 'webui',
+                     'failure', 'query_test', 'stress', 'unittests', 'aux_query_tests',
+                   'shell', 'hs2', 'catalog_service', 'data_errors',
+                   'statestore', 'infra', 'observability', 'webserver']
 
 TEST_DIR = os.path.join(os.environ['IMPALA_HOME'], 'tests')
 RESULT_DIR = os.path.join(os.environ['IMPALA_EE_TEST_LOGS_DIR'], 'results')
