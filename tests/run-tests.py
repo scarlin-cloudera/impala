@@ -36,7 +36,7 @@ from _pytest.config import ExitCode
 from _pytest.config.argparsing import Parser
 
 # We whitelist valid test directories. If a new test directory is added, update this.
-VALID_TEST_DIRS = ['shell', 'hs2', 'data_errors', 'statestore', 'observability', 'webserver']
+VALID_TEST_DIRS = ['shell', 'infra', 'hs2', 'data_errors', 'statestore', 'observability', 'webserver']
 
 # A list of helper directories that do not contain any tests. The purpose of this
 # additional list is to prevent devs from adding a new test dir, but not adding the
