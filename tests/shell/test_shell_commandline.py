@@ -35,6 +35,7 @@ import pytest
 from impala_shell.impala_client import utf8_encode_if_needed
 from impala_shell.impala_shell import ImpalaShell as ImpalaShellClass
 from tests.common.environ import ImpalaTestClusterProperties
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.impala_service import ImpaladService
 from tests.common.impala_test_suite import IMPALAD_HS2_HOST_PORT, ImpalaTestSuite
 from tests.common.test_dimensions import (
@@ -1176,8 +1177,12 @@ class TestImpalaShell(ImpalaTestSuite):
       args = ['-f', sql_path, '-d', unique_database]
       start_time = time()
       result = run_impala_shell_cmd(vector, args, expect_success=False)
-      assert "Could not resolve table reference: 'non_existence_large_table'" \
-          in result.stderr
+      if IS_CALCITE_PLANNER:
+        assert "Object 'NON_EXISTENCE_LARGE_TABLE' not found" \
+            in result.stderr
+      else:
+        assert "Could not resolve table reference: 'non_existence_large_table'" \
+            in result.stderr
       end_time = time()
       # Use higher timeout in ASAN/UBSAN to avoid flakiness (IMPALA-11921).
       build_runs_slowly = ImpalaTestClusterProperties.get_instance().runs_slowly()
