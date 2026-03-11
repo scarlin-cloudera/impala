@@ -36,21 +36,21 @@ row_regex:.*Per-Host Resource Estimates: Memory=[0-9.]*MB.*
 '04:EXCHANGE [UNPARTITIONED]'
 '|'
 '02:HASH JOIN [INNER JOIN, BROADCAST]'
-'|  hash predicates: tpch.lineitem.l_orderkey = tpch.orders.o_orderkey'
-'|  runtime filters: RF000 <- tpch.orders.o_orderkey'
+'|  hash predicates: tpch.lineitem_0.l_orderkey = tpch.orders_0.o_orderkey'
+'|  runtime filters: RF000 <- tpch.orders_0.o_orderkey'
 row_regex:.*row-size=.* cardinality=.*
 '|'
 '|--03:EXCHANGE [BROADCAST]'
 '|  |'
 '|  01:SCAN $FILESYSTEM_NAME [tpch.orders]'
 row_regex:.*partitions=1/1 files=1 size=.*
-'|     predicates: tpch.orders.o_orderkey IS NOT NULL'
+'|     predicates: tpch.orders_0.o_orderkey IS NOT NULL'
 row_regex:.*row-size=.* cardinality=.*
 '|'
 '00:SCAN $FILESYSTEM_NAME [tpch.lineitem]'
 row_regex:.*partitions=1/1 files=1 size=.*
-'   predicates: tpch.lineitem.l_orderkey IS NOT NULL'
-'   runtime filters: RF000 -> tpch.lineitem.l_orderkey'
+'   predicates: tpch.lineitem_0.l_orderkey IS NOT NULL'
+'   runtime filters: RF000 -> tpch.lineitem_0.l_orderkey'
 row_regex:.*row-size=.* cardinality=.*
 ====
 ---- QUERY
