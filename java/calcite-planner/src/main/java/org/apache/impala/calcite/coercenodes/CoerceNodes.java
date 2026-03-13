@@ -573,7 +573,9 @@ public class CoerceNodes{
         aggCall.getAggregation(), operandTypes);
     Preconditions.checkNotNull(fn, "Could not find matching functions for " +
         aggCall.getAggregation().getName());
-    RelDataType retType = ImpalaTypeConverter.createRelDataType(factory, fn.getReturnType());
+    RelDataType retType = fn.getReturnType().isWildcardType()
+        ? ImpalaTypeConverter.getRelDataType(fn.getReturnType())
+        : ImpalaTypeConverter.createRelDataType(factory, fn.getReturnType());
 
     // Not changing return type, they should be the same. The code will get more
     // complicated if this has to change.
@@ -586,7 +588,11 @@ public class CoerceNodes{
       Type t = (i < fn.getArgs().length)
           ? fn.getArgs()[i]
           : fn.getArgs()[fn.getArgs().length - 1];
-      newOperandTypes.add(ImpalaTypeConverter.createRelDataType(factory, t));
+      if (t.isWildcardType()) {
+        newOperandTypes.add(ImpalaTypeConverter.getRelDataType(t));
+      } else {
+        newOperandTypes.add(ImpalaTypeConverter.createRelDataType(factory, t));
+      }
     }
     return newOperandTypes;
   }
@@ -678,6 +684,9 @@ public class CoerceNodes{
     }
     if (r1.getSqlTypeName().equals(SqlTypeName.DECIMAL) &&
         r2.getSqlTypeName().equals(SqlTypeName.DECIMAL)) {
+      if (r2.getPrecision() == -1 && r2.getScale() == 0) {
+        return true;
+      }
       return r1.getPrecision() == r2.getPrecision() && r1.getScale() == r2.getScale();
     }
     return r1.getSqlTypeName().equals(r2.getSqlTypeName());
