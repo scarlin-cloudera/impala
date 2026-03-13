@@ -342,10 +342,10 @@ if __name__ == "__main__":
       print_metrics('connections')
 
     # Run the remaining query tests in parallel
-#    if not skip_parallel:
-#      base_args = conf_args + ['-m', 'not execute_serially and not stress',
-#                               '-n', NUM_CONCURRENT_TESTS]
-#      run(base_args + build_test_args("parallel{0}".format(shard_identifier)))
+    if not skip_parallel:
+      base_args = conf_args + ['-m', 'not execute_serially and not stress',
+                               '-n', NUM_CONCURRENT_TESTS]
+      run(base_args + build_test_args("parallel{0}".format(shard_identifier)))
 
     # The total number of tests executed at this point is expected to be >0
     # If it is < 0 then the script needs to exit with a non-zero
