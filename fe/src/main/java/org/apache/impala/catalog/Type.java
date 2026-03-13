@@ -197,6 +197,9 @@ public abstract class Type {
   public boolean isWildcardDecimal() { return false; }
   public boolean isWildcardVarchar() { return false; }
   public boolean isWildcardChar() { return false; }
+  public boolean isWildcardType() {
+    return isWildcardDecimal() || isWildcardVarchar() || isWildcardChar();
+  }
 
   public boolean isStringType() {
     return isScalarType(PrimitiveType.STRING) || isScalarType(PrimitiveType.VARCHAR) ||
