@@ -377,7 +377,7 @@ public class ImpalaAnalyticRel extends Project
     for (RexNode operand : exp.operands) {
       operandTypes.add(operand.getType());
     }
-    return FunctionResolver.getExactFunction(aggFunction.getName(),
+    return FunctionResolver.getExactFunction(aggFunction,
        aggFunction.getKind(),  operandTypes);
   }
 

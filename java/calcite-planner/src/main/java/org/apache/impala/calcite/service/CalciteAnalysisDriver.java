@@ -36,9 +36,11 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.impala.analysis.AnalysisContext;
@@ -74,6 +76,7 @@ import org.apache.impala.planner.SingleNodePlannerIntf;
 import org.apache.impala.thrift.TQueryCtx;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,10 +143,15 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       // given query but not the underlying tables referenced by a regular view.
       CalciteMetadataHandler.populateCalciteSchema(reader_, ctx_.getCatalog(),
           stmtTableCache_, analyzer_);
+      FeDb db = ctx_.getCatalog().getDb(queryCtx_.session.database);
+      ImpalaOperatorTable dbOperatorTable = ImpalaOperatorTable.create(ctx_.getCatalog(), db); 
+      SqlOperatorTable chainedOpTables = SqlOperatorTables.chain(
+          ImmutableList.of(dbOperatorTable, ImpalaOperatorTable.getInstance()));
+//          ImmutableList.of(ImpalaOperatorTable.getInstance()));
 
       typeFactory_ = ImpalaTypeFactoryImpl.INSTANCE;
       sqlValidator_ = new ImpalaSqlValidatorImpl(
-          ImpalaOperatorTable.getInstance(),
+          chainedOpTables,
           reader_, typeFactory_,
           SqlValidator.Config.DEFAULT
               // Impala requires identifier expansion (tpcds test queries fail

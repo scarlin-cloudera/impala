@@ -281,7 +281,6 @@ parser: {
     "SIMPLE"
     "SIZE"
     "SOURCE"
-    "SPACE"
     "SPECIFIC_NAME"
     "SQL_BIGINT"
     "SQL_BINARY"

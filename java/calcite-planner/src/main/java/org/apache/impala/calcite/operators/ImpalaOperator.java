@@ -26,6 +26,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.impala.catalog.BuiltinsDb;
+import org.apache.impala.catalog.FeDb;
 
 /**
  * ImpalaOperator is a custom Calcite operator that handles all generic functions
@@ -35,14 +37,21 @@ import org.apache.calcite.sql.SqlSyntax;
  */
 public class ImpalaOperator extends SqlFunction {
 
+  private final FeDb db_;
+
   public ImpalaOperator(String name) {
+    this(BuiltinsDb.getInstance(), name);
+  }
+
+  public ImpalaOperator(FeDb db, String name) {
     super(name.toUpperCase(), SqlKind.OTHER, null, null, null,
         SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    db_ = db;
   }
 
   @Override
   public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    return CommonOperatorFunctions.inferReturnType(opBinding, getName());
+    return CommonOperatorFunctions.inferReturnType(opBinding, this);
   }
 
   @Override
@@ -68,5 +77,9 @@ public class ImpalaOperator extends SqlFunction {
   @Override
   public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION;
+  }
+
+  public FeDb getDb() {
+    return db_;
   }
 }

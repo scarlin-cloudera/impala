@@ -8349,7 +8349,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HOP: "HOP" >
 |   < HOUR: "HOUR" >
 |   < HOURS: "HOURS" >
-|   < IDENTITY: "IDENTITY" >
 |   < IGNORE: "IGNORE" >
 |   < ILIKE: "ILIKE" >
 |   < IMMEDIATE: "IMMEDIATE" >
@@ -8637,7 +8636,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SMALLINT: "SMALLINT" >
 |   < SOME: "SOME" >
 |   < SOURCE: "SOURCE" >
-|   < SPACE: "SPACE" >
 |   < SPECIFIC: "SPECIFIC" >
 |   < SPECIFIC_NAME: "SPECIFIC_NAME" >
 |   < SPECIFICTYPE: "SPECIFICTYPE" >
