@@ -48,7 +48,7 @@ public class CalciteCompilerFactory implements CompilerFactory {
   private static final String PLANNER = "CalcitePlanner";
 
   static {
-    ImpalaOperatorTable.create(BuiltinsDb.getInstance());
+    ImpalaOperatorTable.create();
   }
 
   public ParsedStatement createParsedStatement(TQueryCtx queryCtx)

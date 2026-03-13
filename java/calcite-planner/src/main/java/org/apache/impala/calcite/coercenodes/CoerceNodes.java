@@ -266,7 +266,8 @@ public class CoerceNodes{
       }
 
       // if here, need to transform
-      List<RelDataType> newOperandTypes = getCastedOperandTypes(aggCall, operandTypes);
+      List<RelDataType> newOperandTypes = getCastedOperandTypes(aggCall,
+          rexBuilder.getTypeFactory(), operandTypes);
 
       // last parameter is the starting point for new project fields added
       // (see method comment for details).
@@ -534,7 +535,7 @@ public class CoerceNodes{
     }
 
     // Look for a function match.  If found, no need to coerce
-    Function fn = FunctionResolver.getExactFunction(aggCall.getAggregation().getName(),
+    Function fn = FunctionResolver.getExactFunction(aggCall.getAggregation(),
         operandTypes);
 
     if (fn == null) {
@@ -565,14 +566,14 @@ public class CoerceNodes{
    * in a matching Impala function signature.
    */
   private static List<RelDataType> getCastedOperandTypes(AggregateCall aggCall,
-      List<RelDataType> operandTypes) {
+      RelDataTypeFactory factory, List<RelDataType> operandTypes) {
     // Get the Impala function. Getting the "supertype" function will retrieve
     // the closest function where operands may be cast.
     Function fn = FunctionResolver.getSupertypeFunction(
-        aggCall.getAggregation().getName(), operandTypes);
+        aggCall.getAggregation(), operandTypes);
     Preconditions.checkNotNull(fn, "Could not find matching functions for " +
         aggCall.getAggregation().getName());
-    RelDataType retType = ImpalaTypeConverter.getRelDataType(fn.getReturnType());
+    RelDataType retType = ImpalaTypeConverter.createRelDataType(factory, fn.getReturnType());
 
     // Not changing return type, they should be the same. The code will get more
     // complicated if this has to change.
@@ -585,7 +586,7 @@ public class CoerceNodes{
       Type t = (i < fn.getArgs().length)
           ? fn.getArgs()[i]
           : fn.getArgs()[fn.getArgs().length - 1];
-      newOperandTypes.add(ImpalaTypeConverter.getRelDataType(t));
+      newOperandTypes.add(ImpalaTypeConverter.createRelDataType(factory, t));
     }
     return newOperandTypes;
   }
@@ -665,14 +666,19 @@ public class CoerceNodes{
     return newNames;
   }
 
+  // XXX: Maybe change name because looking at rel type now too
   private static boolean areSqlTypesEqual(RelDataType r1, RelDataType r2) {
     if (r1.getSqlTypeName().equals(SqlTypeName.VARCHAR) &&
         r2.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
       // if both precisions are Integer.MAX_VALUE, they are both strings
-      // if both precisions are not INteger.MAX_VALUE, they are both varchars
+      // if both precisions are not Integer.MAX_VALUE, they are both varchars
       int maxVal = Integer.MAX_VALUE;
       return (r1.getPrecision() == maxVal && r2.getPrecision() == maxVal) ||
           (r1.getPrecision() != maxVal && r2.getPrecision() != maxVal);
+    }
+    if (r1.getSqlTypeName().equals(SqlTypeName.DECIMAL) &&
+        r2.getSqlTypeName().equals(SqlTypeName.DECIMAL)) {
+      return r1.getPrecision() == r2.getPrecision() && r1.getScale() == r2.getScale();
     }
     return r1.getSqlTypeName().equals(r2.getSqlTypeName());
   }

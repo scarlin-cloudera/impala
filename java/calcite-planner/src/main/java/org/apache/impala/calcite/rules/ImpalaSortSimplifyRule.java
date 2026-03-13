@@ -51,26 +51,30 @@ public class ImpalaSortSimplifyRule extends RelOptRule {
     Sort sort = call.rel(0);
     RelOptCluster cluster = sort.getCluster();
     RexBuilder rexBuilder = cluster.getRexBuilder();
-    RexExecutor executor = simplifier_.getRexExecutor();
+    RexExecutor executor = new ImpalaRexExecutor(
+        (ImpalaRexExecutor) simplifier_.getRexExecutor(), false);
 
     boolean changed = false;
     RexNode newFetch = sort.fetch;
     RexNode newOffset = sort.offset;
     List<RexNode> reducedExprs = new ArrayList<>();
+    boolean somethingChanged = false;
     if (sort.fetch != null) {
       executor.reduce(rexBuilder, ImmutableList.of(sort.fetch), reducedExprs);
       newFetch = reducedExprs.get(0);
+      if (!sort.fetch.equals(newFetch)) {
+        somethingChanged = true;
+      }
     }
     reducedExprs.clear();
     if (sort.offset != null) {
       executor.reduce(rexBuilder, ImmutableList.of(sort.offset), reducedExprs);
       newOffset = reducedExprs.get(0);
+      if (!sort.offset.equals(newOffset)) {
+        somethingChanged = true;
+      }
     }
-    LOG.info("FETCH IS " + sort.fetch);
-    LOG.info("NEW FETCH IS " + newFetch);
-    LOG.info("OFFSET IS " + sort.offset);
-    LOG.info("NEW OFFSET IS " + newOffset);
-    if (sort.fetch == newFetch && sort.offset == newOffset) {
+    if (!somethingChanged) {
       return;
     }
 
