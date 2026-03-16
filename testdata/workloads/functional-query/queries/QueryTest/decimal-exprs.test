@@ -491,6 +491,8 @@ set decimal_v2=true;
 select cast(cast(0.499 as decimal(9, 3)) as date);
 ---- CATCH
 AnalysisException: Invalid type cast of CAST(0.499 AS DECIMAL(9,3)) from DECIMAL(9,3) to DATE
+---- CALCITE_PLANNER_CATCH
+AnalysisException: Invalid type cast from DECIMAL(9,3) to DATE
 ====
 ---- QUERY
 # IMPALA-6405: String to Decimal conversion errors
