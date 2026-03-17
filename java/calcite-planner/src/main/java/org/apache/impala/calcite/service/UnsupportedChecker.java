@@ -61,6 +61,9 @@ public class UnsupportedChecker {
   private static Pattern OBJECT_NOT_FOUND =
       Pattern.compile(".*\\bObject '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern OBJECT_NOT_FOUND_WITHIN  =
+      Pattern.compile(".*\\bObject '(.*)' not found within '(.*)'.*", Pattern.CASE_INSENSITIVE);
+
   private static Pattern COLUMN_NOT_FOUND =
       Pattern.compile(".*\\bColumn '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
 
@@ -114,7 +117,16 @@ public class UnsupportedChecker {
             "Complex column " + m.group(1) + " not supported.");
       }
       if (CalciteMetadataHandler.isIcebergTable(queryCtx, analyzer, stmtTableCache,
-          m.group(1))) {
+          queryCtx.session.database, m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Table " + m.group(1) + " is an Iceberg table which is not supported.");
+      }
+    }
+
+    m = OBJECT_NOT_FOUND_WITHIN.matcher(s);
+    if (m.matches()) {
+      if (CalciteMetadataHandler.isIcebergTable(queryCtx, analyzer, stmtTableCache,
+          m.group(2), m.group(1))) {
         throw new UnsupportedFeatureException(
             "Table " + m.group(1) + " is an Iceberg table which is not supported.");
       }

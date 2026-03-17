@@ -2984,7 +2984,10 @@ SqlSnapshot Snapshot(SqlNode tableRef) :
     final SqlNode e;
 }
 {
-    { s = span(); } <FOR> <SYSTEM_VERSION> <AS> <OF>
+    // IMPALA-XXXXX: Iceberg isn't supported yet.  For parsing purposes,
+    // system_version and system_time are combined here, but this will
+    // need to change when we support this.
+    { s = span(); } <FOR> (<SYSTEM_VERSION> | <SYSTEM_TIME>)  <AS> <OF>
     // Syntax for temporal table in
     // standard SQL 2011 IWD 9075-2:201?(E) 7.6 <table reference>
     // supports grammar as following:
@@ -8715,6 +8718,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SUNDAY: "SUNDAY" >
 |   < SYMMETRIC: "SYMMETRIC" >
 |   < SYSTEM: "SYSTEM" >
+|   < SYSTEM_TIME: "SYSTEM_TIME" >
 |   < SYSTEM_USER: "SYSTEM_USER" >
 |   < SYSTEM_VERSION: "SYSTEM_VERSION" >
 |   < TABLE: "TABLE" > { beforeTableName(); }
