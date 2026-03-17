@@ -51,18 +51,9 @@ public class CalciteParsedStatement implements ParsedStatement {
       parsedSqlNode = ((SqlExplain) parsedSqlNode).getExplicandum();
     }
     parsedNode_ = parsedSqlNode;
-
-    CalciteMetadataHandler.TableVisitor tableVisitor =
-        new CalciteMetadataHandler.TableVisitor(queryCtx.session.database);
-
-    parsedNode_.accept(tableVisitor);
-
-    if (tableVisitor.errorTables_.size() > 0) {
-      throw new UnsupportedFeatureException("Table " + tableVisitor.errorTables_.get(0)
-          + " is not supported.");
-    }
-
-    tableNames_ = tableVisitor.tableNames_;
+    
+    tableNames_ = CalciteMetadataHandler.TableVisitor.getTableNames(
+        parsedNode_, queryCtx.session.database);
   }
 
   @Override
