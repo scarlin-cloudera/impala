@@ -2232,6 +2232,9 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         ]
         {
             tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
+            if (true) {
+              throw new ParseException("Unnest function found");
+            }
         }
     |
         [ <LATERAL> { lateral = true; } ]
@@ -4163,6 +4166,29 @@ SqlCall StringAggFunctionCall() :
         }
         return call;
     }
+}
+
+/**
+ * XXX:
+ */
+SqlCall UnnestFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+   (
+       <UNNEST> { op = SqlStdOperatorTable.UNNEST; }
+   )
+   { s = span(); }
+   <LPAREN>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   <RPAREN> {
+     throw new ParseException("Unnest function found");
+   }
 }
 
 /**
@@ -6573,6 +6599,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayAggFunctionCall() { return node; }
     |
         node = GroupByWindowingCall() { return node; }
+    |
+        node = UnnestFunctionCall() { return node; }
     )
 }
 
@@ -7518,6 +7546,9 @@ SqlNode NamedFunctionCall() :
     (
         LOOKAHEAD(2)
         call = StringAggFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = UnnestFunctionCall()
     |
         LOOKAHEAD(1)
         call = PercentileFunctionCall()
