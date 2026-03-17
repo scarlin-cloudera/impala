@@ -162,7 +162,9 @@ public class CalciteMetadataHandler {
     // the top of the stack.
     public final Stack<Set<TableName>> withItemTableNames_ = new Stack<>();
 
-    public TableVisitor(String currentDb) {
+    public ImpalaException exception_ = null;
+
+    private TableVisitor(String currentDb) {
       this.currentDb_ = currentDb.toLowerCase();
     }
 
@@ -221,7 +223,8 @@ public class CalciteMetadataHandler {
           localTableNames.add(
               new TableName(parts.get(0).toLowerCase(), parts.get(1).toLowerCase()));
         } else {
-          errorTables_.add(tableName);
+          exception_ = new UnsupportedFeatureException(
+              "Table " + tableName + " is not supported.");
           return localTableNames;
         }
       }
@@ -238,6 +241,10 @@ public class CalciteMetadataHandler {
         if (basicCall.getKind().equals(SqlKind.AS)) {
           localTableNames.addAll(getTableNames(basicCall.operand(0)));
         }
+        if (basicCall.getKind() == SqlKind.UNNEST) {
+           exception_ = new UnsupportedFeatureException(
+               "Unnest function is not supported at this time.");
+        }
       }
       return localTableNames;
     }
@@ -247,6 +254,17 @@ public class CalciteMetadataHandler {
         if (tableNames.contains(tableName)) return true;
       }
       return false;
+    }
+
+    public static Set<TableName> getTableNames(SqlNode sqlNode, String db)
+        throws ImpalaException {
+      
+      TableVisitor tableVisitor = new TableVisitor(db);
+      sqlNode.accept(tableVisitor);
+      if (tableVisitor.exception_ != null) {
+        throw tableVisitor.exception_;
+      }
+      return tableVisitor.tableNames_;
     }
   }
 
