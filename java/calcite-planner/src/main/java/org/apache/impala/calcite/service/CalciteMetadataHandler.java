@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -117,6 +118,9 @@ public class CalciteMetadataHandler {
       FeTable feTable = db.getTable(tableName.getTbl());
       if (feTable == null) {
         notFoundTables.add(tableName.toString());
+        CalciteDb.Builder dbBuilder =
+            dbSchemas.getOrDefault(tableName.getDb(), new CalciteDb.Builder(reader));
+        dbSchemas.put(tableName.getDb().toLowerCase(), dbBuilder);
         continue;
       }
 
@@ -196,6 +200,10 @@ public class CalciteMetadataHandler {
     }
 
     private List<TableName> getTableNames(SqlNode fromNode) {
+      if (fromNode instanceof SqlSnapshot) {
+        return getTableNames(((SqlSnapshot) fromNode).getTableRef());
+      }
+
       List<TableName> localTableNames = new ArrayList<>();
       if (fromNode instanceof SqlIdentifier) {
         String tableName = fromNode.toString();
@@ -254,9 +262,8 @@ public class CalciteMetadataHandler {
   }
 
   public static boolean isIcebergTable(TQueryCtx queryCtx, Analyzer analyzer,
-      StmtMetadataLoader.StmtTableCache stmtTableCache, String tableName) {
+      StmtMetadataLoader.StmtTableCache stmtTableCache, String db, String tableName) {
     try {
-      String db = queryCtx.session.database;
       return stmtTableCache.catalog.getTable(db, tableName) != null;
     } catch (Exception e) {
       return false;
