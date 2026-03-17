@@ -72,6 +72,9 @@ public class UnsupportedChecker {
 
   public static void throwUnsupportedIfKnownException(Exception e)
       throws ImpalaException {
+    if (e.getMessage().equals("Unnest function found")) {
+      throw new UnsupportedFeatureException("Unnest function not supported.");
+    }
     String s = e.toString().replace("\n"," ");
     if (LEFT_ANTI.matcher(s).matches() || RIGHT_ANTI.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Anti joins not supported.");
