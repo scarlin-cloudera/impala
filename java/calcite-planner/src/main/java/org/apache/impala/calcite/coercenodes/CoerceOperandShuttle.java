@@ -413,20 +413,15 @@ public class CoerceOperandShuttle extends RexShuttle {
 
   private static boolean useReturnTypeForCastingArg(Function fn, RelDataType argType) {
     // case functions use the precalculated return type from the function resolver.
-    return isCaseFunction(fn);
-    /*
     if (isCaseFunction(fn)) {
       return true;
     }
-    */
 
     //XXX: is this still needed?
     // For functions that have decimal varargs and return a decimal
     // (e.g. greatest, least), the type has been calculated at validation time.
-    /*
     return SqlTypeUtil.isDecimal(argType) &&
-        fn.getReturnType().isDecimal() && fn.hasVarArgs();
-        */
+        fn.getReturnType().isDecimal() && fn.getReturnType().isWildcardType() && fn.hasVarArgs();
   }
 
   private static boolean isCaseFunction(Function fn) {
