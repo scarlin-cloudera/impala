@@ -19,6 +19,7 @@ package org.apache.impala.calcite.rules;
 
 
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
@@ -38,13 +39,17 @@ public class ImpalaProjectMergeRule extends ProjectMergeRule {
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
+    final Project topProject = call.rel(0);
     final Project project = call.rel(1);
     RelNode projectInput = project.getInput(0);
     if (projectInput instanceof HepRelVertex) {
       projectInput = ((HepRelVertex)projectInput).getCurrentRel();
     }
     if (projectInput instanceof Values) {
-      return;
+      if (RelOptUtil.InputFinder.bits(topProject.getProjects(), null).size() > 0 ||
+          topProject.getProjects().size() != project.getProjects().size()) {
+        return;
+      }
     }
     super.onMatch(call); 
   }
