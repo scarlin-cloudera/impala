@@ -4735,6 +4735,7 @@ SqlLiteral SpecialLiteral() :
 SqlNode StringLiteral() :
 {
     String p;
+    String q;
     final List<SqlLiteral> frags;
     char unicodeEscapeChar = 0;
     String charSet = null;
@@ -4868,10 +4869,10 @@ SqlNode StringLiteral() :
 |
     <BIG_QUERY_DOUBLE_QUOTED_STRING>
     {
-        p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\\\"",
+       p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\"",
             Casing.UNCHANGED);
         try {
-            p = ParserUtil.replaceEscapedChars(p);
+            q = ParserUtil.replaceEscapedChars(p);
             return SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
             throw SqlUtil.newContextException(getPos(),
@@ -4884,10 +4885,10 @@ SqlNode StringLiteral() :
 |
     <BIG_QUERY_QUOTED_STRING>
     {
-        p = SqlParserUtil.stripQuotes(getToken(0).image, "'", "'", "\\'",
+        p = SqlParserUtil.stripQuotes(getToken(0).image, "'", "'", "'",
             Casing.UNCHANGED);
         try {
-            p = ParserUtil.replaceEscapedChars(p);
+            q = ParserUtil.replaceEscapedChars(p);
             return SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
             throw SqlUtil.newContextException(getPos(),
@@ -4905,14 +4906,36 @@ SqlNode StringLiteral() :
  * Returns the value of the string with quotes removed. */
 String SimpleStringLiteral() :
 {
+  String s;
+  String q;
 }
 {
     <BIG_QUERY_QUOTED_STRING> {
-          return SqlParserUtil.stripQuotes(token.image, "'", "'", "\\'", Casing.UNCHANGED);
+        try {
+          s = SqlParserUtil.stripQuotes(token.image, "'", "'", "'", Casing.UNCHANGED);
+          q =ParserUtil.replaceEscapedChars(s);
+          return s;
+//        } catch (java.nio.charset.UnsupportedCharsetException e) {
+//            throw SqlUtil.newContextException(getPos(),
+//                RESOURCE.unknownCharacterSet(charSet));
+        } catch (ParserUtil.MalformedUnicodeEscape e) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unicodeEscapeMalformed(e.i));
+        }
     }
     |
     <BIG_QUERY_DOUBLE_QUOTED_STRING> {
-          return SqlParserUtil.stripQuotes(token.image, "\"", "\"", "\\\"", Casing.UNCHANGED);
+        try {
+          s = SqlParserUtil.stripQuotes(token.image, "\"", "\"", "\"", Casing.UNCHANGED);
+          q = ParserUtil.replaceEscapedChars(s);
+          return s;
+//        } catch (java.nio.charset.UnsupportedCharsetException e) {
+//            throw SqlUtil.newContextException(getPos(),
+//                RESOURCE.unknownCharacterSet(charSet));
+        } catch (ParserUtil.MalformedUnicodeEscape e) {
+            throw SqlUtil.newContextException(getPos(),
+                RESOURCE.unicodeEscapeMalformed(e.i));
+        }
     }
     /*
         if (token.image.startsWith("'")) {
