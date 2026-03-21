@@ -7800,7 +7800,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <SUM>
     |   <UPPER>
     |   <TRUNCATE>
-    |   <USER>
     |   <VAR_POP>
     |   <VAR_SAMP>
     |   <YEAR>
@@ -7827,7 +7826,6 @@ SqlIdentifier ContextVariable() :
     |   <LOCALTIMESTAMP>
     |   <SESSION_USER>
     |   <SYSTEM_USER>
-    |   <USER>
     )
     {
         return new SqlIdentifier(unquotedIdentifier(), getPos());
@@ -8832,7 +8830,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UPPER: "UPPER" >
 |   < UPSERT: "UPSERT" >
 |   < USAGE: "USAGE" >
-|   < USER: "USER" >
 |   < USER_DEFINED_TYPE_CATALOG: "USER_DEFINED_TYPE_CATALOG" >
 |   < USER_DEFINED_TYPE_CODE: "USER_DEFINED_TYPE_CODE" >
 |   < USER_DEFINED_TYPE_NAME: "USER_DEFINED_TYPE_NAME" >
