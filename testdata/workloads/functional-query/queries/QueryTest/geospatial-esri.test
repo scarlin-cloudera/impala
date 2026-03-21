@@ -2814,24 +2814,32 @@ select ST_AsText(ST_ConvexHull(ST_Point(0, 0), ST_Point(2, 0), ST_Point(4, 0), S
 select ST_ConvexHull();
 ---- CATCH
 AnalysisException: No matching function with signature: st_convexhull()
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for ST_CONVEXHULL; operand types: []
 ====
 ---- QUERY
 # Wrong type - STRING instead of BINARY
 select ST_ConvexHull('invalid geometry');
 ---- CATCH
 AnalysisException: No matching function with signature: st_convexhull(STRING)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for ST_CONVEXHULL; operand types: [CHAR(16)]
 ====
 ---- QUERY
 # Wrong type - INTEGER instead of BINARY
 select ST_ConvexHull(123);
 ---- CATCH
 AnalysisException: No matching function with signature: st_convexhull(TINYINT)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for ST_CONVEXHULL; operand types: [TINYINT]
 ====
 ---- QUERY
 # Wrapper only generates overloads for 1-8 arguments
 select ST_ConvexHull(ST_Point(0,0), ST_Point(1,1), ST_Point(2,2), ST_Point(3,3), ST_Point(4,4), ST_Point(5,5), ST_Point(6,6), ST_Point(7,7), ST_Point(8,8));
 ---- CATCH
 AnalysisException: No matching function with signature: st_convexhull(BINARY, BINARY, BINARY, BINARY, BINARY, BINARY, BINARY, BINARY, BINARY)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for ST_CONVEXHULL; operand types: [BINARY, BINARY, BINARY, BINARY, BINARY, BINARY, BINARY, BINARY, BINARY]
 ====
 ---- QUERY
 # NULL Handling
