@@ -2140,14 +2140,11 @@ SqlNode JoinTable(SqlNode e, List<SqlNode> hints) :
         }
     |
         {
-            natural = joinTypeAndHints.joinType_.getValue().equals(JoinType.INNER)
-                ? SqlLiteral.createBoolean(true, getPos())
-                : SqlLiteral.createBoolean(false, getPos());
             hints.addAll(joinTypeAndHints.hints_);
             return new SqlJoin(joinTypeAndHints.joinType_.getParserPosition(),
                 e,
-                natural,
-                joinTypeAndHints.joinType_,
+                SqlLiteral.createBoolean(false, joinTypeAndHints.joinType_.getParserPosition()),
+                JoinType.COMMA.symbol(joinTypeAndHints.joinType_.getParserPosition()),
                 e2,
                 JoinConditionType.NONE.symbol(joinTypeAndHints.joinType_.getParserPosition()),
                 null);
