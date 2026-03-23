@@ -47,6 +47,8 @@ on p.month = b.int_col and b.month = 1 and b.string_col = "1"
 620
 ---- RUNTIME_PROFILE
 row_regex: 00:SCAN.*s[ ]+7.30K[ ]+[0-9\.]+K
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# IMPALA-XXXXX: Shuffle hint not yet supported for Calcite
 ====
 ---- QUERY
 # Shuffle join, global mode. Expect filters to be propagated.
@@ -201,6 +203,8 @@ row_regex: REMOTE.*.s .*.s .*true
 ---- RUNTIME_PROFILE: table_format=kudu
 aggregation(SUM, FiltersReceived): 3
 row_regex: REMOTE.*.s .*.s .*true
+---- CALCITE_PLANNER_RUNTIME_PROFILE:
+# IMPALA-XXXXX: Shuffle hint not yet supported for Calcite
 ====
 
 
