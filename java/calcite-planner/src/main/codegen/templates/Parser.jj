@@ -7804,7 +7804,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <PERCENTILE_DISC>
     |   <PERCENT_RANK>
     |   <POWER>
-    |   <RANK>
     |   <RIGHT>
     |   <ROW_NUMBER>
     |   <SECOND>
@@ -8618,7 +8617,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < QUARTER: "QUARTER" >
 |   < QUARTERS: "QUARTERS" >
 |   < RANGE: "RANGE" >
-|   < RANK: "RANK" >
 |   < READ: "READ" >
 |   < READS: "READS" >
 |   < REAL: "REAL" >
