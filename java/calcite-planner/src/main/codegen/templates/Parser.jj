@@ -4341,6 +4341,82 @@ SqlCall ExtractFunctionCall() :
      return operator.createCall(s.end(this), finalArgs);
    }
 }
+
+SqlCall Utf8TrimFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   String function = "utf8_btrim";
+}
+{
+   (
+       <UTF8_TRIM> { op = SqlStdOperatorTable.TRIM; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     <LEADING> { function = "utf8_ltrim"; }
+     |
+     <TRAILING> { function = "utf8_rtrim"; }
+     |
+     <BOTH> { function = "utf8_btrim"; }
+   )?
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   <FROM>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   <RPAREN>
+   {
+     SqlOperator operator = new ImpalaOperator(function);
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     finalArgs.add(args.get(1));
+     finalArgs.add(args.get(0));
+
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
+
+SqlCall TrimFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   String function = "btrim";
+}
+{
+   (
+       <TRIM> { op = SqlStdOperatorTable.TRIM; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     <LEADING> { function = "ltrim"; }
+     |
+     <TRAILING> { function = "rtrim"; }
+     |
+     <BOTH> { function = "btrim"; }
+   )?
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   <FROM>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   <RPAREN>
+   {
+     SqlOperator operator = new ImpalaOperator(function);
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     finalArgs.add(args.get(1));
+     finalArgs.add(args.get(0));
+
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
 /**
  * Parses an atomic row expression.
  */
@@ -7597,6 +7673,12 @@ SqlNode NamedFunctionCall() :
         LOOKAHEAD(1)
         call = ExtractFunctionCall()
     |
+        LOOKAHEAD(1)
+        call = TrimFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = Utf8TrimFunctionCall()
+    |
         call = NamedCall()
     )
     [
@@ -8849,6 +8931,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < USER_DEFINED_TYPE_SCHEMA: "USER_DEFINED_TYPE_SCHEMA" >
 |   < USING: "USING" >
 |   < UTF8: "UTF8" >
+|   < UTF8_TRIM: "UTF8_TRIM" >
 |   < UTF16: "UTF16" >
 |   < UTF32: "UTF32" >
 |   < VALUE: "VALUE" >
