@@ -45,6 +45,9 @@ public class UnsupportedChecker {
   private static Pattern RIGHT_ANTI = Pattern.compile(".*\\bright\\santi\\b.*",
       Pattern.CASE_INSENSITIVE);
 
+  private static Pattern TABLESAMPLE = Pattern.compile(".*\\btablesample\\b.*",
+      Pattern.CASE_INSENSITIVE);
+
   private static Pattern FOR_SYSTEM_VERSION_AS_OF =
       Pattern.compile(".*\\bfor\\ssystem_version\\sas\\sof\\b.*",
       Pattern.CASE_INSENSITIVE);
@@ -81,6 +84,9 @@ public class UnsupportedChecker {
     }
     if (LEFT_SEMI.matcher(s).matches() || RIGHT_SEMI.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Semi joins not supported.");
+    }
+    if (TABLESAMPLE.matcher(s).matches()) {
+      throw new UnsupportedFeatureException("Table sample not supported.");
     }
     if (FOR_SYSTEM_VERSION_AS_OF.matcher(s).matches()) {
       throw new UnsupportedFeatureException("'for system_version as of' not supported.");
