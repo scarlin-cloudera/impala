@@ -4404,14 +4404,18 @@ SqlCall TrimFunctionCall() :
      <BOTH> { function = "btrim"; }
    )?
    AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
    <FROM>
    AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )?
    )
    <RPAREN>
    {
      SqlOperator operator = new ImpalaOperator(function);
      List<SqlNode> finalArgs = new ArrayList<SqlNode>();
-     finalArgs.add(args.get(1));
+     if (args.size() > 1) {
+       finalArgs.add(args.get(1));
+     }
      finalArgs.add(args.get(0));
 
      return operator.createCall(s.end(this), finalArgs);
