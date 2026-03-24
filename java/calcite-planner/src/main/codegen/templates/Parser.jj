@@ -8956,7 +8956,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >
 |   < WHERE: "WHERE" >
-|   < WIDTH_BUCKET: "WIDTH_BUCKET" >
 |   < WINDOW: "WINDOW" >
 |   < WITH: "WITH" >
 |   < WITHIN: "WITHIN" >

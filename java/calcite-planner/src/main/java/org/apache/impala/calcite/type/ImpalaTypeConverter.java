@@ -417,11 +417,11 @@ public class ImpalaTypeConverter {
       }
     }
     Preconditions.checkState(compatibleTypes.size() > 0);
-    return getCompatibleType(compatibleTypes, factory);
+    return getCompatibleType(compatibleTypes, factory, TypeCompatibility.DEFAULT);
   }
 
   public static RelDataType getCompatibleType(Collection<RelDataType> dataTypes,
-      RelDataTypeFactory factory) {
+      RelDataTypeFactory factory, TypeCompatibility typeCompatibility) {
     Preconditions.checkState(dataTypes.size() > 0);
     RelDataType commonType = null;
     for (RelDataType dataType : dataTypes) {
@@ -429,13 +429,14 @@ public class ImpalaTypeConverter {
         commonType = dataType;
         continue;
       }
-      commonType = getCompatibleType(commonType, dataType, factory);
+      commonType = getCompatibleType(commonType, dataType, factory, typeCompatibility);
     }
     return commonType;
   }
 
   public static RelDataType getCompatibleType(
-      RelDataType type1, RelDataType type2, RelDataTypeFactory factory) {
+      RelDataType type1, RelDataType type2, RelDataTypeFactory factory,
+      TypeCompatibility typeCompatibility) {
     // can't handle nulls, but let caller handle this.
     if (type1 == null || type2 == null) {
       return null;
@@ -457,7 +458,7 @@ public class ImpalaTypeConverter {
     }
 
     Type retType = ScalarType.getAssignmentCompatibleType(impalaType1, impalaType2,
-        TypeCompatibility.DEFAULT);
+        typeCompatibility);
     
 
     RelDataType compatibleType = createRelDataType(factory, retType);

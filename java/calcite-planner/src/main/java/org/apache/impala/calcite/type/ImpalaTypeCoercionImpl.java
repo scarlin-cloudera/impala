@@ -35,6 +35,7 @@ import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.catalog.ScalarType;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -64,7 +65,8 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
         ? convertCharToStringTypes(typeList)
         : typeList;
 
-    return ImpalaTypeConverter.getCompatibleType(typeListToUse, factory);
+    return ImpalaTypeConverter.getCompatibleType(typeListToUse, factory,
+        TypeCompatibility.STRICT_DECIMAL);
   }
 
   // Do type coercion for In Clause. Calcite allows numerics
@@ -103,9 +105,11 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
     // commonType will contain a compatible type for both the left side of the
     // IN operator and all the types within the IN clause.
     RelDataType commonType =
-        ImpalaTypeConverter.getCompatibleType(uniqueRightOperandTypes, factory);
+        ImpalaTypeConverter.getCompatibleType(uniqueRightOperandTypes, factory,
+            TypeCompatibility.STRICT_DECIMAL);
     commonType =
-        ImpalaTypeConverter.getCompatibleType(commonType, leftOperandType, factory);
+        ImpalaTypeConverter.getCompatibleType(commonType, leftOperandType, factory,
+            TypeCompatibility.STRICT_DECIMAL);
 
     // This will mutate the binding if changed.  The "coerced" parameter is set
     // to true to let the caller know that something mutated.

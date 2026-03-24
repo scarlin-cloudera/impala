@@ -115,6 +115,9 @@ public class ImpalaRexExecutor implements RexExecutor {
   }
 
   private static boolean isReducible(RexNode rexNode) {
+    if (true) {
+      return false;
+    }
     // may already be reduced to a literal
     if (!(rexNode instanceof RexCall)) {
       return false;

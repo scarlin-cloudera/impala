@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.List;
 
@@ -42,6 +43,7 @@ public class ImpalaCoalesceFunction extends ImpalaOperator {
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     List<RelDataType> operands = CommonOperatorFunctions.getOperandTypes(opBinding);
-    return ImpalaTypeConverter.getCompatibleType(operands, factory);
+    return ImpalaTypeConverter.getCompatibleType(operands, factory,
+        TypeCompatibility.STRICT_DECIMAL);
   }
 }

@@ -46,6 +46,7 @@ import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -438,8 +439,8 @@ public class CoerceNodes{
        return dt1;
      }
 
-    return ImpalaTypeConverter.getCompatibleType(
-        ImmutableList.of(dt1, dt2), rexBuilder.getTypeFactory());
+    return ImpalaTypeConverter.getCompatibleType(ImmutableList.of(dt1, dt2),
+        rexBuilder.getTypeFactory(), TypeCompatibility.DEFAULT);
   }
 
   /**
@@ -462,7 +463,8 @@ public class CoerceNodes{
         RelDataType type0 = finalTypes.get(i);
         RelDataType type1 = input.getRowType().getFieldList().get(i).getType();
         finalTypes.set(i,
-            ImpalaTypeConverter.getCompatibleType(type0, type1, factory));
+            ImpalaTypeConverter.getCompatibleType(type0, type1, factory,
+                TypeCompatibility.DEFAULT));
       }
     }
     return finalTypes;

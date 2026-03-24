@@ -41,6 +41,7 @@ import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ public class CommonOperatorFunctions {
     }
 
     RelDataType returnType = fn.getReturnType().equals(Type.DECIMAL)
-        ? ImpalaTypeConverter.getCompatibleType(operandTypes, factory)
+        ? ImpalaTypeConverter.getCompatibleType(operandTypes, factory, TypeCompatibility.STRICT_DECIMAL)
         : ImpalaTypeConverter.createRelDataType(fn.getReturnType());
 
     return isNullable(operandTypes)
