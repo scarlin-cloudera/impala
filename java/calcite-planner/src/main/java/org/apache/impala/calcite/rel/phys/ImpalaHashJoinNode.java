@@ -50,5 +50,4 @@ public class ImpalaHashJoinNode extends HashJoinNode {
   @Override
   public void assignConjuncts(Analyzer analyzer) {
   }
-
 }
