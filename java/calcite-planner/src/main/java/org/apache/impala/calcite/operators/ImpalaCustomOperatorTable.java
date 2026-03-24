@@ -25,11 +25,13 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.fun.ImpalaGroupingFunction;
-import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -127,6 +129,10 @@ public class ImpalaCustomOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlReturnTypeInference STRING_TYPE = opBinding -> {
     return ImpalaTypeConverter.getRelDataType(Type.STRING);
   };
+
+  public static final SqlSpecialOperator ILIKE = SqlLibraryOperators.ILIKE;
+
+  public static final SqlSpecialOperator RLIKE = SqlLibraryOperators.RLIKE;
 
   public static final SqlBinaryOperator PLUS =
       new SqlMonotonicBinaryOperator(
