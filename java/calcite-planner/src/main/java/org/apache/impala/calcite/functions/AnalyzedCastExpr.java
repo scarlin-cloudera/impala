@@ -70,6 +70,11 @@ public class AnalyzedCastExpr extends CastExpr {
     return false;
   }
 
+  @Override
+  public boolean allowsImplicitConversion() {
+    return isImplicit_;
+  }
+
   private static String getFormat(List<Expr> paramsList) {
     return paramsList.size() == 1
         ? null
