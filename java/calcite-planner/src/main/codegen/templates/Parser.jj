@@ -2307,7 +2307,8 @@ SqlNode Tablesample(SqlNode tableRef) :
     int repeatableSeed = 0;
 }
 {
-    <TABLESAMPLE> { s = span(); checkNotJoin(tableRef); }
+//    <TABLESAMPLE> { s = span(); checkNotJoin(tableRef); }
+    <TABLESAMPLE> { if (true) throw new ParseException("tablesample not supported."); }
     (
         <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
         {
