@@ -2823,7 +2823,7 @@ select ST_ConvexHull('invalid geometry');
 ---- CATCH
 AnalysisException: No matching function with signature: st_convexhull(STRING)
 ---- CALCITE_PLANNER_CATCH
-Cannot infer return type for ST_CONVEXHULL; operand types: [CHAR(16)]
+Cannot infer return type for ST_CONVEXHULL; operand types: [VARCHAR(2147483647)]
 ====
 ---- QUERY
 # Wrong type - INTEGER instead of BINARY
