@@ -391,7 +391,7 @@ public class CoerceOperandShuttle extends RexShuttle {
 
       // in the case of varargs, take the last argument in the signature.
       int indexToUse = Math.min(i, fn.getNumArgs() - 1);
-      Type toImpalaType = fn.getArgs()[indexToUse].isDecimal() && isImpalaOperator
+      Type toImpalaType = fn.getArgs()[indexToUse].isDecimal() && isImpalaOperator && fn.getArgs()[indexToUse].isWildcardType()
           ? commonDecimalOperandType
           : fn.getArgs()[indexToUse];
       RelDataType toType = isCaseFunction(fn)
