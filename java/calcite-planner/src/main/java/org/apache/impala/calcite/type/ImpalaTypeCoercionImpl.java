@@ -51,11 +51,11 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
   @Override
   public RelDataType getWiderTypeFor(List<RelDataType> typeList,
       boolean stringPromotion) {
-    return getWiderTypeFor(typeList, factory);
+    return getWiderTypeFor(typeList, factory, TypeCompatibility.STRICT_DECIMAL);
   }
 
   public static RelDataType getWiderTypeFor(List<RelDataType> typeList,
-      RelDataTypeFactory factory) {
+      RelDataTypeFactory factory, TypeCompatibility compatibility) {
 
     // A little hack for Calcite. Impala treats CHAR and time columns
     // as incompatible. Calcite puts string literals into char types.
@@ -66,7 +66,7 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
         : typeList;
 
     return ImpalaTypeConverter.getCompatibleType(typeListToUse, factory,
-        TypeCompatibility.STRICT_DECIMAL);
+        compatibility);
   }
 
   // Do type coercion for In Clause. Calcite allows numerics

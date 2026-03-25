@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.List;
 /**
@@ -44,6 +45,6 @@ public class ImpalaTypeFactoryImpl extends SqlTypeFactoryImpl {
         return super.leastRestrictive(types, mappingRule);
       }
     }
-    return ImpalaTypeCoercionImpl.getWiderTypeFor(types, this);
+    return ImpalaTypeCoercionImpl.getWiderTypeFor(types, this, TypeCompatibility.DEFAULT);
   }
 }
