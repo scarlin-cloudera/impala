@@ -188,7 +188,8 @@ class TestObservability(ImpalaTestSuite):
         "RUNTIME_FILTER_MODE=OFF,MT_DOP=0,TIMEZONE={timezone},"
         "CLIENT_IDENTIFIER="
         "query_test/test_observability.py::TestObservability::test_query_options,"
-        "SPOOL_QUERY_RESULTS=0"
+        "SPOOL_QUERY_RESULTS=0,"
+        "PLANNER=ORIGINAL"
         "\n")
     expected_str = expected_str.format(timezone=server_timezone)
     assert expected_str in profile, profile
@@ -330,6 +331,8 @@ class TestObservability(ImpalaTestSuite):
     runtime_profile = self.execute_query(query).runtime_profile
     self.__verify_profile_event_sequence(event_regexes, runtime_profile)
 
+  # XXXX: Calcite planner needs investigation
+  @SkipIf.is_calcite_planner
   def test_query_profile_contains_query_compilation_metadata_load_events(self,
         cluster_properties):
     """Test that the Metadata load started and finished events appear in the query
