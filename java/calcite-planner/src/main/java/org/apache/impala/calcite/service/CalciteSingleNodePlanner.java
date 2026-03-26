@@ -28,6 +28,7 @@ import org.apache.impala.analysis.ExprSubstitutionMap;
 import org.apache.impala.analysis.ParsedStatement;
 import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.rel.node.NodeWithExprs;
+import org.apache.impala.catalog.local.InconsistentMetadataFetchException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.planner.DataSink;
 import org.apache.impala.planner.PlanNode;
@@ -89,6 +90,8 @@ public class CalciteSingleNodePlanner implements SingleNodePlannerIntf {
          throw analysisResult_.potentialException_;
       } else if (e instanceof ImpalaException) {
         throw (ImpalaException) e;
+      } else if (e instanceof InconsistentMetadataFetchException) {
+        throw (InconsistentMetadataFetchException) e;
       } else {
         throw new RuntimeException(e);
       }
