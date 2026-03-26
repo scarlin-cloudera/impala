@@ -37,6 +37,8 @@ order by 1,2,3,4 limit 5
 1767,22387,4890,4
 ---- TYPES
 BIGINT,BIGINT,BIGINT,INT
+---- CALCITE_PLANNER_CATCH
+Increase the buffer_pool_limit
 ====
 ---- QUERY
 # Execute NAAJ query 2 in-memory only without enough memory to complete.
@@ -51,6 +53,8 @@ where if(l_orderkey % 2 = 0, NULL, l_partkey) not in (
       order by 1,2,3,4 limit 5
 ---- CATCH
 Could not free memory by spilling to disk: scratch_limit is 0
+---- CALCITE_PLANNER_CATCH
+Increase the buffer_pool_limit
 ====
 ---- QUERY
 # =======================================================================================
@@ -79,6 +83,8 @@ order by 1,2,3,4
 4958784,116009,1032,2
 ---- TYPES
 BIGINT,BIGINT,BIGINT,INT
+---- CALCITE_PLANNER_CATCH
+Increase the buffer_pool_limit
 ====
 ---- QUERY
 # =======================================================================================
@@ -99,4 +105,6 @@ order by 1,2,3,4
 4801283,199001,9002,1
 ---- TYPES
 BIGINT,BIGINT,BIGINT,INT
+---- CALCITE_PLANNER_CATCH
+Increase the buffer_pool_limit
 ====

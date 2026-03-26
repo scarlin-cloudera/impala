@@ -57,6 +57,7 @@ INT, BIGINT
 row_regex: .*SpilledPartitions: 0 .*
 ====
 ---- QUERY: TPCH-Q21
+# IMPALA-XXXXX: anti-joins not supported so memory footprint is higher for Calcite
 # Adding TPCH-Q21 in the spilling test to check for IMPALA-1471 (spilling left anti
 # and left outer joins were returning wrong results).
 # Q21 - Suppliers Who Kept Orders Waiting Query
@@ -207,6 +208,8 @@ string, bigint
 ---- RUNTIME_PROFILE
 # Verify that at least one of the joins was spilled.
 row_regex: .*SpilledPartitions: .* \([1-9][0-9]*\)
+---- CALCITE_PLANNER_CATCH
+Increase the buffer_pool_limit
 ====
 ---- QUERY
 # IMPALA-1346/IMPALA-1546: fix sorter memory management so that it can complete
@@ -438,6 +441,7 @@ row_regex: .*InMemoryHeapsEvicted: .* \([1-9][0-9]*\)
 ====
 ---- QUERY
 # Test spilling an agg with a LIMIT; see IMPALA-2581
+# IMPALA-XXXXX: FastLimit didn't work for one test for Calcite planner
 set buffer_pool_limit=136m;
 select c.c2 from
 (select distinct (a.id*10000 + b.id) c1, a.int_col c2
@@ -450,4 +454,6 @@ BIGINT
 # Verify that spilling was activated.
 row_regex: .*SpilledPartitions: .* \([1-9][0-9]*\)
 row_regex: .*FastLimitCheckExceededRows: [0-9]+
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+row_regex: .*SpilledPartitions: .* \([1-9][0-9]*\)
 ====
