@@ -29,6 +29,7 @@ import time
 from multiprocessing.pool import ThreadPool
 
 from tests.common.custom_cluster_test_suite import CustomClusterTestSuite
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.skip import SkipIfHive2, SkipIfFS
 from tests.util.filesystem_utils import WAREHOUSE
 from tests.util.query_profile_util import parse_query_id
@@ -156,7 +157,10 @@ class TestLocalCatalogCompactUpdates(CustomClusterTestSuite):
               'WARNING', 'Detected catalog service restart')
             err = self.execute_query_expect_failure(
               client, "select * from {}".format(view))
-            assert "Could not resolve table reference" in str(err)
+            if IS_CALCITE_PLANNER:
+              assert "not found" in str(err)
+            else:
+              assert "Could not resolve table reference" in str(err)
             view_not_found = True
           if not database_found:
             # This part is only needed to ensure unique_database cleanup is successful.
