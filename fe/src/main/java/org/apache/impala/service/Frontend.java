@@ -2456,6 +2456,10 @@ public class Frontend {
     if (error instanceof ImpalaException) {
       throw (ImpalaException) error;
     }
+    if (error instanceof InconsistentMetadataFetchException) {
+      throw (InconsistentMetadataFetchException) error;
+    }
+    LOG.info("SJC: ERROR IS OF TYPE: " + error.getClass());
     throw new RuntimeException(error);
   }
 
