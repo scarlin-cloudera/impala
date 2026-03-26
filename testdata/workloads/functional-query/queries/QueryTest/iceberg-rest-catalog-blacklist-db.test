@@ -17,6 +17,8 @@ AnalysisException: Database does not exist: ice
 select count(*) from ice.airports_parquet;
 ---- CATCH
 AnalysisException: Could not resolve table reference: 'ice.airports_parquet'
+---- CALCITE_PLANNER_CATCH
+Object 'ICE' not found
 ====
 ---- QUERY
 # Cannot create tables via Iceberg REST Catalog, guard against that functionality

@@ -294,3 +294,12 @@ class SkipIfExploration:
     return pytest.mark.skipif(
         ImpalaTestSuite.exploration_strategy() != EXPLORATION_STRATEGY_EXHAUSTIVE,
         reason=skip_msg)
+
+
+class SkipIfCalcite:
+  hints_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="hints not supported yet")
+  lineage_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="lineage not supported yet")
+  need_to_add_warnings = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-XXXXX: need to add warnings")
