@@ -7923,9 +7923,7 @@ SqlIdentifier ContextVariable() :
     |   <CURRENT_SCHEMA>
     |   <CURRENT_TIME>
     |   <CURRENT_TIMESTAMP>
-    |   <CURRENT_USER>
     |   <LOCALTIMESTAMP>
-    |   <SESSION_USER>
     |   <SYSTEM_USER>
     )
     {
@@ -8382,7 +8380,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < CURRENT_TIME: "CURRENT_TIME" >
 |   < CURRENT_TIMESTAMP: "CURRENT_TIMESTAMP" >
 |   < CURRENT_TRANSFORM_GROUP_FOR_TYPE: "CURRENT_TRANSFORM_GROUP_FOR_TYPE" >
-|   < CURRENT_USER: "CURRENT_USER" >
 |   < CURSOR: "CURSOR" >
 |   < CURSOR_NAME: "CURSOR_NAME" >
 |   < CYCLE: "CYCLE" >
@@ -8779,7 +8776,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SERVER: "SERVER" >
 |   < SERVER_NAME: "SERVER_NAME" >
 |   < SESSION: "SESSION" >
-|   < SESSION_USER: "SESSION_USER" >
 |   < SET: "SET" > { afterTableName(); }
 |   < SETS: "SETS" >
 |   < SET_MINUS: "MINUS">

@@ -156,8 +156,13 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       dbToUse = db_;
     }
     // Check Impala Builtins for existence: TODO: IMPALA-13095: handle UDFs
-    List<Function> functions = dbToUse.getFunctions(lowercaseFuncName);
-    if (functions.size() == 0) {
+    List<Function> functions;
+    try {
+      functions = dbToUse.getFunctions(lowercaseFuncName);
+      if (functions.size() == 0) {
+        return;
+      }
+    } catch (Exception e) {
       return;
     }
 
