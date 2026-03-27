@@ -33,6 +33,7 @@ import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.Function;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -65,6 +66,7 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
 
   private final FeCatalog catalog_;
   private final FeDb db_;
+  private final Set<Function> usedFunctions_;
 
   public static Set<String> USE_IMPALA_OPERATOR =
       ImmutableSet.<String> builder()
@@ -95,9 +97,10 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
 
   private static ImpalaOperatorTable INSTANCE;
 
-  private ImpalaOperatorTable(FeCatalog catalog, FeDb db) {
+  private ImpalaOperatorTable(FeCatalog catalog, FeDb db, boolean trackFunctionsUsed) {
     catalog_ = catalog;
     db_ = (db == null) ? BuiltinsDb.getInstance() : db;
+    usedFunctions_ = trackFunctionsUsed ? new HashSet<>() : null;
   }
 
   /**
@@ -170,6 +173,10 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
         ? funcName
         : dbName + "." + funcName;
 
+    if (usedFunctions_ != null) {
+      usedFunctions_.add(functions.get(0));
+    }
+
     SqlOperator impalaOp = (functions.get(0) instanceof AggregateFunction)
         ? new ImpalaAggOperator(dbToUse, fullName)
         : new ImpalaOperator(dbToUse, fullName);
@@ -177,19 +184,20 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
     operatorList.add(impalaOp);
   }
 
+  public Set<Function> getUsedFunctions() {
+    return usedFunctions_;
+  }
+
   public static synchronized void create() {
     if (INSTANCE != null) {
       return;
     }
-    INSTANCE = create(null, BuiltinsDb.getInstance());
+    INSTANCE = create(null, BuiltinsDb.getInstance(), false);
   }
 
-  public static ImpalaOperatorTable create(FeDb db) {
-    return create(null, db);
-  }
-
-  public static ImpalaOperatorTable create(FeCatalog catalog, FeDb db) {
-    return new ImpalaOperatorTable(catalog, db);
+  public static ImpalaOperatorTable create(FeCatalog catalog, FeDb db,
+      boolean trackFunctionsUsed) {
+    return new ImpalaOperatorTable(catalog, db, trackFunctionsUsed);
   }
 
   public static ImpalaOperatorTable getInstance() {

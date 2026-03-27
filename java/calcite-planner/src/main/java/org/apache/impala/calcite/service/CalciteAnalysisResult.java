@@ -24,12 +24,16 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.impala.analysis.AnalysisContext.AnalysisResult;
 import org.apache.impala.analysis.AnalysisDriver;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.common.UnsupportedFeatureException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * CalciteAnalysisResult is an AnalysisResult with added analysis result
  * members produced by the CalciteAnalyzer
  */
 public class CalciteAnalysisResult extends AnalysisResult {
+  protected static final Logger LOG = LoggerFactory.getLogger(CalciteAnalysisResult.class.getName());
   // Calcite AST
   private final SqlNode validatedNode_;
 
@@ -69,6 +73,11 @@ public class CalciteAnalysisResult extends AnalysisResult {
     return typeFactory_;
   }
 
+  @Override
+  public boolean shouldFallbackBecauseOfException() {
+    return getException() instanceof UnsupportedFeatureException;
+  }
+
   public static CalciteAnalysisResult createValidAnalysisResult(CalciteAnalysisDriver a,
       ImpalaException potentialException) {
     return new CalciteAnalysisResult(a, null, potentialException);
@@ -78,4 +87,5 @@ public class CalciteAnalysisResult extends AnalysisResult {
       ImpalaException exception) {
     return new CalciteAnalysisResult(a, exception, null);
   }
+
 }

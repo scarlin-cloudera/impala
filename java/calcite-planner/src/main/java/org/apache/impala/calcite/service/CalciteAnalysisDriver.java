@@ -47,6 +47,7 @@ import org.apache.impala.analysis.AnalysisContext;
 import org.apache.impala.analysis.AnalysisContext.AnalysisResult;
 import org.apache.impala.analysis.AnalysisDriver;
 import org.apache.impala.analysis.Analyzer;
+import org.apache.impala.analysis.FunctionName;
 import org.apache.impala.analysis.ParsedStatement;
 import org.apache.impala.analysis.StmtMetadataLoader;
 import org.apache.impala.analysis.StmtMetadataLoader.StmtTableCache;
@@ -67,6 +68,7 @@ import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
+import org.apache.impala.catalog.Function;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.ParseException;
@@ -144,7 +146,8 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       CalciteMetadataHandler.populateCalciteSchema(reader_, ctx_.getCatalog(),
           stmtTableCache_, analyzer_);
       FeDb db = ctx_.getCatalog().getDb(queryCtx_.session.database);
-      ImpalaOperatorTable dbOperatorTable = ImpalaOperatorTable.create(ctx_.getCatalog(), db); 
+      ImpalaOperatorTable dbOperatorTable =
+          ImpalaOperatorTable.create(ctx_.getCatalog(), db, true);
       SqlOperatorTable chainedOpTables = SqlOperatorTables.chain(
           ImmutableList.of(dbOperatorTable, ImpalaOperatorTable.getInstance()));
 //          ImmutableList.of(ImpalaOperatorTable.getInstance()));
@@ -178,6 +181,14 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       // referenced by views assuming that those tables and columns referenced by views
       // could be successfully resolved.
       validatedNode_ = sqlValidator_.validate(parsedStmt_.getParsedSqlNode());
+      for (Function function : dbOperatorTable.getUsedFunctions()) {
+        FunctionName fnName = function.getFunctionName();
+
+        analyzer_.registerPrivReq(builder -> builder.allOf(Privilege.SELECT)
+            .onFunction(fnName.getDb(), fnName.getFunction()).build());
+        analyzer_.registerPrivReq(builder -> builder.allOf(Privilege.SELECT)
+            .onDb(ctx_.getCatalog().getDb(fnName.getDb())).build());
+      }
       return CalciteAnalysisResult.createValidAnalysisResult(this,
           sqlValidator_.getPossibleValidationException());
     } catch (ImpalaException e) {
