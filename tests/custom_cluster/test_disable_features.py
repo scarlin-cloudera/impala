@@ -20,7 +20,7 @@ import pytest
 
 from tests.common.custom_cluster_test_suite import CustomClusterTestSuite
 from tests.common.parametrize import UniqueDatabase
-from tests.common.skip import SkipIfFS
+from tests.common.skip import SkipIfFS, SkipIfCalcite
 
 
 class TestDisableFeatures(CustomClusterTestSuite):
@@ -40,6 +40,7 @@ class TestDisableFeatures(CustomClusterTestSuite):
     self.run_test_case('QueryTest/alter-table-set-column-stats', vector,
         use_db=unique_database, multiple_impalad=True)
 
+  @SkipIfCalcite.disable_having_ordinal
   @pytest.mark.execute_serially
   @CustomClusterTestSuite.with_args("--allow_ordinals_in_having=true")
   def test_allow_ordinals_in_having(self, vector):

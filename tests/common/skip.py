@@ -305,3 +305,5 @@ class SkipIfCalcite:
       reason="IMPALA-XXXXX: need to add warnings")
   ok_3_0_reserved_keywords = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="'at' is ok to use in select query")
+  disable_having_ordinal = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="ordinals in having not allowed for Calcite")
