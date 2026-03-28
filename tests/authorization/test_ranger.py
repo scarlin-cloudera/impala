@@ -34,7 +34,7 @@ import requests
 from tests.common.custom_cluster_test_suite import CustomClusterTestSuite, HIVE_CONF_DIR
 from tests.common.file_utils import copy_files_to_hdfs_dir
 from tests.common.iceberg_rest_server import IcebergRestServer
-from tests.common.skip import SkipIf, SkipIfFS, SkipIfHive2
+from tests.common.skip import SkipIf, SkipIfFS, SkipIfHive2, SkipIfCalcite
 from tests.common.test_dimensions import (
     create_client_protocol_dimension,
     create_orc_dimension,
@@ -2557,7 +2557,8 @@ class TestRangerLegacyCatalog(TestRanger):
 
   @SkipIfFS.hive
   @pytest.mark.execute_serially
-  def test_select_view_created_by_non_superuser_with_catalog_v1(self, unique_name):
+  # formally 
+  def test_sel_view_created_by_non_su_with_cat_v1(self, unique_name):
     self._test_select_view_created_by_non_superuser(unique_name)
 
 
@@ -2591,7 +2592,7 @@ class TestRangerLocalCatalog(TestRanger):
 
   @SkipIfFS.hive
   @pytest.mark.execute_serially
-  def test_select_view_created_by_non_superuser_with_local_catalog(self, unique_name):
+  def test_sel_view_created_by_non_su_with_local_cat(self, unique_name):
     self._test_select_view_created_by_non_superuser(unique_name)
 
   @pytest.mark.execute_serially
@@ -2972,7 +2973,8 @@ class TestRangerLocalCatalog(TestRanger):
                               ADMIN, True)
 
   @pytest.mark.execute_serially
-  def test_select_function_with_fallback_db(self, unique_name):
+  @SkipIfCalcite.functions_fallback_db_not_supported
+  def test_select_function_with_fallback_db(self, nique_name):
     """Verifies that Impala should not allow using functions in the fallback database
     unless the user has been granted sufficient privileges on the given database."""
     test_user = "non_owner"
