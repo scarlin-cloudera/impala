@@ -186,7 +186,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
 
         analyzer_.registerPrivReq(builder -> builder.allOf(Privilege.SELECT)
             .onFunction(fnName.getDb(), fnName.getFunction()).build());
-        analyzer_.registerPrivReq(builder -> builder.allOf(Privilege.SELECT)
+        analyzer_.registerPrivReq(builder -> builder.allOf(Privilege.VIEW_METADATA)
             .onDb(ctx_.getCatalog().getDb(fnName.getDb())).build());
       }
       return CalciteAnalysisResult.createValidAnalysisResult(this,
