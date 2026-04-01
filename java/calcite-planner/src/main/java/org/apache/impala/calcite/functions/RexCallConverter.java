@@ -275,7 +275,7 @@ public class RexCallConverter {
 
     // The last parameter is only true if it is an implicit cast. An explicit
     // cast will have a "kind" of SqlKind.OTHER and the name "explicit_cast".
-    return new AnalyzedCastExpr(impalaRetType, paramsOperand,
+    return new AnalyzedCastExpr(impalaRetType, params,
         call.getOperator().getKind().equals(SqlKind.CAST));
   }
 
