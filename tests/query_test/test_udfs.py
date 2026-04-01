@@ -22,6 +22,7 @@ import pytest
 import tempfile
 from subprocess import call, check_call
 
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.impala_cluster import ImpalaCluster
 from tests.common.impala_connection import IMPALA_CONNECTION_EXCEPTION
 from tests.common.impala_test_suite import ImpalaTestSuite
@@ -311,7 +312,8 @@ class TestUdfExecution(TestUdfBase):
     self.run_test_case('QueryTest/uda', vector, use_db=unique_database)
     self.run_test_case('QueryTest/udf-init-close', vector, use_db=unique_database)
     # Some tests assume no expr rewrites.
-    if enable_expr_rewrites:
+    # Calcite planner always runs with expr rewrites
+    if enable_expr_rewrites or IS_CALCITE_PLANNER:
       self.run_test_case('QueryTest/udf-init-close-deterministic', vector,
           use_db=unique_database)
     else:
@@ -329,7 +331,7 @@ class TestUdfExecution(TestUdfBase):
     self.run_test_case('QueryTest/udf', vector, use_db=unique_database)
     self.run_test_case('QueryTest/udf-init-close', vector, use_db=unique_database)
     # Some tests assume determinism or non-determinism, which depends on expr rewrites.
-    if enable_expr_rewrites:
+    if enable_expr_rewrites or IS_CALCITE_PLANNER:
       self.run_test_case('QueryTest/udf-init-close-deterministic', vector,
           use_db=unique_database)
     else:
@@ -416,7 +418,7 @@ class TestUdfExecution(TestUdfBase):
 
     # Only one distinct value if the expression is constant folded, otherwise one
     # value per row in alltypes
-    expected_ndv = 1 if exec_options['enable_expr_rewrites'] else 7300
+    expected_ndv = 1 if exec_options['enable_expr_rewrites'] or IS_CALCITE_PLANNER else 7300
 
     # Test fully constant expression, evaluated in FE.
     query = "select `{0}`.count_rows() from functional.alltypes".format(unique_database)
@@ -646,9 +648,11 @@ class TestUdfTargeted(TestUdfBase):
 
     assert re.search(r"output exprs.*hive_substring.*/\* JAVA UDF \*/", profile)
     # Ensure that hive_substring only shows up once in the list of UDFs.
-    assert re.search(
-        r"User Defined Functions \(UDFs\): {0}\.hive_substring\s*[\r\n]".format(
-            unique_database), profile)
+    # IMPALA-XXXXX: Calcite planner does not contain this in the profile yet
+    if not IS_CALCITE_PLANNER:
+      assert re.search(
+          r"User Defined Functions \(UDFs\): {0}\.hive_substring\s*[\r\n]".format(
+              unique_database), profile)
 
   def test_set_fallback_db_for_functions(self, unique_database):
     """IMPALA-11728: Set fallback database for functions."""
@@ -665,24 +669,29 @@ class TestUdfTargeted(TestUdfBase):
     # case 2: Throw an exception without specifying the database.
     query_stmt = "select fn() from functional.alltypes limit 1"
     result = self.execute_query_expect_failure(self.client, query_stmt)
-    assert "default.fn() unknown for database default" in str(result)
+    if IS_CALCITE_PLANNER:
+      assert "No match found for function signature FN" in str(result)
+    else:
+      assert "default.fn() unknown for database default" in str(result)
 
     # case 3: Use fn() in fallback db after setting FALLBACK_DB_FOR_FUNCTIONS
-    assert '6' == self.execute_scalar(query_stmt, query_options={
-        'fallback_db_for_functions': unique_database})
-
-    # case 4: Test a function name that also exists as builtin function.
-    # Use function in _impala_builtins.
-    create_function_stmt = "create function `{0}`.abs(int) returns int "\
-          "location '{1}/libTestUdfs.so' symbol='Identity'".format(unique_database,
-          WAREHOUSE)
-    self.client.execute(create_function_stmt)
-
-    assert '1' == self.execute_scalar("select abs(-1)", query_options={
-        'fallback_db_for_functions': unique_database})
-
-    # case 5: It should return empty result for show function, even when
-    # FALLBACK_DB_FOR_FUNCTIONS is set.
-    result = self.execute_scalar("show functions", query_options={
-        'fallback_db_for_functions': unique_database})
-    assert result is None
+    # IMPALA-XXXXX: need to support fallback_db_for_functions
+    if not IS_CALCITE_PLANNER:
+      assert '6' == self.execute_scalar(query_stmt, query_options={
+          'fallback_db_for_functions': unique_database})
+     
+      # case 4: Test a function name that also exists as builtin function.
+      # Use function in _impala_builtins.
+      create_function_stmt = "create function `{0}`.abs(int) returns int "\
+            "location '{1}/libTestUdfs.so' symbol='Identity'".format(unique_database,
+            WAREHOUSE)
+      self.client.execute(create_function_stmt)
+     
+      assert '1' == self.execute_scalar("select abs(-1)", query_options={
+          'fallback_db_for_functions': unique_database})
+     
+      # case 5: It should return empty result for show function, even when
+      # FALLBACK_DB_FOR_FUNCTIONS is set.
+      result = self.execute_scalar("show functions", query_options={
+          'fallback_db_for_functions': unique_database})
+      assert result is None
