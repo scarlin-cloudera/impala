@@ -91,7 +91,26 @@ public class CastExpr extends Expr {
     analysisDone();
   }
 
-  protected CastExpr(TypeDef targetTypeDef, Expr e, String format) {
+  public CastExpr(Type targetType, Expr e, String format) {
+    this(targetType, e, format, TypeCompatibility.DEFAULT);
+  }
+
+  public CastExpr(Type targetType, Expr e) {
+    this(targetType, e, null, TypeCompatibility.DEFAULT);
+  }
+
+  public CastExpr(Type targetType, Expr e, TypeCompatibility compatibility) {
+    this(targetType, e, null, compatibility);
+  }
+
+  /**
+   * C'tor for explicit casts.
+   */
+  public CastExpr(TypeDef targetTypeDef, Expr e) {
+    this(targetTypeDef, e, null);
+  }
+
+  public CastExpr(TypeDef targetTypeDef, Expr e, String format) {
     Preconditions.checkNotNull(targetTypeDef);
     Preconditions.checkNotNull(e);
     isImplicit_ = false;
