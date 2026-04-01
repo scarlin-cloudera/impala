@@ -94,6 +94,10 @@ public class CastExpr extends Expr {
     analysisDone();
   }
 
+  public CastExpr(Type targetType, Expr e, String format) {
+    this(targetType, e, format, TypeCompatibility.DEFAULT);
+  }
+
   public CastExpr(Type targetType, Expr e) {
     this(targetType, e, null, TypeCompatibility.DEFAULT);
   }
