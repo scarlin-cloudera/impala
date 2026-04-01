@@ -253,11 +253,13 @@ public class FunctionResolver {
 
   private static Function getImpalaFunction(FeDb db, String lowercaseName,
       List<Type> impalaArgTypes, boolean exactMatch) {
-
-    // XXX: setting varArgs to false:  If there is an error in var_sum,
-    // more fixing will need to be done.
+    //XXX: TEMPORARY HACK   
+    boolean varArgs = false;
+    if (lowercaseName.equals("var_sum")) {
+      varArgs = true; 
+    }
     Function searchDesc = new Function(new FunctionName(db.getName(), lowercaseName),
-        impalaArgTypes, Type.INVALID, false);
+        impalaArgTypes, Type.INVALID, varArgs);
 
     Function.CompareMode compareMode = exactMatch
         ? Function.CompareMode.IS_INDISTINGUISHABLE
