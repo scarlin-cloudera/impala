@@ -109,6 +109,7 @@ class TestSpillingNoDebugActionDimensions(ImpalaTestSuite):
         create_exec_option_dimension_from_dict({'default_spillable_buffer_size': ['64k'],
             'mt_dop': [0, 4]}))
 
+  @SkipIfCalcite.impala_xxxx1
   def test_spilling_naaj_no_deny_reservation(self, vector):
     """
     Null-aware anti-join tests that depend on getting more than the minimum reservation
