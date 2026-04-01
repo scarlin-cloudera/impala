@@ -1572,3 +1572,28 @@ false,true,false,true,true,false
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+select 7 DIV 0
+---- TYPES
+TINYINT
+---- RESULTS
+NULL
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+select tinyint_col div 2 from functional.alltypestiny;
+---- TYPES
+TINYINT
+---- RESULTS
+0
+0
+0
+0
+0
+0
+0
+0
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
