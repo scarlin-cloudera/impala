@@ -125,6 +125,7 @@ import org.apache.impala.analysis.TypesUtil;
 import org.apache.impala.calcite.type.ImpalaSqlIntervalQualifier;
 import org.apache.impala.calcite.operators.ImpalaCustomOperatorTable;
 import org.apache.impala.calcite.operators.ImpalaConcatOrOperator;
+import org.apache.impala.calcite.operators.ImpalaOperator;
 import org.apache.impala.calcite.operators.ImpalaSqlNumericLiteral;
 import org.apache.impala.calcite.util.ParserUtil;
 import org.apache.impala.catalog.ScalarType;
@@ -4074,7 +4075,169 @@ SqlCall PercentileFunctionCall() :
    )
 }
 
+SqlCall FirstLastValueFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+   (
+       <FIRST_VALUE> { op = SqlStdOperatorTable.FIRST_VALUE; }
+   |   <LAST_VALUE> { op = SqlStdOperatorTable.LAST_VALUE; }
+   )
+   { s = span(); }
+   <LPAREN>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
+       (
+           nullTreatment = NullTreatment()
+       |   { nullTreatment = null; }
+       )
+       <RPAREN>
+       {
+           SqlCall call = op.createCall(s.end(this), args);
+           if (nullTreatment != null) {
+               // Wrap in RESPECT_NULLS or IGNORE_NULLS.
+               call = nullTreatment.right.createCall(nullTreatment.left, call);
+           }
+           return call;
+       }
+   )
+}
 
+SqlCall ExtractFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   boolean flipArgs = false;
+   ImpalaSqlIntervalQualifier i = null;
+}
+{
+   (
+       <EXTRACT> { op = SqlStdOperatorTable.EXTRACT; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     i = IntervalQualifier()
+     <FROM>
+     {
+       args.add(SqlLiteral.createCharString(i.toString(), i.getParserPosition()));
+       flipArgs = true;
+     }
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   |
+   (
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+     <COMMA>
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+     {
+       flipArgs = false;
+     }
+   )
+   )
+   <RPAREN>
+   {
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     if (flipArgs) {
+       finalArgs.add(args.get(1));
+       finalArgs.add(args.get(0));
+     } else {
+       finalArgs = args;
+     }
+
+     SqlOperator operator = new ImpalaOperator("extract");
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
+
+SqlCall Utf8TrimFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   String function = "utf8_btrim";
+}
+{
+   (
+       <UTF8_TRIM> { op = SqlStdOperatorTable.TRIM; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     <LEADING> { function = "utf8_ltrim"; }
+     |
+     <TRAILING> { function = "utf8_rtrim"; }
+     |
+     <BOTH> { function = "utf8_btrim"; }
+   )?
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   <FROM>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   <RPAREN>
+   {
+     SqlOperator operator = new ImpalaOperator(function);
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     finalArgs.add(args.get(1));
+     finalArgs.add(args.get(0));
+
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
+
+SqlCall TrimFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   String function = "btrim";
+}
+{
+   (
+       <TRIM> { op = SqlStdOperatorTable.TRIM; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     <LEADING> { function = "ltrim"; }
+     |
+     <TRAILING> { function = "rtrim"; }
+     |
+     <BOTH> { function = "btrim"; }
+   )?
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
+   <FROM>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )?
+   )
+   <RPAREN>
+   {
+     SqlOperator operator = new ImpalaOperator(function);
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     if (args.size() > 1) {
+       finalArgs.add(args.get(1));
+     }
+     finalArgs.add(args.get(0));
+
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
 /**
  * Parses an atomic row expression.
  */
@@ -6178,6 +6341,7 @@ SqlNode BuiltinFunctionCall() :
     final SqlNode node;
     final SqlLiteral style; // mssql convert 'style' operand
     final SqlFunction f;
+    String p;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
@@ -6191,6 +6355,9 @@ SqlNode BuiltinFunctionCall() :
         <AS>
         (
             dt = DataType() { args.add(dt); }
+            (
+            <FORMAT> p = SimpleStringLiteral() { args.add(SqlLiteral.createCharString(p, s.end(this))); }
+            )?
         |
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
         )
@@ -7282,6 +7449,18 @@ SqlNode NamedFunctionCall() :
         LOOKAHEAD(1)
         call = PercentileFunctionCall()
     |
+        LOOKAHEAD(1)
+        call = FirstLastValueFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = ExtractFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = TrimFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = Utf8TrimFunctionCall()
+    |
         call = NamedCall()
     )
     [
@@ -7341,6 +7520,11 @@ SqlCall NamedCall() :
     }
     (
         LOOKAHEAD(2) <LPAREN> <STAR> {
+            args = ImmutableList.of(SqlIdentifier.star(getPos()));
+        }
+        <RPAREN>
+    |
+        LOOKAHEAD(3) <LPAREN> <ALL> <STAR> {
             args = ImmutableList.of(SqlIdentifier.star(getPos()));
         }
         <RPAREN>
@@ -7484,7 +7668,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <PERCENTILE_DISC>
     |   <PERCENT_RANK>
     |   <POWER>
-    |   <RANK>
     |   <RIGHT>
     |   <ROW_NUMBER>
     |   <SECOND>
@@ -7495,7 +7678,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <SUM>
     |   <UPPER>
     |   <TRUNCATE>
-    |   <USER>
     |   <VAR_POP>
     |   <VAR_SAMP>
     |   <YEAR>
@@ -7518,11 +7700,8 @@ SqlIdentifier ContextVariable() :
     |   <CURRENT_SCHEMA>
     |   <CURRENT_TIME>
     |   <CURRENT_TIMESTAMP>
-    |   <CURRENT_USER>
     |   <LOCALTIMESTAMP>
-    |   <SESSION_USER>
     |   <SYSTEM_USER>
-    |   <USER>
     )
     {
         return new SqlIdentifier(unquotedIdentifier(), getPos());
@@ -7752,14 +7931,17 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <MINUS> { return ImpalaCustomOperatorTable.MINUS; }
 |   <STAR> { return ImpalaCustomOperatorTable.MULTIPLY; }
 |   <SLASH> { return ImpalaCustomOperatorTable.DIVIDE; }
+|   <DIV> { return ImpalaCustomOperatorTable.INT_DIVIDE; }
 |   <PERCENT_REMAINDER> {
         if (!this.conformance.isPercentRemainderAllowed()) {
             throw SqlUtil.newContextException(getPos(), RESOURCE.percentRemainderNotAllowed());
         }
-        return SqlStdOperatorTable.PERCENT_REMAINDER;
+        return ImpalaCustomOperatorTable.PERCENT_REMAINDER;
     }
 |   <CONCAT> { return ImpalaCustomOperatorTable.CONCAT_OR; }
 |   <AND> { return SqlStdOperatorTable.AND; }
+|   <AMPERSAND_AND> { return SqlStdOperatorTable.AND; }
+|   <BITAND_OPERATOR> { return SqlStdOperatorTable.BITAND_OPERATOR; }
 |   <OR> { return SqlStdOperatorTable.OR; }
 |   LOOKAHEAD(2) <IS> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_DISTINCT_FROM; }
 |   <IS> <NOT> <DISTINCT> <FROM> { return SqlStdOperatorTable.IS_NOT_DISTINCT_FROM; }
@@ -7827,6 +8009,10 @@ SqlPostfixOperator PostfixRowOperator() :
         |   LOOKAHEAD(2) <JSON> <SCALAR> { return SqlStdOperatorTable.IS_JSON_SCALAR; }
         |   <JSON> { return SqlStdOperatorTable.IS_JSON_VALUE; }
         )
+    )
+    |
+    (
+      <BANG_NOT> { return ImpalaCustomOperatorTable.FACTORIAL; }
     )
 |
     <FORMAT>
@@ -7971,7 +8157,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < CURRENT_TIME: "CURRENT_TIME" >
 |   < CURRENT_TIMESTAMP: "CURRENT_TIMESTAMP" >
 |   < CURRENT_TRANSFORM_GROUP_FOR_TYPE: "CURRENT_TRANSFORM_GROUP_FOR_TYPE" >
-|   < CURRENT_USER: "CURRENT_USER" >
 |   < CURSOR: "CURSOR" >
 |   < CURSOR_NAME: "CURSOR_NAME" >
 |   < CYCLE: "CYCLE" >
@@ -8294,7 +8479,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < QUARTER: "QUARTER" >
 |   < QUARTERS: "QUARTERS" >
 |   < RANGE: "RANGE" >
-|   < RANK: "RANK" >
 |   < READ: "READ" >
 |   < READS: "READS" >
 |   < REAL: "REAL" >
@@ -8319,7 +8503,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < RESPECT: "RESPECT" >
 |   < RESTART: "RESTART" >
 |   < RESTRICT: "RESTRICT" >
-|   < RESULT: "RESULT" >
 |   < RETURN: "RETURN" >
 |   < RETURNED_CARDINALITY: "RETURNED_CARDINALITY" >
 |   < RETURNED_LENGTH: "RETURNED_LENGTH" >
@@ -8371,7 +8554,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SERVER: "SERVER" >
 |   < SERVER_NAME: "SERVER_NAME" >
 |   < SESSION: "SESSION" >
-|   < SESSION_USER: "SESSION_USER" >
 |   < SET: "SET" > { afterTableName(); }
 |   < SETS: "SETS" >
 |   < SET_MINUS: "MINUS">
@@ -8383,7 +8565,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SMALLINT: "SMALLINT" >
 |   < SOME: "SOME" >
 |   < SOURCE: "SOURCE" >
-|   < SPACE: "SPACE" >
 |   < SPECIFIC: "SPECIFIC" >
 |   < SPECIFIC_NAME: "SPECIFIC_NAME" >
 |   < SPECIFICTYPE: "SPECIFICTYPE" >
@@ -8465,6 +8646,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SYSTEM: "SYSTEM" >
 |   < SYSTEM_TIME: "SYSTEM_TIME" >
 |   < SYSTEM_USER: "SYSTEM_USER" >
+|   < SYSTEM_VERSION: "SYSTEM_VERSION" >
 |   < TABLE: "TABLE" > { beforeTableName(); }
 |   < TABLE_NAME: "TABLE_NAME" >
 |   < TABLESAMPLE: "TABLESAMPLE" >
@@ -8522,13 +8704,13 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UPPER: "UPPER" >
 |   < UPSERT: "UPSERT" >
 |   < USAGE: "USAGE" >
-|   < USER: "USER" >
 |   < USER_DEFINED_TYPE_CATALOG: "USER_DEFINED_TYPE_CATALOG" >
 |   < USER_DEFINED_TYPE_CODE: "USER_DEFINED_TYPE_CODE" >
 |   < USER_DEFINED_TYPE_NAME: "USER_DEFINED_TYPE_NAME" >
 |   < USER_DEFINED_TYPE_SCHEMA: "USER_DEFINED_TYPE_SCHEMA" >
 |   < USING: "USING" >
 |   < UTF8: "UTF8" >
+|   < UTF8_TRIM: "UTF8_TRIM" >
 |   < UTF16: "UTF16" >
 |   < UTF32: "UTF32" >
 |   < VALUE: "VALUE" >
@@ -8548,7 +8730,6 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >
 |   < WHERE: "WHERE" >
-|   < WIDTH_BUCKET: "WIDTH_BUCKET" >
 |   < WINDOW: "WINDOW" >
 |   < WITH: "WITH" >
 |   < WITHIN: "WITHIN" >
