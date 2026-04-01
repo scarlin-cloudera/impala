@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -56,18 +57,18 @@ public class CommonOperatorFunctions {
   public static SqlOperandCountRange ANY_COUNT_RANGE = SqlOperandCountRanges.any();
 
   public static RelDataType inferReturnType(SqlOperatorBinding opBinding,
-      String name) {
+      SqlOperator op) {
     final List<RelDataType> operandTypes = getOperandTypes(opBinding);
 
     RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     // Resolve Impala function through Impala method.
-    Function fn = getSupertypeFunction(name, operandTypes);
+    Function fn = getSupertypeFunction(op, operandTypes);
 
     if (fn == null) {
       throw new IllegalArgumentException("Cannot infer return type for "
-          + name + "; operand types: " + operandTypes);
+          + op.getName() + "; operand types: " + operandTypes);
     }
 
     RelDataType returnType = fn.getReturnType().equals(Type.DECIMAL)
@@ -131,9 +132,9 @@ public class CommonOperatorFunctions {
     return operandTypes.stream().anyMatch(rdt -> rdt.isNullable());
   }
 
-  private static Function getSupertypeFunction(String name,
+  private static Function getSupertypeFunction(SqlOperator op,
       List<RelDataType> operandTypes) {
-    Function fn = FunctionResolver.getSupertypeFunction(name, operandTypes);
+    Function fn = FunctionResolver.getSupertypeFunction(op, operandTypes);
     if (fn != null) {
       return fn;
     }
@@ -154,6 +155,6 @@ public class CommonOperatorFunctions {
         adjustedTypes.add(opType);
       }
     }
-    return hasChar ? FunctionResolver.getSupertypeFunction(name, adjustedTypes) : null;
+    return hasChar ? FunctionResolver.getSupertypeFunction(op, adjustedTypes) : null;
   }
 }
