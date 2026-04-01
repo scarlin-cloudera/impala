@@ -305,3 +305,5 @@ class SkipIfCalcite:
       reason="row filtering not supported yet")
   observability_info_missing = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="some observability test information is missing")
+  impala_xxxx1 = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-XXXXX: needs jira")
