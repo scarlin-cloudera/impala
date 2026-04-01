@@ -31,7 +31,7 @@ import java.util.List;
  */
 public class AnalyzedCastExpr extends CastExpr {
 
-  public AnalyzedCastExpr(Type targetType, List<Expr> paramList, boolean isImplicit) {
+  public AnalyzedCastExpr(Type targetType, List<Expr> paramList) {
     super(targetType, paramList.get(0).clone(), getFormat(paramList));
   }
 

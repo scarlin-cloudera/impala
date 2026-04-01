@@ -4075,7 +4075,169 @@ SqlCall PercentileFunctionCall() :
    )
 }
 
+SqlCall FirstLastValueFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+   (
+       <FIRST_VALUE> { op = SqlStdOperatorTable.FIRST_VALUE; }
+   |   <LAST_VALUE> { op = SqlStdOperatorTable.LAST_VALUE; }
+   )
+   { s = span(); }
+   <LPAREN>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
+       (
+           nullTreatment = NullTreatment()
+       |   { nullTreatment = null; }
+       )
+       <RPAREN>
+       {
+           SqlCall call = op.createCall(s.end(this), args);
+           if (nullTreatment != null) {
+               // Wrap in RESPECT_NULLS or IGNORE_NULLS.
+               call = nullTreatment.right.createCall(nullTreatment.left, call);
+           }
+           return call;
+       }
+   )
+}
 
+SqlCall ExtractFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   boolean flipArgs = false;
+   ImpalaSqlIntervalQualifier i = null;
+}
+{
+   (
+       <EXTRACT> { op = SqlStdOperatorTable.EXTRACT; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     i = IntervalQualifier()
+     <FROM>
+     {
+       args.add(SqlLiteral.createCharString(i.toString(), i.getParserPosition()));
+       flipArgs = true;
+     }
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   |
+   (
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+     <COMMA>
+     AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+     {
+       flipArgs = false;
+     }
+   )
+   )
+   <RPAREN>
+   {
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     if (flipArgs) {
+       finalArgs.add(args.get(1));
+       finalArgs.add(args.get(0));
+     } else {
+       finalArgs = args;
+     }
+
+     SqlOperator operator = new ImpalaOperator("extract");
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
+
+SqlCall Utf8TrimFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   String function = "utf8_btrim";
+}
+{
+   (
+       <UTF8_TRIM> { op = SqlStdOperatorTable.TRIM; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     <LEADING> { function = "utf8_ltrim"; }
+     |
+     <TRAILING> { function = "utf8_rtrim"; }
+     |
+     <BOTH> { function = "utf8_btrim"; }
+   )?
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   <FROM>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )
+   <RPAREN>
+   {
+     SqlOperator operator = new ImpalaOperator(function);
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     finalArgs.add(args.get(1));
+     finalArgs.add(args.get(0));
+
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
+
+SqlCall TrimFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+   String function = "btrim";
+}
+{
+   (
+       <TRIM> { op = SqlStdOperatorTable.TRIM; }
+   )
+   { s = span(); }
+   <LPAREN>
+   (
+   (  
+     <LEADING> { function = "ltrim"; }
+     |
+     <TRAILING> { function = "rtrim"; }
+     |
+     <BOTH> { function = "btrim"; }
+   )?
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
+   <FROM>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   )?
+   )
+   <RPAREN>
+   {
+     SqlOperator operator = new ImpalaOperator(function);
+     List<SqlNode> finalArgs = new ArrayList<SqlNode>();
+     if (args.size() > 1) {
+       finalArgs.add(args.get(1));
+     }
+     finalArgs.add(args.get(0));
+
+     return operator.createCall(s.end(this), finalArgs);
+   }
+}
 /**
  * Parses an atomic row expression.
  */
