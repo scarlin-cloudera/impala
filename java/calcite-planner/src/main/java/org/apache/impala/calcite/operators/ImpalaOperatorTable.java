@@ -29,8 +29,11 @@ import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.impala.catalog.AggregateFunction;
 import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.Db;
+import org.apache.impala.catalog.FeCatalog;
+import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.Function;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -61,6 +64,10 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
   protected static final Logger LOG =
       LoggerFactory.getLogger(ImpalaOperatorTable.class.getName());
 
+  private final FeCatalog catalog_;
+  private final FeDb db_;
+  private final Set<Function> usedFunctions_;
+
   public static Set<String> USE_IMPALA_OPERATOR =
       ImmutableSet.<String> builder()
       .add("year")
@@ -89,6 +96,12 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
 
   private static ImpalaOperatorTable INSTANCE;
 
+  private ImpalaOperatorTable(FeCatalog catalog, FeDb db, boolean trackFunctionsUsed) {
+    catalog_ = catalog;
+    db_ = (db == null) ? BuiltinsDb.getInstance() : db;
+    usedFunctions_ = trackFunctionsUsed ? new HashSet<>() : null;
+  }
+
   /**
    * lookupOperatorOverloads: See class comment above for details.
    */
@@ -97,14 +110,27 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       SqlSyntax syntax, List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
 
 
+    // XXX: not sure if I like this 
+    if (operatorList.size() > 0) {
+      return;
+    }
     ImpalaCustomOperatorTable.instance().lookupOperatorOverloads(opName, category, syntax,
         operatorList, nameMatcher);
 
-    if (operatorList.size() >= 1 || !opName.isSimple()) {
+    if (operatorList.size() >= 1 || opName.isStar() || opName.names.size() > 2) {
       return;
     }
 
-    String lowercaseOpName = opName.getSimple().toLowerCase();
+    String funcName = opName.isSimple() ? opName.names.get(0) : opName.names.get(1);
+    String dbName = opName.isSimple() ? null : opName.names.get(0);
+    if (dbName == null) {
+      String[] parts = funcName.split("\\.");
+      if (parts.length == 2) {
+        funcName = parts[1];
+        dbName = parts[0];
+      }
+    }
+    String lowercaseFuncName = funcName.toLowerCase();
 
     // A little hack. We need our own version of "cast" when it is explicit. But
     // we need to use a different name for the function ("explicit_cast") and a
@@ -112,12 +138,12 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
     // conflict problems within Calcite processing. In order to find our operator,
     // we look for "cast" and use the "explicit_cast" name as defined in
     // ImpalaCastFunction
-    if (lowercaseOpName.equals("cast")) {
+    if (lowercaseFuncName.equals("cast")) {
       operatorList.add(ImpalaCastFunction.INSTANCE);
       return;
     }
 
-    if (!USE_IMPALA_OPERATOR.contains(lowercaseOpName)) {
+    if (!USE_IMPALA_OPERATOR.contains(lowercaseFuncName)) {
       // Check Calcite operator table for existence.
       SqlStdOperatorTable.instance().lookupOperatorOverloads(opName, category, syntax,
           operatorList, nameMatcher);
@@ -127,30 +153,51 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       }
     }
 
-    // There shouldn't be more than one opName with our usage, so just return without
-    // adding anything to the operatorList if this happens.
-    if (opName.names.size() > 1) {
-      return;
+    FeDb dbToUse = dbName == null || catalog_== null ? db_ : catalog_.getDb(dbName);
+    if (dbToUse == null) {
+      dbToUse = db_;
     }
 
     // Check Impala Builtins for existence: TODO: IMPALA-13095: handle UDFs
-    List<Function> functions = BuiltinsDb.getInstance().getFunctions(lowercaseOpName);
-    if (functions.size() == 0) {
+    List<Function> functions;
+    try {
+      functions = dbToUse.getFunctions(lowercaseFuncName);
+      if (functions.size() == 0) {
+        return;
+      }
+    } catch (Exception e) {
       return;
     }
 
+    String fullName = dbName == null || catalog_ == null
+        ? funcName
+        : dbName + "." + funcName;
+
+    if (usedFunctions_ != null) {
+      usedFunctions_.add(functions.get(0));
+    }
+
     SqlOperator impalaOp = (functions.get(0) instanceof AggregateFunction)
-        ? new ImpalaAggOperator(opName.getSimple())
-        : new ImpalaOperator(opName.getSimple());
+        ? new ImpalaAggOperator(dbToUse, fullName)
+        : new ImpalaOperator(dbToUse, fullName);
 
     operatorList.add(impalaOp);
   }
 
-  public static synchronized void create(Db db) {
+  public Set<Function> getUsedFunctions() {
+    return usedFunctions_;
+  }
+
+  public static synchronized void create() {
     if (INSTANCE != null) {
       return;
     }
-    INSTANCE = new ImpalaOperatorTable();
+    INSTANCE = create(null, BuiltinsDb.getInstance(), false);
+  }
+
+  public static ImpalaOperatorTable create(FeCatalog catalog, FeDb db,
+      boolean trackFunctionsUsed) {
+    return new ImpalaOperatorTable(catalog, db, trackFunctionsUsed);
   }
 
   public static ImpalaOperatorTable getInstance() {

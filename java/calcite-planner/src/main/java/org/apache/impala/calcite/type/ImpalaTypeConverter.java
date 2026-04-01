@@ -104,6 +104,13 @@ public class ImpalaTypeConverter {
    */
   public static RelDataType createRelDataType(RelDataTypeFactory factory,
       Type impalaType) {
+    return createRelDataType(factory, impalaType, true);
+  }
+  /**
+   * Create a new RelDataType given the Impala type.
+   */
+  public static RelDataType createRelDataType(RelDataTypeFactory factory,
+      Type impalaType, boolean isNullable) {
     if (impalaType == null) {
       return null;
     }
@@ -194,6 +201,12 @@ public class ImpalaTypeConverter {
         throw new RuntimeException("Unknown type " + argType);
     }
   }
+
+  // helper function to handle translation of lists.
+  public static List<Type> createImpalaTypes(List<RelDataType> relDataTypes) {
+    return Lists.transform(relDataTypes, ImpalaTypeConverter::createImpalaType);
+  }
+
 
   /**
    * Create a new impala type given a relDataType

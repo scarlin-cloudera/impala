@@ -26,11 +26,17 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.impala.analysis.FunctionName;
 import org.apache.impala.catalog.AggregateFunction;
+import org.apache.impala.calcite.operators.CommonOperatorFunctions;
+import org.apache.impala.calcite.operators.ImpalaAggOperator;
+import org.apache.impala.calcite.operators.ImpalaOperator;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.catalog.BuiltinsDb;
+import org.apache.impala.catalog.Db;
+import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
 import org.apache.impala.catalog.TypeCompatibility;
@@ -115,33 +121,40 @@ public class FunctionResolver {
     List<RelDataType> argTypes = ARITHMETIC_TYPES.contains(call.getKind())
         ? Lists.newArrayList(call.getType(), call.getType())
         : Lists.transform(call.getOperands(), RexNode::getType);
-    return getFunction(call.getOperator().getName(), call.getKind(), argTypes, false);
+    return getFunction(call.getOperator(), call.getKind(), argTypes, false);
   }
 
-  public static Function getSupertypeFunction(String name, SqlKind kind,
+  public static Function getSupertypeFunction(SqlOperator op, SqlKind kind,
       List<RelDataType> argTypes) {
-    return getFunction(name, kind, argTypes, false);
+    return getFunction(op, kind, argTypes, false);
   }
 
-  public static Function getExactFunction(String name, SqlKind kind,
+  public static Function getExactFunction(SqlOperator op, SqlKind kind,
       List<RelDataType> argTypes) {
-    return getFunction(name, kind, argTypes, true);
+    return getFunction(op, kind, argTypes, true);
   }
 
-  public static Function getExactFunction(String name, List<RelDataType> argTypes) {
-    return getFunction(name, argTypes, true);
+  //XXX: too many functions
+  public static Function getExactFunction(FeDb db, String name, List<RelDataType> argTypes) {
+    return getFunction(db, name, argTypes, true);
   }
 
-  public static Function getSupertypeFunction(String name, List<RelDataType> argTypes) {
-    return getFunction(name, argTypes, false);
+  public static Function getExactFunction(SqlOperator op, List<RelDataType> argTypes) {
+    return getFunction(op, argTypes, true);
   }
 
-  private static Function getFunction(String name, SqlKind kind,
+  public static Function getSupertypeFunction(SqlOperator op, List<RelDataType> argTypes) {
+    return getFunction(op, argTypes, false);
+  }
+
+  private static Function getFunction(SqlOperator op, SqlKind kind,
       List<RelDataType> argTypes, boolean exactMatch) {
 
     // Some names in Calcite don't map exactly to their corresponding Impala
     // functions, so we check to see if the mapping exists
-    return getFunction(getMappedName(name, kind, argTypes), argTypes, exactMatch);
+    //XXX: Have an interface with "getName" instead of CommonOperatorFunctions
+    return getFunction(getDb(op), getMappedName(CommonOperatorFunctions.getName(op), kind, argTypes),
+        argTypes, exactMatch);
   }
 
   /**
@@ -175,16 +188,21 @@ public class FunctionResolver {
     // If reached here, use the function name as given, no special mapping needed.
     return lowercaseName;
   }
+ 
+  private static Function getFunction(SqlOperator operator, List<RelDataType> argTypes,
+      boolean exactMatch) {
+    return getFunction(getDb(operator), CommonOperatorFunctions.getName(operator), argTypes, exactMatch);
+  }
 
-  private static Function getFunction(String name, List<RelDataType> argTypes,
+  private static Function getFunction(FeDb db, String name, List<RelDataType> argTypes,
       boolean exactMatch) {
     String lowercaseName = name.toLowerCase();
 
     List<Type> impalaArgTypes = getArgTypes(lowercaseName, argTypes, exactMatch);
 
     return SPECIAL_PROCESSING_FUNCTIONS.contains(lowercaseName)
-        ? getSpecialProcessingFunction(lowercaseName, impalaArgTypes, exactMatch)
-        : getImpalaFunction(lowercaseName, impalaArgTypes, exactMatch);
+        ? getSpecialProcessingFunction(db, lowercaseName, impalaArgTypes, exactMatch)
+        : getImpalaFunction(db, lowercaseName, impalaArgTypes, exactMatch);
   }
 
   /**
@@ -196,10 +214,11 @@ public class FunctionResolver {
    *       in the function
    * - case() which always returns the "boolean" flavor and then gets resolved later
    */
-  private static Function getSpecialProcessingFunction(String lowercaseName,
+  private static Function getSpecialProcessingFunction(FeDb db, String lowercaseName,
       List<Type> impalaArgTypes, boolean exactMatch) {
     if (lowercaseName.equals("grouping_id")) {
-      return AggregateFunction.createRewrittenBuiltin(BuiltinsDb.getInstance(),
+      //XXX: change everything to Db, should not be casting here
+      return AggregateFunction.createRewrittenBuiltin((Db)db,
           lowercaseName, impalaArgTypes, Type.BIGINT, true, false, true);
     }
 
@@ -214,7 +233,7 @@ public class FunctionResolver {
       if (impalaArgTypes.size() > 1) {
         impalaArgTypes = Lists.newArrayList(impalaArgTypes.get(0));
       }
-      return getImpalaFunction(lowercaseName, impalaArgTypes, exactMatch);
+      return getImpalaFunction(db, lowercaseName, impalaArgTypes, exactMatch);
     }
 
     if (lowercaseName.equals("case")) {
@@ -224,22 +243,25 @@ public class FunctionResolver {
       // planner because the varchar case does not return the right value if
       // we try to resolve it here. It will need to be resolved by the caller.
       impalaArgTypes = Lists.newArrayList(Type.BOOLEAN);
-      return getImpalaFunction(lowercaseName, impalaArgTypes, exactMatch);
+      return getImpalaFunction(db, lowercaseName, impalaArgTypes, exactMatch);
     }
 
     throw new RuntimeException("Special function not found: " + lowercaseName);
   }
 
-  private static Function getImpalaFunction(String lowercaseName,
+  private static Function getImpalaFunction(FeDb db, String lowercaseName,
       List<Type> impalaArgTypes, boolean exactMatch) {
-    Function searchDesc = new Function(new FunctionName(BuiltinsDb.NAME, lowercaseName),
+
+    // XXX: setting varArgs to false:  If there is an error in var_sum,
+    // more fixing will need to be done.
+    Function searchDesc = new Function(new FunctionName(db.getName(), lowercaseName),
         impalaArgTypes, Type.INVALID, false);
 
     Function.CompareMode compareMode = exactMatch
         ? Function.CompareMode.IS_INDISTINGUISHABLE
         : Function.CompareMode.IS_NONSTRICT_SUPERTYPE_OF;
 
-    Function fn = BuiltinsDb.getInstance().getFunction(searchDesc, compareMode);
+    Function fn = db.getFunction(searchDesc, compareMode);
 
     if (fn == null) {
       LOG.debug("Failed to find function " + lowercaseName);
@@ -270,7 +292,7 @@ public class FunctionResolver {
           : getCaseArgs(name, argTypes);
     }
 
-    return ImpalaTypeConverter.getNormalizedImpalaTypes(argTypes);
+    return ImpalaTypeConverter.createImpalaTypes(argTypes);
   }
 
   private static int getCaseOperandNum(String name) {
@@ -303,6 +325,17 @@ public class FunctionResolver {
     }
 
     return Lists.newArrayList(compatibleType);
+  }
+
+  private static FeDb getDb(SqlOperator operator) {
+      // XXX: Maybe ImpalaOperator/ImpalaAggOperator should have an interface containing getDb()
+    if (operator instanceof ImpalaOperator) {
+      return ((ImpalaOperator) operator).getDb();
+    }
+    if (operator instanceof ImpalaAggOperator) {
+      return ((ImpalaAggOperator) operator).getDb();
+    }
+    return BuiltinsDb.getInstance();
   }
 
   /**
