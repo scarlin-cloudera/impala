@@ -20,16 +20,19 @@ package org.apache.impala.calcite.functions;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.CastExpr;
 import org.apache.impala.analysis.Expr;
+import org.apache.impala.analysis.StringLiteral;
 import org.apache.impala.catalog.Type;
 import org.apache.impala.common.AnalysisException;
+
+import java.util.List;
 
 /**
  * A CastExpr that is always in analyzed state
  */
 public class AnalyzedCastExpr extends CastExpr {
 
-  public AnalyzedCastExpr(Type targetType, Expr e) {
-    super(targetType, e.clone());
+  public AnalyzedCastExpr(Type targetType, List<Expr> paramList, boolean isImplicit) {
+    super(targetType, paramList.get(0).clone(), getFormat(paramList));
   }
 
   public AnalyzedCastExpr(AnalyzedCastExpr other) {
@@ -51,5 +54,11 @@ public class AnalyzedCastExpr extends CastExpr {
   @Override
   public boolean isImplicit() {
     return false;
+  }
+
+  private static String getFormat(List<Expr> paramsList) {
+    return paramsList.size() == 1
+        ? null
+        : ((StringLiteral)paramsList.get(1)).getStringValue();
   }
 }
