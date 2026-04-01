@@ -490,7 +490,7 @@ public class CoerceNodes{
     }
 
     // Look for a function match.  If found, no need to coerce
-    return null != FunctionResolver.getExactFunction(aggCall.getAggregation().getName(),
+    return null != FunctionResolver.getExactFunction(aggCall.getAggregation(),
         operandTypes);
   }
 
@@ -517,7 +517,7 @@ public class CoerceNodes{
     // Get the Impala function. Getting the "supertype" function will retrieve
     // the closest function where operands may be cast.
     Function fn = FunctionResolver.getSupertypeFunction(
-        aggCall.getAggregation().getName(), operandTypes);
+        aggCall.getAggregation(), operandTypes);
     Preconditions.checkNotNull(fn, "Could not find matching functions for " +
         aggCall.getAggregation().getName());
 

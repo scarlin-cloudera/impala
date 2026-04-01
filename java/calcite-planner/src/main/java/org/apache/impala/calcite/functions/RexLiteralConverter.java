@@ -31,6 +31,7 @@ import org.apache.impala.analysis.DateLiteral;
 import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.StringLiteral;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.PrimitiveType;
 import org.apache.impala.catalog.ScalarType;
@@ -126,7 +127,7 @@ public class RexLiteralConverter {
     String timestamp = rexLiteral.getValueAs(TimestampString.class).toString();
     List<Expr> argList =
         Lists.newArrayList(new StringLiteral(timestamp, Type.STRING, true));
-    Function castFunc = FunctionResolver.getExactFunction("casttotimestamp", typeNames);
+    Function castFunc = FunctionResolver.getExactFunction(BuiltinsDb.getInstance(), "casttotimestamp", typeNames);
     return new AnalyzedFunctionCallExpr(castFunc, argList, Type.TIMESTAMP);
   }
 
@@ -138,7 +139,7 @@ public class RexLiteralConverter {
         Lists.newArrayList(new StringLiteral(nanOrInf, Type.STRING, true));
     Preconditions.checkState(t.equals(Type.DOUBLE) || t.equals(Type.FLOAT));
     String fnName = t.equals(Type.DOUBLE) ? "casttodouble" : "casttofloat";
-    Function castFunc = FunctionResolver.getExactFunction(fnName, typeNames);
+    Function castFunc = FunctionResolver.getExactFunction(BuiltinsDb.getInstance(), fnName, typeNames);
     return new AnalyzedFunctionCallExpr(castFunc, argList, t);
   }
 }
