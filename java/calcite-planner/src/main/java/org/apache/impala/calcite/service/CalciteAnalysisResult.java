@@ -42,17 +42,16 @@ public class CalciteAnalysisResult extends AnalysisResult {
   // may be needed by the CalciteTable object
   private final CalciteCatalogReader reader_;
 
-  public CalciteAnalysisResult(CalciteAnalysisDriver analysisDriver) {
-    this(analysisDriver, null);
-  }
+  public final ImpalaException potentialException_;
 
-  public CalciteAnalysisResult(CalciteAnalysisDriver analysisDriver,
-      ImpalaException e) {
-    super(analysisDriver.getParsedStmt(), analysisDriver.getAnalyzer(), e);
+  private CalciteAnalysisResult(CalciteAnalysisDriver analysisDriver,
+      ImpalaException exception, ImpalaException potentialException) {
+    super(analysisDriver.getParsedStmt(), analysisDriver.getAnalyzer(), exception);
     validatedNode_ = analysisDriver.getValidatedNode();
     typeFactory_ = analysisDriver.getTypeFactory();
     sqlValidator_ = analysisDriver.getSqlValidator();
     reader_ = analysisDriver.getCatalogReader();
+    potentialException_ = potentialException;
   }
 
   public CalciteCatalogReader getCatalogReader() {
@@ -74,5 +73,15 @@ public class CalciteAnalysisResult extends AnalysisResult {
   @Override
   public boolean shouldFallbackBecauseOfException() {
     return getException() instanceof UnsupportedFeatureException;
+  }
+
+  public static CalciteAnalysisResult createValidAnalysisResult(CalciteAnalysisDriver a,
+      ImpalaException potentialException) {
+    return new CalciteAnalysisResult(a, null, potentialException);
+  }
+
+  public static CalciteAnalysisResult createErrorAnalysisResult(CalciteAnalysisDriver a,
+      ImpalaException exception) {
+    return new CalciteAnalysisResult(a, exception, null);
   }
 }
