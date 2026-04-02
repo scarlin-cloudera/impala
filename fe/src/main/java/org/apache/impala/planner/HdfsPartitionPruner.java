@@ -265,10 +265,7 @@ public class HdfsPartitionPruner {
         return false;
       }
       BinaryPredicate bp = (BinaryPredicate)expr;
-      //XXX: needs comment, Calcite needs to return false here even though 
-      if (bp.getChild(0).allowsImplicitConversion()) {
-        return false;
-      }
+      if (bp.getChild(0).isImplicitCast()) return false;
       SlotRef slot = bp.getBoundSlot();
       if (slot == null) return false;
       Expr bindingExpr = bp.getSlotBinding(slot.getSlotId());
