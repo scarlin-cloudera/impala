@@ -1675,6 +1675,8 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
    */
   public boolean isImplicitCast() { return false; }
 
+  public boolean allowsImplicitConversion() { return isImplicitCast(); }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this.getClass())
