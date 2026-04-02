@@ -26,6 +26,9 @@ from tests.common.test_dimensions import (
     default_protocol_or_text_constraint,
 )
 
+from tests.common.environ import (
+    IS_CALCITE_PLANNER
+    )
 
 class TestStringQueries(ImpalaTestSuite):
 
@@ -52,9 +55,11 @@ class TestStringQueries(ImpalaTestSuite):
   # Regression tests for IMPALA-10753.
   def test_chars_values_stmt(self, vector, unique_database):
     vector = deepcopy(vector)
-    vector.get_value('exec_option')['values_stmt_avoid_lossy_char_padding'] = True
-    self.run_test_case('QueryTest/chars-values-stmt-no-lossy-char-padding',
-        vector, unique_database)
+    # IMPALA-XXXXX support this env var
+    if not IS_CALCITE_PLANNER:
+      vector.get_value('exec_option')['values_stmt_avoid_lossy_char_padding'] = True
+      self.run_test_case('QueryTest/chars-values-stmt-no-lossy-char-padding',
+          vector, unique_database)
 
     vector.get_value('exec_option')['values_stmt_avoid_lossy_char_padding'] = False
     self.run_test_case('QueryTest/chars-values-stmt-lossy-char-padding',

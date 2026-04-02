@@ -19,6 +19,7 @@ from __future__ import absolute_import, division, print_function
 import pytest
 
 from tests.common.custom_cluster_test_suite import CustomClusterTestSuite
+from tests.common.skip import SkipIfCalcite
 
 
 class TestReservedWordsVersion(CustomClusterTestSuite):
@@ -34,6 +35,7 @@ class TestReservedWordsVersion(CustomClusterTestSuite):
 
   @pytest.mark.execute_serially
   @CustomClusterTestSuite.with_args("--reserved_words_version=3.0.0")
+  @SkipIfCalcite.ok_3_0_reserved_keywords
   def test_3_0(self):
     assert "Hint: reserved words have to be escaped when used as an identifier, e.g. " \
       "`at`" in str(self.execute_query_expect_failure(self.client, "select 1 as at"))
