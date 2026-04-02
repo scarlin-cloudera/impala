@@ -1,8 +1,6 @@
 ====
 ---- QUERY
-create table test_char_values_string_col_tmp (s string);
----- RESULTS
-'Table has been created.'
+create table if not exists test_char_values_string_col_tmp (s string);
 ====
 ---- QUERY
 insert overwrite test_char_values_string_col_tmp values
@@ -22,9 +20,7 @@ int
 3
 ====
 ---- QUERY
-create table test_char_values_varchar_col_tmp (v varchar(5));
----- RESULTS
-'Table has been created.'
+create table if not exists test_char_values_varchar_col_tmp (v varchar(5));
 ====
 ---- QUERY
 insert overwrite test_char_values_varchar_col_tmp values
@@ -52,9 +48,7 @@ insert overwrite test_char_values_varchar_col_tmp values
 AnalysisException: Possible loss of precision for target table
 ====
 ---- QUERY
-create table test_char_values_char_col_tmp (c char(5));
----- RESULTS
-'Table has been created.'
+create table if not exists test_char_values_char_col_tmp (c char(5));
 ====
 ---- QUERY
 insert overwrite test_char_values_char_col_tmp values
@@ -72,9 +66,7 @@ char
 '12   '
 ====
 ---- QUERY
-create table test_char_values_mixed_cols_tmp (c char(5), s string, v varchar(8));
----- RESULTS
-'Table has been created.'
+create table if not exists test_char_values_mixed_cols_tmp (c char(5), s string, v varchar(8));
 ====
 ---- QUERY
 insert overwrite test_char_values_mixed_cols_tmp values
@@ -94,9 +86,7 @@ char,string,varchar
 '10   ','str_2','vchar_2'
 ====
 ---- QUERY
-create table test_char_values_mixed_cols_different_order_tmp (s string, c char(5), v varchar(8));
----- RESULTS
-'Table has been created.'
+create table if not exists test_char_values_mixed_cols_different_order_tmp (s string, c char(5), v varchar(8));
 ====
 ---- QUERY
 insert overwrite test_char_values_mixed_cols_different_order_tmp values
