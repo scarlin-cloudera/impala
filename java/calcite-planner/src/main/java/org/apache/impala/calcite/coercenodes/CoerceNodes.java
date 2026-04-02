@@ -63,17 +63,14 @@ import org.slf4j.LoggerFactory;
  * The long term goal would be to have Calcite validation be responsible
  * for creating the correct parameter types and return types for functions
  * at validation time. They do have type coercion capabilities at validation
- * time, but Calcite has some shortcomings.  These shortcomings are:
- *   - Integer literals are always created as type INTEGER. In Impala,
- *     the number 2 would be treated as a TINYINT
- *   - Char literals are treated as CHAR<X> in Calcite.  In Impala, they
- *     are treated as string types
+ * time, but Calcite has some issues:
+ *
  *   - We try to use Calcite operators whenever possible since they are
  *     used and created throughout the analysis and optimization phases. This
  *     can possibly differ from Impala function checks so it is nice to have
  *     the override capabilities.
  *
- * Until we can fix these issues at validation time, we implement the coercion
+ * Until we can fix this issue at validation time, we implement the coercion
  * of RelNodes and RexNodes at the end of optimization to ensure that Impala
  * has the correction functions.
  */
@@ -116,7 +113,7 @@ public class CoerceNodes{
       case UNION:
         return processUnionNode(relNode, newInputs, rexBuilder, isInputChanged);
       case VALUES:
-        return processValuesNode(relNode, newInputs, rexBuilder, isInputChanged);
+        return relNode;
       case HDFSSCAN:
         // HDFS Scan node will never need coercing.
         return relNode;
@@ -304,70 +301,6 @@ public class CoerceNodes{
     }
 
     return inputsChanged ? LogicalUnion.create(changedRelNodes, union.all) : relNode;
-  }
-
-  /**
-   * processValuesNode: Coerces Value node literals (numerics and strings). For
-   * strings, an intermediate Project node needs to be created (see comment below).
-   */
-  private static RelNode processValuesNode(RelNode relNode, List<RelNode> inputs,
-      RexBuilder rexBuilder, boolean isInputChanged) {
-    final LogicalValues values = (LogicalValues) relNode;
-    if (values.getTuples().size() == 0) {
-      return relNode;
-    }
-
-    int nColumns = values.getRowType().getFieldList().size();
-    // initialize list to have null values for all columns
-    List<RelDataType> relDataTypes = Arrays.asList(new RelDataType[nColumns]);
-
-    boolean needProject = false;
-    for (List<RexLiteral> tuple : values.getTuples()) {
-      List<RexNode> rexNodes = castToRexNodeList(tuple);
-      List<RexNode> changedRexNodes = processRexNodes(relNode, inputs, rexNodes);
-      if (changedRexNodes == null) {
-        continue;
-      }
-      needProject = true;
-      Preconditions.checkState(changedRexNodes.size() == relDataTypes.size());
-      for (int i = 0; i < changedRexNodes.size(); ++i) {
-        if (changedRexNodes.get(i) != null) {
-          Preconditions.checkState(changedRexNodes.get(i).getKind() == SqlKind.CAST ||
-              changedRexNodes.get(i) instanceof RexLiteral);
-        }
-        // if changedRexNodes.get(i) is something other than null, the type needs to
-        // be coerced. We want to take the tightest type we can. The current tightest
-        // type is in the relDataTypes.get(i). On initialization, it is set to null,
-        // so if this is the first row that has a coerced type for the ith column,
-        // the tightest type will be the current changedRexNodes.get(i).getType() type.
-        relDataTypes.set(i, getCompatibleDataType(
-            relDataTypes.get(i), changedRexNodes.get(i).getType(), rexBuilder));
-      }
-    }
-
-    if (!needProject) {
-      return relNode;
-    }
-
-    // Need to create a project node on top of the values: A project node
-    // does not add any overhead performance-wise since it doesn't create
-    // a new node. However, it is needed here because Calcite creates string
-    // literals as CHAR type and Impala requires a STRING type. The project
-    // node creates this casting which will get removed when converting to the
-    // Impala Expr object (where the RelNodes get converted to the physical layer).
-    List<RexNode> projects = new ArrayList<>();
-
-    for (int i = 0; i < relDataTypes.size(); ++i) {
-      RexInputRef inputRef = rexBuilder.makeInputRef(values, i);
-
-      RexNode project = (relDataTypes.get(i) != null)
-          ? rexBuilder.makeCast(relDataTypes.get(i), inputRef)
-          : inputRef;
-      projects.add(project);
-    }
-
-    return LogicalProject.create(values, new ArrayList<>(), projects,
-        values.getRowType().getFieldNames());
   }
 
   //////////////////////////////////////////////////////////

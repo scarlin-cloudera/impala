@@ -133,7 +133,7 @@ Max Per-Host Resource Reservation: Memory=183.19MB Threads=1
 Per-Host Resource Estimates: Memory=3.35GB
 F00:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=3.35GB mem-reservation=183.19MB thread-reservation=1 runtime-filters-memory=54.00MB
-|  max-parallelism=1 segment-costs=[708844407, 961356, 1446879, 180850795, 341279, 513638, 360349665, 676758, 1018547, 994746, 1164496, 676429, 500]
+|  max-parallelism=1 segment-costs=[708844407, 961356, 1446879, 180850795, 341279, 513638, 360349665, 676758, 1018547, 994746, 1171279, 676429, 500]
 PLAN-ROOT SINK
 |  output exprs: CHANNEL, ITEM, RETURN_RATIO, RETURN_RANK, CURRENCY_RANK
 |  mem-estimate=4.00MB mem-reservation=4.00MB spill-buffer=2.00MB thread-reservation=0 cost=500
@@ -151,9 +151,8 @@ PLAN-ROOT SINK
 |  in pipelines: 36(GETNEXT), 24(OPEN), 33(OPEN)
 |
 00:UNION
-|  pass-through-operands: 24
 |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  tuple-ids=53 row-size=48B cardinality=74.16K cost=6406
+|  tuple-ids=53 row-size=48B cardinality=74.16K cost=13189
 |  in pipelines: 24(GETNEXT), 33(GETNEXT)
 |
 |--35:SELECT
@@ -471,7 +470,7 @@ Max Per-Host Resource Reservation: Memory=357.03MB Threads=36
 Per-Host Resource Estimates: Memory=1.48GB
 F19:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=280.31MB mem-reservation=82.00MB thread-reservation=1
-|  max-parallelism=1 segment-costs=[1575427, 559272, 1109040, 994746, 1164496, 676429, 500] cpu-comparison-result=163 [max(1 (self) vs 163 (sum children))]
+|  max-parallelism=1 segment-costs=[1575427, 559272, 1109040, 994746, 1171279, 676429, 500] cpu-comparison-result=163 [max(1 (self) vs 163 (sum children))]
 PLAN-ROOT SINK
 |  output exprs: CHANNEL, ITEM, RETURN_RATIO, RETURN_RANK, CURRENCY_RANK
 |  mem-estimate=4.00MB mem-reservation=4.00MB spill-buffer=2.00MB thread-reservation=0 cost=500
@@ -489,9 +488,8 @@ PLAN-ROOT SINK
 |  in pipelines: 36(GETNEXT), 24(OPEN), 33(OPEN)
 |
 00:UNION
-|  pass-through-operands: 24
 |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  tuple-ids=53 row-size=48B cardinality=74.16K cost=6406
+|  tuple-ids=53 row-size=48B cardinality=74.16K cost=13189
 |  in pipelines: 24(GETNEXT), 33(GETNEXT)
 |
 |--35:SELECT
@@ -1010,7 +1008,7 @@ Max Per-Host Resource Reservation: Memory=357.03MB Threads=36
 Per-Host Resource Estimates: Memory=1.48GB
 F19:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=280.31MB mem-reservation=82.00MB thread-reservation=1
-|  max-parallelism=1 segment-costs=[1575427, 559272, 1109040, 994746, 1164496, 676429, 500] cpu-comparison-result=163 [max(1 (self) vs 163 (sum children))]
+|  max-parallelism=1 segment-costs=[1575427, 559272, 1109040, 994746, 1171279, 676429, 500] cpu-comparison-result=163 [max(1 (self) vs 163 (sum children))]
 PLAN-ROOT SINK
 |  output exprs: CHANNEL, ITEM, RETURN_RATIO, RETURN_RANK, CURRENCY_RANK
 |  mem-estimate=4.00MB mem-reservation=4.00MB spill-buffer=2.00MB thread-reservation=0 cost=500
@@ -1028,9 +1026,8 @@ PLAN-ROOT SINK
 |  in pipelines: 36(GETNEXT), 24(OPEN), 33(OPEN)
 |
 00:UNION
-|  pass-through-operands: 24
 |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  tuple-ids=53 row-size=48B cardinality=74.16K cost=6406
+|  tuple-ids=53 row-size=48B cardinality=74.16K cost=13189
 |  in pipelines: 24(GETNEXT), 33(GETNEXT)
 |
 |--35:SELECT

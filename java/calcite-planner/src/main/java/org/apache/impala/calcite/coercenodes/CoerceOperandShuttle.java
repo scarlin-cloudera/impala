@@ -57,11 +57,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * CoerceOperandShuttle is a RexShuttle that walks through a RexNode and changes
- * it to match a function signature within Impala. It also is responsible for
- * changing RexLiteral types. It changes all CHAR literal types to STRING literal
- * types. It changes Integer numeric literals to the smallest type which can hold the
- * integer (e.g. 2 gets changed from INTEGER to TINYINT). It also changes RexInputRefs
- * to match its input type.
+ * it to match a function signature within Impala.
  *
  * One small added responsibility is to take the "Sarg" call and call the Calcite
  * RexUtil.expandSearch method and expands it to something Impala understands. There
@@ -104,21 +100,6 @@ public class CoerceOperandShuttle extends RexShuttle {
       return visitCall((RexCall) RexUtil.expandSearch(rexBuilder, null, call));
     }
 
-    // Somewhere between 1.37 and 1.40, Calcite added its own coercion for
-    // string types underneath a Union RelNode. For example, It may detect a char(3)
-    // type and coerce it by casting it to a char(7) type. Impala always casts
-    // literal strings as type STRING rather than Calcite's CHAR(x), so it will
-    // still need coercion.
-    //
-    // The normal mechanism of handling this is through the "visitLiteral" which gets
-    // called through the Shuttle class. Unfortunately, Calcite has another issue that
-    // it doesn't change the RelDataType when calling super.visitCall() for a cast
-    // RexLiteral. To handle this, we visit the RexLiteral directly, which still
-    // changes the type to a STRING.
-    if (isImplicitCharCastOfLiteral(call)) {
-      return visitLiteral((RexLiteral) call.getOperands().get(0));
-    }
-
     // recursively call all embedded RexCalls first
     RexCall castedOperandsCall = (RexCall) super.visitCall(call);
 
@@ -151,8 +132,7 @@ public class CoerceOperandShuttle extends RexShuttle {
           call);
     }
 
-    RelDataType retType =
-        getReturnType(rexBuilder, castedOperandsCall, fn.getReturnType());
+    RelDataType retType = castedOperandsCall.getType();
 
     // This code does not handle changes in the return type when the Calcite
     // function is not a decimal but the function resolves to a function that
@@ -185,7 +165,7 @@ public class CoerceOperandShuttle extends RexShuttle {
           over);
     }
 
-    RelDataType retType = getReturnType(rexBuilder, castedOver, fn.getReturnType());
+    RelDataType retType = castedOver.getType();
 
     List<RexNode> newOperands =
         getCastedArgTypes(fn, castedOver.getOperands(), retType, factory, rexBuilder);
@@ -202,24 +182,6 @@ public class CoerceOperandShuttle extends RexShuttle {
   }
 
   @Override
-  public RexNode visitLiteral(RexLiteral literal) {
-    // Coerce CHAR literal types into STRING
-    if (!literal.isNull() &&
-        (literal.getType().getSqlTypeName().equals(SqlTypeName.CHAR))) {
-      return rexBuilder.makeLiteral(RexLiteral.stringValue(literal),
-          ImpalaTypeConverter.getRelDataType(Type.STRING), true, true);
-    }
-
-    // Coerce INTEGER literal types into the smallest possible Numeric type
-    if (literal.getType().getSqlTypeName().equals(SqlTypeName.INTEGER)) {
-      BigDecimal bd0 = literal.getValueAs(BigDecimal.class);
-      RelDataType type = ImpalaTypeConverter.getLiteralDataType(bd0, literal.getType());
-      return rexBuilder.makeLiteral(bd0, type);
-    }
-    return literal;
-  }
-
-  @Override
   public RexNode visitInputRef(RexInputRef inputRef) {
     // Adjust the InputRef type if it changed
     RelDataType inputRefIndexType = getInputRefIndexType(inputs, inputRef.getIndex());
@@ -227,40 +189,6 @@ public class CoerceOperandShuttle extends RexShuttle {
     return inputRef.getType().equals(inputRefIndexType)
         ? inputRef
         : rexBuilder.makeInputRef(inputRefIndexType, inputRef.getIndex());
-  }
-
-
-  private RelDataType getReturnType(RexBuilder rexBuilder, RexCall rexCall,
-      Type impalaReturnType) {
-    // Case is a special case. Currently, there is a quirk in the Impala function
-    // resolver where it always returns the BOOLEAN signature. So the return type
-    // is evaluated here by finding the compatible type amongst the "then" clauses.
-    if (rexCall.getKind() == SqlKind.CASE) {
-        List<RelDataType> argTypes =
-            Lists.transform(rexCall.getOperands(), RexNode::getType);
-        return ImpalaTypeConverter.getCompatibleTypeForCase(argTypes, factory);
-    }
-
-    boolean isNullable = isNullable(rexCall);
-    RelDataType retType =
-        ImpalaTypeConverter.getRelDataType(impalaReturnType, isNullable);
-
-    // This code does not handle changes in the return type when the Calcite
-    // function is not a decimal but the function resolves to a function that
-    // returns a decimal type. The Decimal type from the function resolver would
-    // have to calculate the precision and scale based on operand types. If
-    // necessary, this code should be added later.
-    Preconditions.checkState(!SqlTypeUtil.isDecimal(retType) ||
-        SqlTypeUtil.isDecimal(rexCall.getType()));
-
-    // So if the original return type is Decimal and the function resolves to
-    // decimal, the precision and scale are saved from the original function.
-    if (SqlTypeUtil.isDecimal(retType)) {
-      retType = rexBuilder.getTypeFactory().createTypeWithNullability(rexCall.getType(),
-          isNullable);
-    }
-
-    return retType;
   }
 
   private RexNode normalizeCompareOperator(RexCall call) {
@@ -297,22 +225,6 @@ public class CoerceOperandShuttle extends RexShuttle {
     }
 
     return true;
-  }
-
-  private boolean isImplicitCharCastOfLiteral(RexCall call) {
-    if (call.getKind() != SqlKind.CAST) {
-      return false;
-    }
-
-    if (call.getType().getSqlTypeName() != SqlTypeName.CHAR) {
-      return false;
-    }
-
-    if (!(call.getOperands().get(0) instanceof RexLiteral)) {
-      return false;
-    }
-
-    return call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.CHAR;
   }
 
   private static boolean isTimestampArithExpr(RexCall rexCall) {
