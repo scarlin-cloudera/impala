@@ -18,7 +18,6 @@
 package org.apache.impala.calcite.operators;
 
 import com.google.common.base.Preconditions;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -31,7 +30,9 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.List;
 
@@ -68,8 +69,7 @@ public class ImpalaDecodeFunction extends ImpalaOperator {
   public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     List<RelDataType> operandTypes = CommonOperatorFunctions.getOperandTypes(opBinding);
 
-    RexBuilder rexBuilder =
-        new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+    RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     // No need to capture the return value, but an exception will be thrown
@@ -88,7 +88,7 @@ public class ImpalaDecodeFunction extends ImpalaOperator {
     // but don't check the last one.
     for (int i = 1; i < operandTypes.size() - 1; i += 2) {
       commonSearchOperand = ImpalaTypeConverter.getCompatibleType(commonSearchOperand,
-          operandTypes.get(i), factory);
+          operandTypes.get(i), factory, TypeCompatibility.STRICT_DECIMAL);
       if (commonSearchOperand == null) {
         throw new IllegalArgumentException("Decode function has incompatible " +
             "types with search argument and argument number " + i);
@@ -105,7 +105,7 @@ public class ImpalaDecodeFunction extends ImpalaOperator {
     // Skip over every other parameter starting with the fifth one.
     for (int i = 4; i < operandTypes.size(); i += 2) {
       returnType = ImpalaTypeConverter.getCompatibleType(returnType,
-          operandTypes.get(i), factory);
+          operandTypes.get(i), factory, TypeCompatibility.STRICT_DECIMAL);
       if (returnType == null) {
         throw new IllegalArgumentException("Decode function has incompatible " +
             "return type (argument number) " + i);
@@ -115,7 +115,7 @@ public class ImpalaDecodeFunction extends ImpalaOperator {
     // clause, so check that one too.
     if ((operandTypes.size() % 2) == 0) {
       returnType = ImpalaTypeConverter.getCompatibleType(returnType,
-          operandTypes.get(operandTypes.size() - 1), factory);
+          operandTypes.get(operandTypes.size() - 1), factory, TypeCompatibility.STRICT_DECIMAL);
     }
     return returnType;
   }
