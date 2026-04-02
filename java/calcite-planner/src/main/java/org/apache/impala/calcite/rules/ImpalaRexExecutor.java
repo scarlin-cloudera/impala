@@ -134,6 +134,17 @@ public class ImpalaRexExecutor implements RexExecutor {
       return false;
     }
 
+    // Special hack case, we don't want to reduce a char cast of a string literal.
+    // Calcite treats string literals as CHAR type while Impala treats it as STRING
+    // type. If there is explicit SQL that casts the literal to a CHAR, we don't
+    // want to reduce this because the code later on will not be able to differentiate
+    // between a String literal of type CHAR that should be treated as a string and
+    // a string literal that was cast explicitly as a CHAR that should be treated as
+    // a char.
+    if (isStringLiteralWithExplicitCharCast(call)) {
+      return false;
+    }
+
     return true;
   }
 
@@ -153,6 +164,12 @@ public class ImpalaRexExecutor implements RexExecutor {
       return false;
     }
     return true;
+  }
+
+  private static boolean isStringLiteralWithExplicitCharCast(RexCall call) {
+    return call.getOperator().getName().equals("EXPLICIT_CAST") &&
+        call.getOperands().get(0) instanceof RexLiteral &&
+        call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.VARCHAR;
   }
 
   private static boolean isLiteralOrCastOfLiteral(RexNode operand) {
