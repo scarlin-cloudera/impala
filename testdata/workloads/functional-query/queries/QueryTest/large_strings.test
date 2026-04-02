@@ -193,9 +193,13 @@ replace() result is larger than allowed limit of 1.00 GB character data
 =====
 ---- QUERY
 set mem_limit=4gb;
+# This test doesn't make too much sense, since space returns a string and 
+# trunc does not take a string as the second parameter.
 select trunc(timestamp_col, space(1073741830)) from functional.alltypes
 ---- CATCH
 space() result is larger than allowed limit of 1.00 GB character data
+---- CALCITE_PLANNER_CATCH
+Cannot apply 'TRUNC' to arguments of type 'TRUNC(<TIMESTAMP(15)>, <VARCHAR(2147483647)>)'
 =====
 ---- QUERY
 set mem_limit=4gb;
