@@ -48,6 +48,7 @@ import org.apache.impala.calcite.operators.ImpalaOperatorTable;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
 import org.apache.impala.calcite.schema.ImpalaViewTable;
 import org.apache.impala.calcite.type.ImpalaTypeCoercionFactory;
+import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
 import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.calcite.validate.ImpalaConformance;
@@ -128,7 +129,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       CalciteMetadataHandler.populateCalciteSchema(reader_, ctx_.getCatalog(),
           stmtTableCache_, analyzer_);
 
-      typeFactory_ = new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl());
+      typeFactory_ = ImpalaTypeFactoryImpl.INSTANCE;
       sqlValidator_ = new ImpalaSqlValidatorImpl(
           ImpalaOperatorTable.getInstance(),
           reader_, typeFactory_,
