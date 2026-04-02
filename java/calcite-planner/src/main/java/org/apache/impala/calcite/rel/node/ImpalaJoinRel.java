@@ -75,6 +75,10 @@ import org.slf4j.LoggerFactory;
 public class ImpalaJoinRel extends Join
     implements ImpalaPlanRel {
 
+  private static final String STRAIGHT_JOIN = "straight_join";
+  private static final String SHUFFLE = "shuffle";
+  private static final String BROADCAST = "broadcast";
+
   protected static final Logger LOG =
       LoggerFactory.getLogger(ImpalaJoinRel.class.getName());
 
@@ -109,7 +113,13 @@ public class ImpalaJoinRel extends Join
     // IMPALA-13176: TODO: Impala allows forcing hints for the distribution mode
     // - e.g force broadcast or hash partition join.  However, we are not
     // currently supporting hints from the new planner.
-    JoinNode.DistributionMode distMode = JoinNode.DistributionMode.NONE;
+    JoinNode.DistributionMode distMode = containsHint(SHUFFLE)
+        ? JoinNode.DistributionMode.PARTITIONED
+        : JoinNode.DistributionMode.NONE;
+
+    if (containsHint(BROADCAST)) {
+      distMode = JoinNode.DistributionMode.BROADCAST;
+    }
 
     List<ConjunctInfo> conjunctInfos = getConditionConjuncts(getCondition(),
         leftInput, rightInput, analyzer);
@@ -134,8 +144,8 @@ public class ImpalaJoinRel extends Join
     if (isHashJoin) {
       otherJoinConjuncts.addAll(nonEquiJoinConjuncts);
     } else {
-      // For nested loop joins, the conjuncts only need to be separated when it is
-      // not an inner join.
+      // XXX: change commentNested join loops keep the non-equijoin conjuncts in the other join conjuncts
+      // except in the special case where this is only one row on the right side.
       if (getJoinType().equals(JoinRelType.INNER)) {
         filterConjuncts.addAll(nonEquiJoinConjuncts);
       } else {
@@ -159,10 +169,10 @@ public class ImpalaJoinRel extends Join
     // Create Impala plan node
     PlanNode joinNode = isHashJoin
       ? new ImpalaHashJoinNode(context.ctx_.getNextNodeId(), leftInput.planNode_,
-          rightInput.planNode_, isStraightJoin(), distMode, joinOp,
+          rightInput.planNode_, containsHint(STRAIGHT_JOIN), distMode, joinOp,
           equiJoinConjuncts, otherJoinConjuncts, filterConjuncts, analyzer)
       : new ImpalaNestedLoopJoinNode(context.ctx_.getNextNodeId(), leftInput.planNode_,
-          rightInput.planNode_, isStraightJoin(), distMode, joinOp,
+          rightInput.planNode_, containsHint(STRAIGHT_JOIN), distMode, joinOp,
           otherJoinConjuncts, filterConjuncts, analyzer);
 
     // register all the conjuncts.
@@ -552,9 +562,9 @@ public class ImpalaJoinRel extends Join
     return tableRefs;
   }
 
-  private boolean isStraightJoin() {
+  private boolean containsHint(String hint) {
     return getHints().stream()
-        .anyMatch(r -> r.hintName.toLowerCase().equals("straight_join"));
+        .anyMatch(r -> r.hintName.equals(hint));
   }
 
   private static class ConjunctInfo {
