@@ -39,7 +39,9 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
 import org.apache.impala.calcite.schema.CalciteTable;
@@ -153,6 +155,22 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
       this.analyzer_.registerPrivReq(
           builder -> builder.allOf(Privilege.VIEW_METADATA)
               .onDb(BuiltinsDb.getInstance().getName(), null).build());
+    }
+  }
+
+  @Override
+  protected void validateSelect(
+      SqlSelect select,
+      RelDataType targetRowType) {
+    super.validateSelect(select, targetRowType);
+    // Offset and limit expressions will always have a BIGINT type.
+    if (select.getOffset() instanceof SqlCall) {
+      setValidatedNodeType(select.getOffset(),
+          typeFactory.createSqlType(SqlTypeName.BIGINT));
+    }
+    if (select.getFetch() instanceof SqlCall) {
+      setValidatedNodeType(select.getFetch(),
+          typeFactory.createSqlType(SqlTypeName.BIGINT));
     }
   }
 }
