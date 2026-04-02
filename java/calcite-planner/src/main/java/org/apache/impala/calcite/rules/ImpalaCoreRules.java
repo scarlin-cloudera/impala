@@ -223,5 +223,9 @@ public class ImpalaCoreRules {
      .hintStrategy("straight_join", HintStrategy.builder(HintPredicates.JOIN)
           .excludedRules(CoreRules.JOIN_TO_MULTI_JOIN)
          .build())
+     .hintStrategy("shuffle", HintStrategy.builder(HintPredicates.JOIN).build())
+     .hintStrategy("`shuffle`", HintStrategy.builder(HintPredicates.JOIN).build())
+     .hintStrategy("broadcast", HintStrategy.builder(HintPredicates.JOIN).build())
+     .hintStrategy("`broadcast`", HintStrategy.builder(HintPredicates.JOIN).build())
      .build();
 }
