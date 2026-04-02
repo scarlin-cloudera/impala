@@ -200,7 +200,6 @@ public class CalciteOptimizer implements CompilerStep {
         ImpalaCoreRules.FILTER_AGGREGATE_TRANSPOSE,
         ImpalaCoreRules.UNION_REMOVE,
         ImpalaCoreRules.PROJECT_TO_SEMI_JOIN,
-        ImpalaCoreRules.FILTER_VALUES_MERGE,
         ImpalaCoreRules.FILTER_MERGE,
         ImpalaCoreRules.PROJECT_MERGE,
         ImpalaCoreRules.JOIN_PUSH_EXPRESSIONS,
