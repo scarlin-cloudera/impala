@@ -3,6 +3,8 @@
 select (cast("xyzzzzz12" as char(-1)))
 ---- CATCH
 Syntax error
+---- CALCITE_PLANNER_CATCH
+row_regex:.*ParseException.*
 ====
 ---- QUERY
 select count(*), count(cs), count(cl), count(vc) from chars_tiny

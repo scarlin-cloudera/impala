@@ -441,6 +441,7 @@ aggregation(SUM, InMemoryHeapsEvicted)> 0
 ====
 ---- QUERY
 # Test spilling an agg with a LIMIT; see IMPALA-2581
+# IMPALA-XXXXX: FastLimit didn't work for one test for Calcite planner
 set buffer_pool_limit=136m;
 select c.c2 from
 (select distinct (a.id*10000 + b.id) c1, a.int_col c2
@@ -453,4 +454,6 @@ BIGINT
 # Verify that spilling was activated.
 aggregation(SUM, SpilledPartitions)> 0
 row_regex: .*FastLimitCheckExceededRows: [0-9]+
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+row_regex: .*SpilledPartitions: .* \([1-9][0-9]*\)
 ====
