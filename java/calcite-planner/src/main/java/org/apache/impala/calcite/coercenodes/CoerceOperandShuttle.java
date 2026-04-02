@@ -204,24 +204,6 @@ public class CoerceOperandShuttle extends RexShuttle {
   }
 
   @Override
-  public RexNode visitLiteral(RexLiteral literal) {
-    // Coerce CHAR literal types into STRING
-    if (!literal.isNull() &&
-        (literal.getType().getSqlTypeName().equals(SqlTypeName.CHAR))) {
-      return rexBuilder.makeLiteral(RexLiteral.stringValue(literal),
-          ImpalaTypeConverter.getRelDataType(Type.STRING), true, true);
-    }
-
-    // Coerce INTEGER literal types into the smallest possible Numeric type
-    if (literal.getType().getSqlTypeName().equals(SqlTypeName.INTEGER)) {
-      BigDecimal bd0 = literal.getValueAs(BigDecimal.class);
-      RelDataType type = ImpalaTypeConverter.getLiteralDataType(bd0, literal.getType());
-      return rexBuilder.makeLiteral(bd0, type);
-    }
-    return literal;
-  }
-
-  @Override
   public RexNode visitInputRef(RexInputRef inputRef) {
     // Adjust the InputRef type if it changed
     RelDataType inputRefIndexType = getInputRefIndexType(inputs, inputRef.getIndex());

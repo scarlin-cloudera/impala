@@ -56,13 +56,7 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
 
   public static RelDataType getWiderTypeFor(List<RelDataType> typeList,
       RelDataTypeFactory factory, TypeCompatibility compatibility) {
-
-    List<RelDataType> newTypeList = new ArrayList<>();
-    for (RelDataType type : typeList) {
-      newTypeList.add(type);
-    }
-
-    return ImpalaTypeConverter.getCompatibleType(newTypeList, factory,
+    return ImpalaTypeConverter.getCompatibleType(typeList, factory,
         compatibility);
   }
 
