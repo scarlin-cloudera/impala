@@ -28,6 +28,7 @@ import org.apache.impala.analysis.ExprSubstitutionMap;
 import org.apache.impala.analysis.ParsedStatement;
 import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.rel.node.NodeWithExprs;
+import org.apache.impala.catalog.local.InconsistentMetadataFetchException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.planner.DataSink;
 import org.apache.impala.planner.PlanNode;
@@ -63,26 +64,36 @@ public class CalciteSingleNodePlanner implements SingleNodePlannerIntf {
   }
 
   public PlanNode createSingleNodePlan() throws ImpalaException {
-    // Convert the query to RelNodes which can be optimized
-    CalciteRelNodeConverter relNodeConverter =
-        new CalciteRelNodeConverter(analysisResult_);
-    RelNode logicalPlan = relNodeConverter.convert(analysisResult_.getValidatedNode());
-    fieldNames_ = relNodeConverter.getFieldNames(analysisResult_.getValidatedNode());
+    try {
+      // Convert the query to RelNodes which can be optimized
+      CalciteRelNodeConverter relNodeConverter =
+          new CalciteRelNodeConverter(analysisResult_);
+      RelNode logicalPlan = relNodeConverter.convert(analysisResult_.getValidatedNode());
+      fieldNames_ = relNodeConverter.getFieldNames(analysisResult_.getValidatedNode());
 
-    // Optimize the query
-    CalciteOptimizer optimizer =
-        new CalciteOptimizer(analysisResult_, ctx_.getTimeline());
-    ImpalaPlanRel optimizedPlan = optimizer.optimize(logicalPlan);
+      // Optimize the query
+      CalciteOptimizer optimizer =
+          new CalciteOptimizer(analysisResult_, ctx_.getTimeline());
+      ImpalaPlanRel optimizedPlan = optimizer.optimize(logicalPlan);
 
-    returnsMoreThanOneRow_ = returnsMoreThanOneRow(optimizedPlan);
+      returnsMoreThanOneRow_ = returnsMoreThanOneRow(optimizedPlan);
 
-    // Create Physical Impala PlanNodes
-    CalcitePhysPlanCreator physPlanCreator =
-        new CalcitePhysPlanCreator(analysisResult_.getAnalyzer(), ctx_);
-    rootNode_ = physPlanCreator.create(optimizedPlan);
+      // Create Physical Impala PlanNodes
+      CalcitePhysPlanCreator physPlanCreator =
+          new CalcitePhysPlanCreator(analysisResult_.getAnalyzer(), ctx_);
+      rootNode_ = physPlanCreator.create(optimizedPlan);
 
-    analysisResult_.getAnalyzer().computeValueTransferGraph();
-    return rootNode_.planNode_;
+      analysisResult_.getAnalyzer().computeValueTransferGraph();
+      return rootNode_.planNode_;
+    } catch (Exception e) {
+      if (e instanceof ImpalaException) {
+        throw (ImpalaException) e;
+      } else if (e instanceof InconsistentMetadataFetchException) {
+        throw (InconsistentMetadataFetchException) e;
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   /**

@@ -461,6 +461,11 @@ public class AnalysisContext {
     public void setUserHasProfileAccess(boolean value) { userHasProfileAccess_ = value; }
     public boolean userHasProfileAccess() { return userHasProfileAccess_; }
 
+    // Only the Calcite planner has the potential of falling back because of
+    // the type of Exception right now, when a feature is not supported in Calcite.
+    public boolean shouldFallbackBecauseOfException() {
+      return false;
+    }
   }
 
   public AnalysisResult analyzeAndAuthorize(CompilerFactory compilerFactory,
@@ -501,9 +506,15 @@ public class AnalysisContext {
     LOG.info("Analysis took {} ms", durationMs);
 
     // Authorize statement and record exception. Authorization relies on information
-    // collected during analysis.
     AuthorizationException authException = null;
-    if (!disableAuthorization) {
+    // We don't need to check for authorization if the error if the error is a Calcite
+    // error and fallback will be triggered. One of the unsupported exceptions from
+    // the Calcite planner is that complex columns aren't supported. Calcite cannot
+    // distinguish if it is a real table or a complex column. So authorization cannot
+    // kick in properly for Calcite. So by throwing an unsupported feature exception,
+    // fallback will always get triggred, and the original planner can then check
+    // for authorization on the table.
+    if (!disableAuthorization && !analysisResult_.shouldFallbackBecauseOfException()) {
       try {
         if (analysisResult_.getAnalyzer().encounteredMVAuthException()) {
           throw new AuthorizationException(
