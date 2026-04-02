@@ -94,5 +94,11 @@ public class CalciteCompilerFactory implements CompilerFactory {
       throw new UnsupportedFeatureException("Approximate count distinct is not " +
           "supported in Calcite, falling back to Impala compiler.");
     }
+
+    if (queryCtx.getClient_request().getQuery_options()
+        .isDisable_hdfs_num_rows_estimate()) {
+      throw new UnsupportedFeatureException("Cannot disable hdfs_num_rows_estimate "
+          + "in Calcite, falling back to Impala compiler.");
+    }
   }
 }
