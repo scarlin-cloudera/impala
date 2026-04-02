@@ -4,6 +4,8 @@
 select count(*) from ice.airports_parquet;
 ---- CATCH
 AnalysisException: Could not resolve table reference: 'ice.airports_parquet'
+---- CALCITE_PLANNER_CATCH
+Object 'ICE' not found
 ====
 ---- QUERY
 # Blacklisted tables cannot be shown.
