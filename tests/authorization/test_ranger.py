@@ -2613,7 +2613,8 @@ class TestRangerLegacyCatalog(TestRanger):
 
   @SkipIfFS.hive
   @pytest.mark.execute_serially
-  def test_select_view_created_by_non_superuser_with_catalog_v1(self, unique_name):
+  # formally 
+  def test_sel_view_created_by_non_su_with_cat_v1(self, unique_name):
     self._test_select_view_created_by_non_superuser(unique_name)
 
 
@@ -2647,7 +2648,7 @@ class TestRangerLocalCatalog(TestRanger):
 
   @SkipIfFS.hive
   @pytest.mark.execute_serially
-  def test_select_view_created_by_non_superuser_with_local_catalog(self, unique_name):
+  def test_sel_view_created_by_non_su_with_local_cat(self, unique_name):
     self._test_select_view_created_by_non_superuser(unique_name)
 
   @pytest.mark.execute_serially
@@ -3028,7 +3029,8 @@ class TestRangerLocalCatalog(TestRanger):
                               ADMIN, True)
 
   @pytest.mark.execute_serially
-  def test_select_function_with_fallback_db(self, unique_name):
+  @SkipIfCalcite.functions_fallback_db_not_supported
+  def test_select_function_with_fallback_db(self, nique_name):
     """Verifies that Impala should not allow using functions in the fallback database
     unless the user has been granted sufficient privileges on the given database."""
     test_user = "non_owner"
@@ -3241,7 +3243,7 @@ class TestRangerLocalCatalog(TestRanger):
         TestRanger._remove_policy(policy_names.pop())
 
   #IMPALA-14295: support row_filtering in Calcite planner
-  @SkipIfCalcite.row_filtering_not_supported
+  @SkipIf.is_calcite_planner
   @pytest.mark.execute_serially
   def test_row_filtering(self, vector, unique_name):
     user = getuser()

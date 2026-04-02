@@ -25,7 +25,7 @@ import re
 import time
 
 from tests.common.custom_cluster_test_suite import CustomClusterTestSuite
-from tests.common.skip import SkipIfFS, SkipIfCalcite
+from tests.common.skip import SkipIfFS, SkipIf
 
 LOG = logging.getLogger(__name__)
 
@@ -231,7 +231,7 @@ class TestLineage(CustomClusterTestSuite):
                 "OPTIMIZE statement should not produce a lineage entry"
 
   # IMPALA-14328: need to implement lineage for Calcite planner
-  @SkipIfCalcite.lineage_not_supported
+  @SkipIf.is_calcite_planner
   @SkipIfFS.hbase
   @pytest.mark.execute_serially
   @CustomClusterTestSuite.with_args(

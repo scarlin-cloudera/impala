@@ -22,6 +22,7 @@ import decimal
 import math
 import random
 
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.impala_connection import IMPALA_CONNECTION_EXCEPTION
 from tests.common.impala_test_suite import ImpalaTestSuite
 from tests.common.test_dimensions import (
@@ -296,10 +297,14 @@ class TestDecimalFuzz(ImpalaTestSuite):
       result = self.execute_scalar(query, query_options)
       assert int(result) == expected_result
     except IMPALA_CONNECTION_EXCEPTION as e:
-      if "You need to wrap the arguments in a CAST" not in str(e):
-        # Sometimes the decimal inputs are incompatible with each other, so it's ok
-        # to ignore this error.
-        raise e
+      if IS_CALCITE_PLANNER:
+        if "INVALID_TYPE" not in str(e):
+          raise e
+      else:
+        if "You need to wrap the arguments in a CAST" not in str(e):
+          # Sometimes the decimal inputs are incompatible with each other, so it's ok
+          # to ignore this error.
+          raise e
 
   def test_width_bucket(self, vector):
     for _ in range(self.iterations):
