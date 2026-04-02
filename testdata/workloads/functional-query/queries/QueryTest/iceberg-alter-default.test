@@ -145,6 +145,8 @@ INT
 SELECT * FROM iceberg_rename;
 ---- CATCH
 Could not resolve table reference: 'iceberg_rename'
+---- CALCITE_PLANNER_CATCH
+Object 'ICEBERG_RENAME' not found
 ====
 ---- QUERY
 CREATE TABLE iceberg_changing_fileformats (i int)
