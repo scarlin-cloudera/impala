@@ -49,6 +49,7 @@ from datetime import datetime
 from pytz import utc
 
 from tests.common.environ import ImpalaTestClusterProperties, HIVE_MAJOR_VERSION
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.kudu_test_suite import KuduTestSuite
 from tests.common.impala_cluster import ImpalaCluster
 from tests.common.skip import SkipIfNotHdfsMinicluster, SkipIfKudu, SkipIfHive2
@@ -842,7 +843,10 @@ class TestCreateExternalTable(KuduTestSuite):
           "SELECT COUNT(*) FROM %s.%s" % (unique_database, impala_table_name), vector)
         assert False
       except Exception as e:
-        assert "Could not resolve table reference" in str(e)
+        if IS_CALCITE_PLANNER:
+          assert "not found" in str(e) 
+        else:
+          assert "Could not resolve table reference" in str(e)
       assert kudu_client.table_exists(kudu_table.name)
 
   @SkipIfKudu.hms_integration_enabled()
