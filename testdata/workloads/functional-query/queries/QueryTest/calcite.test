@@ -1337,3 +1337,14 @@ bigint
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+# IMPALA-14910: limit expression
+select id from functional.alltypes order by id limit 1 + 1
+---- RESULTS
+0
+1
+---- TYPES
+int
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
