@@ -92,6 +92,7 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       .add("localtime")
       .add("translate")
       .add("sleep")
+      .add("typeof")
       .build();
 
   private static ImpalaOperatorTable INSTANCE;
@@ -157,7 +158,6 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
     if (dbToUse == null) {
       dbToUse = db_;
     }
-
     // Check Impala Builtins for existence: TODO: IMPALA-13095: handle UDFs
     List<Function> functions;
     try {
