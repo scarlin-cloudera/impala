@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -39,6 +40,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
@@ -155,4 +157,20 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
               .onDb(BuiltinsDb.getInstance().getName(), null).build());
     }
   }
+
+  @Override
+  protected void validateSelect(
+      SqlSelect select,
+      RelDataType targetRowType) {
+    super.validateSelect(select, targetRowType);
+    if (select.getOffset() instanceof SqlCall) {
+      setValidatedNodeType(select.getOffset(),
+          typeFactory.createSqlType(SqlTypeName.BIGINT));
+    }    
+    if (select.getFetch() instanceof SqlCall) {
+      setValidatedNodeType(select.getFetch(),
+          typeFactory.createSqlType(SqlTypeName.BIGINT));
+    }    
+  }
+
 }
