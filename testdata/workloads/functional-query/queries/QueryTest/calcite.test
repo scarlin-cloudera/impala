@@ -1301,3 +1301,12 @@ select string_col from functional.alltypestiny where string_col like '1%';
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+# IMPALA-14911: verify comparison between numeric and boolean
+select count(*) from functional.alltypestiny
+where smallint_col > sleep(100);
+---- RESULTS
+0
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
