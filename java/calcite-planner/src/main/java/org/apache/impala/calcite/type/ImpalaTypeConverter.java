@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -69,8 +68,7 @@ public class ImpalaTypeConverter {
   private static Map<Type, RelDataType> nonNullImpalaToCalciteMap;
 
   static {
-    RexBuilder rexBuilder =
-        new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+    RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
     Map<Type, RelDataType> map = new HashMap<>();
     map.put(Type.BOOLEAN, factory.createSqlType(SqlTypeName.BOOLEAN));
@@ -121,15 +119,15 @@ public class ImpalaTypeConverter {
       case DECIMAL:
         RelDataType decimalDefinedRetType = factory.createSqlType(SqlTypeName.DECIMAL,
             scalarType.decimalPrecision(), scalarType.decimalScale());
-        return factory.createTypeWithNullability(decimalDefinedRetType, true);
+        return factory.createTypeWithNullability(decimalDefinedRetType, isNullable);
       case VARCHAR:
         RelDataType varcharType = factory.createSqlType(SqlTypeName.VARCHAR,
             scalarType.getLength());
-        return factory.createTypeWithNullability(varcharType, true);
+        return factory.createTypeWithNullability(varcharType, isNullable);
       case CHAR:
         RelDataType charType = factory.createSqlType(SqlTypeName.CHAR,
             scalarType.getLength());
-        return factory.createTypeWithNullability(charType, true);
+        return factory.createTypeWithNullability(charType, isNullable);
       default:
         Type normalizedImpalaType = getImpalaType(primitiveType);
         return impalaToCalciteMap.get(normalizedImpalaType);
@@ -360,8 +358,7 @@ public class ImpalaTypeConverter {
     TPrimitiveType primitiveType = impalaType.getPrimitiveType().toThrift();
     if (primitiveType == TPrimitiveType.DECIMAL) {
       ScalarType scalarType = (ScalarType) impalaType;
-      RexBuilder rexBuilder =
-          new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+      RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
       RelDataTypeFactory factory = rexBuilder.getTypeFactory();
       RelDataType decimalDefinedRetType = factory.createSqlType(SqlTypeName.DECIMAL,
           scalarType.decimalPrecision(), scalarType.decimalScale());
@@ -381,8 +378,7 @@ public class ImpalaTypeConverter {
   // Converts Calcite Integer literal type into an appropriate exact type for Impala,
   // e.g. TINYINT, SMALLINT, INT, or BIGINT
   public static RelDataType getLiteralDataType(BigDecimal bd, RelDataType rdt) {
-    RexBuilder rexBuilder =
-        new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+    RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     // If value is null, just use smallest value
@@ -421,11 +417,11 @@ public class ImpalaTypeConverter {
       }
     }
     Preconditions.checkState(compatibleTypes.size() > 0);
-    return getCompatibleType(compatibleTypes, factory);
+    return getCompatibleType(compatibleTypes, factory, TypeCompatibility.DEFAULT);
   }
 
   public static RelDataType getCompatibleType(Collection<RelDataType> dataTypes,
-      RelDataTypeFactory factory) {
+      RelDataTypeFactory factory, TypeCompatibility typeCompatibility) {
     Preconditions.checkState(dataTypes.size() > 0);
     RelDataType commonType = null;
     for (RelDataType dataType : dataTypes) {
@@ -433,13 +429,14 @@ public class ImpalaTypeConverter {
         commonType = dataType;
         continue;
       }
-      commonType = getCompatibleType(commonType, dataType, factory);
+      commonType = getCompatibleType(commonType, dataType, factory, typeCompatibility);
     }
     return commonType;
   }
 
   public static RelDataType getCompatibleType(
-      RelDataType type1, RelDataType type2, RelDataTypeFactory factory) {
+      RelDataType type1, RelDataType type2, RelDataTypeFactory factory,
+      TypeCompatibility typeCompatibility) {
     // can't handle nulls, but let caller handle this.
     if (type1 == null || type2 == null) {
       return null;
@@ -461,7 +458,8 @@ public class ImpalaTypeConverter {
     }
 
     Type retType = ScalarType.getAssignmentCompatibleType(impalaType1, impalaType2,
-        TypeCompatibility.DEFAULT);
+        typeCompatibility);
+    
 
     RelDataType compatibleType = createRelDataType(factory, retType);
     return (!type1.isNullable() && !type2.isNullable())

@@ -46,6 +46,7 @@ import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -266,7 +267,8 @@ public class CoerceNodes{
       }
 
       // if here, need to transform
-      List<RelDataType> newOperandTypes = getCastedOperandTypes(aggCall, operandTypes);
+      List<RelDataType> newOperandTypes = getCastedOperandTypes(aggCall,
+          rexBuilder.getTypeFactory(), operandTypes);
 
       // last parameter is the starting point for new project fields added
       // (see method comment for details).
@@ -437,8 +439,8 @@ public class CoerceNodes{
        return dt1;
      }
 
-    return ImpalaTypeConverter.getCompatibleType(
-        ImmutableList.of(dt1, dt2), rexBuilder.getTypeFactory());
+    return ImpalaTypeConverter.getCompatibleType(ImmutableList.of(dt1, dt2),
+        rexBuilder.getTypeFactory(), TypeCompatibility.DEFAULT);
   }
 
   /**
@@ -461,7 +463,8 @@ public class CoerceNodes{
         RelDataType type0 = finalTypes.get(i);
         RelDataType type1 = input.getRowType().getFieldList().get(i).getType();
         finalTypes.set(i,
-            ImpalaTypeConverter.getCompatibleType(type0, type1, factory));
+            ImpalaTypeConverter.getCompatibleType(type0, type1, factory,
+                TypeCompatibility.DEFAULT));
       }
     }
     return finalTypes;
@@ -565,14 +568,16 @@ public class CoerceNodes{
    * in a matching Impala function signature.
    */
   private static List<RelDataType> getCastedOperandTypes(AggregateCall aggCall,
-      List<RelDataType> operandTypes) {
+      RelDataTypeFactory factory, List<RelDataType> operandTypes) {
     // Get the Impala function. Getting the "supertype" function will retrieve
     // the closest function where operands may be cast.
     Function fn = FunctionResolver.getSupertypeFunction(
         aggCall.getAggregation(), operandTypes);
     Preconditions.checkNotNull(fn, "Could not find matching functions for " +
         aggCall.getAggregation().getName());
-    RelDataType retType = ImpalaTypeConverter.getRelDataType(fn.getReturnType());
+    RelDataType retType = fn.getReturnType().isWildcardType()
+        ? ImpalaTypeConverter.getRelDataType(fn.getReturnType())
+        : ImpalaTypeConverter.createRelDataType(factory, fn.getReturnType());
 
     // Not changing return type, they should be the same. The code will get more
     // complicated if this has to change.
@@ -585,7 +590,11 @@ public class CoerceNodes{
       Type t = (i < fn.getArgs().length)
           ? fn.getArgs()[i]
           : fn.getArgs()[fn.getArgs().length - 1];
-      newOperandTypes.add(ImpalaTypeConverter.getRelDataType(t));
+      if (t.isWildcardType()) {
+        newOperandTypes.add(ImpalaTypeConverter.getRelDataType(t));
+      } else {
+        newOperandTypes.add(ImpalaTypeConverter.createRelDataType(factory, t));
+      }
     }
     return newOperandTypes;
   }
@@ -665,14 +674,22 @@ public class CoerceNodes{
     return newNames;
   }
 
+  // XXX: Maybe change name because looking at rel type now too
   private static boolean areSqlTypesEqual(RelDataType r1, RelDataType r2) {
     if (r1.getSqlTypeName().equals(SqlTypeName.VARCHAR) &&
         r2.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
       // if both precisions are Integer.MAX_VALUE, they are both strings
-      // if both precisions are not INteger.MAX_VALUE, they are both varchars
+      // if both precisions are not Integer.MAX_VALUE, they are both varchars
       int maxVal = Integer.MAX_VALUE;
       return (r1.getPrecision() == maxVal && r2.getPrecision() == maxVal) ||
           (r1.getPrecision() != maxVal && r2.getPrecision() != maxVal);
+    }
+    if (r1.getSqlTypeName().equals(SqlTypeName.DECIMAL) &&
+        r2.getSqlTypeName().equals(SqlTypeName.DECIMAL)) {
+      if (r2.getPrecision() == -1 && r2.getScale() == 0) {
+        return true;
+      }
+      return r1.getPrecision() == r2.getPrecision() && r1.getScale() == r2.getScale();
     }
     return r1.getSqlTypeName().equals(r2.getSqlTypeName());
   }
