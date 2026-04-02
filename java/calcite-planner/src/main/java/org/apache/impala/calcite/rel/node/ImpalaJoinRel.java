@@ -109,8 +109,18 @@ public class ImpalaJoinRel extends Join
     // IMPALA-13176: TODO: Impala allows forcing hints for the distribution mode
     // - e.g force broadcast or hash partition join.  However, we are not
     // currently supporting hints from the new planner.
-    JoinNode.DistributionMode distMode = JoinNode.DistributionMode.NONE;
+    JoinNode.DistributionMode distMode = context.applyShuffleHint_
+        ? JoinNode.DistributionMode.PARTITIONED
+        : JoinNode.DistributionMode.NONE;
 
+    if (context.applyBroadcastHint_) {
+      distMode = JoinNode.DistributionMode.BROADCAST;
+      LOG.info("SJC: JOIN IS DIST MODE BROADCAST");
+    }
+
+    if (distMode == JoinNode.DistributionMode.PARTITIONED) {
+      LOG.info("SJC: JOIN IS DIST MODE PARTITIONED");
+    }
     List<ConjunctInfo> conjunctInfos = getConditionConjuncts(getCondition(),
         leftInput, rightInput, analyzer);
 
@@ -134,8 +144,8 @@ public class ImpalaJoinRel extends Join
     if (isHashJoin) {
       otherJoinConjuncts.addAll(nonEquiJoinConjuncts);
     } else {
-      // For nested loop joins, the conjuncts only need to be separated when it is
-      // not an inner join.
+      // XXX: change commentNested join loops keep the non-equijoin conjuncts in the other join conjuncts
+      // except in the special case where this is only one row on the right side.
       if (getJoinType().equals(JoinRelType.INNER)) {
         filterConjuncts.addAll(nonEquiJoinConjuncts);
       } else {
