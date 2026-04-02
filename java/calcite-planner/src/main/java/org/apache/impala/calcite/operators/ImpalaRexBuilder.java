@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.impala.catalog.Type;
@@ -78,5 +80,18 @@ public class ImpalaRexBuilder extends RexBuilder {
     }
 
     return super.makeLiteral(o, type, typeName);
+  }
+
+  public RexNode makeCast(
+      SqlParserPos pos,
+      RelDataType type,
+      RexNode exp,
+      boolean matchNullability,
+      boolean safe,
+      RexLiteral format) {
+    if (exp.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
+      return makeAbstractCast(pos, type, exp, safe, format);
+    }
+    return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
 }

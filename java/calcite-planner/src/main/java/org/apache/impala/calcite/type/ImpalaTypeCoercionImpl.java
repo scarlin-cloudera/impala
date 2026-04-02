@@ -115,6 +115,26 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
     return super.binaryComparisonCoercion(binding);
   }
 
+  @Override
+  public RelDataType commonTypeForBinaryComparison(
+      RelDataType type1, RelDataType type2) {
+    // Boolean type is not comparable to numerics by default in Calcite so we
+    // handle it here.
+    if (SqlTypeUtil.isBoolean(type1) && SqlTypeUtil.isNumeric(type2)) {
+      Type typeToUse = SqlTypeUtil.isExactNumeric(type2)
+          ? Type.TINYINT
+          : Type.DOUBLE;
+      return ImpalaTypeConverter.getRelDataType(typeToUse);
+    }
+    if (SqlTypeUtil.isBoolean(type2) && SqlTypeUtil.isNumeric(type1)) {
+      Type typeToUse = SqlTypeUtil.isExactNumeric(type1)
+          ? Type.TINYINT
+          : Type.DOUBLE;
+      return ImpalaTypeConverter.getRelDataType(typeToUse);
+    }
+    return super.commonTypeForBinaryComparison(type1, type2);
+  }
+
   private boolean coerceInOperand(SqlValidatorScope scope, SqlCall call,
       int index, RelDataType fromType, RelDataType toType) {
     if (!needsCasting(fromType, toType)) {
