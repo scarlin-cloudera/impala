@@ -41,6 +41,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -61,6 +62,7 @@ import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.FeFsTable;
 import org.apache.impala.common.UnsupportedFeatureException;
+import org.apache.impala.catalog.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,6 +117,11 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
         setValidatedNodeType(operand, type);
         return type;
       }
+    }
+    if (operand instanceof SqlCharStringLiteral) {
+      RelDataType type = ImpalaTypeConverter.getRelDataType(Type.STRING, false);
+      setValidatedNodeType(operand, type);
+      return type;
     }
     return super.deriveType(scope, operand);
   }
