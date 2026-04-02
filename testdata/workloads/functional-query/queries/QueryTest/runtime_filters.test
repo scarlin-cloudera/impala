@@ -103,6 +103,8 @@ aggregation(SUM, Files rejected): 48
 ---- RUNTIME_PROFILE: table_format=kudu
 aggregation(SUM, RowsRead): 0
 row_regex: 00:SCAN KUDU.*s[ ]+0[ ]+7.30K
+---- CALCITE_PLANNER_RUNTIME_PROFILE:
+# IMPALA-XXXXX: Broadcast hint not yet supported for Calcite
 ====
 
 

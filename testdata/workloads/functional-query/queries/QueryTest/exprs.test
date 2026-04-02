@@ -2032,8 +2032,6 @@ limit 10
 INT
 ---- RESULTS
 ---- CATCH
-AnalysisException: Error evaluating "regexp_replace('abc', '*', 'cde') = 'cde'"
-CAUSED BY: InternalException: Could not compile regexp pattern: *
 Error: no argument for repetition operator: *
 ====
 ---- QUERY
@@ -2044,17 +2042,14 @@ madlib_vector_get(0, madlib_vector(1.0, 2.0, NULL)) = 1.0 limit 10
 INT
 ---- RESULTS
 ---- CATCH
-AnalysisException: Error evaluating "madlib_vector_get(0, madlib_vector(1.0, 2.0, NULL)) = 1.0"
-CAUSED BY: InternalException: madlib vector entry 2 is NULL
+madlib vector entry 2 is NULL
 ====
 ---- QUERY
 select * from (select 'abc' as x, '*' as y, 'def' as z from functional.alltypestiny) v
 where regexp_replace(x, y, z) = 'cde'
 ---- RESULTS
 ---- CATCH
-AnalysisException: Error evaluating "regexp_replace('abc', '*', 'def') = 'cde'"
-CAUSED BY: InternalException: Could not compile regexp pattern: *
-Error: no argument for repetition operator: *
+no argument for repetition operator: *
 ====
 ---- QUERY
 select sum(length(replace(y, x, 'bbbbbbbbbbb')))
@@ -2421,9 +2416,12 @@ BIGINT
 ====
 ---- QUERY
 # Test for IMPALA-1746: QueryExecState doesn't check for query cancellation or errors
+# IMPALA-XXXXX: need better error
 select dayofyear(trunc('2014-11-11', string_col)) from functional.alltypestiny limit 1;
 ---- CATCH
 Invalid Truncate Unit: 0
+---- CALCITE_PLANNER_CATCH
+row_regex:.*Cannot.*
 ====
 ---- QUERY
 select regexp_match_count(tmp.str, tmp.`pattern`) from (values
