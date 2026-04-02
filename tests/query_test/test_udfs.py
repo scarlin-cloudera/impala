@@ -307,6 +307,8 @@ class TestUdfExecution(TestUdfBase):
       self.create_test_udas_template, vector, unique_database,
       get_fs_path('/test-warehouse/libTestUdas.so'))
 
+    self.run_test_case('QueryTest/udf-init-close-deterministic', vector,
+          use_db=unique_database)
     self.run_test_case('QueryTest/udf', vector, use_db=unique_database)
     if not vector.get_value('exec_option')['disable_codegen']:
       self.run_test_case('QueryTest/udf-codegen-required', vector, use_db=unique_database)
