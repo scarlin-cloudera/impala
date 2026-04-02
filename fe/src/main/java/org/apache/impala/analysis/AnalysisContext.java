@@ -461,6 +461,9 @@ public class AnalysisContext {
     public void setUserHasProfileAccess(boolean value) { userHasProfileAccess_ = value; }
     public boolean userHasProfileAccess() { return userHasProfileAccess_; }
 
+    public boolean shouldFallbackBecauseOfException() {
+      return false;
+    }
   }
 
   public AnalysisResult analyzeAndAuthorize(CompilerFactory compilerFactory,
@@ -503,7 +506,7 @@ public class AnalysisContext {
     // Authorize statement and record exception. Authorization relies on information
     // collected during analysis.
     AuthorizationException authException = null;
-    if (!disableAuthorization) {
+    if (!disableAuthorization && !analysisResult_.shouldFallbackBecauseOfException()) {
       try {
         if (analysisResult_.getAnalyzer().encounteredMVAuthException()) {
           throw new AuthorizationException(

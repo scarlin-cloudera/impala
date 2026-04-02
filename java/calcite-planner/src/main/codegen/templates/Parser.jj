@@ -2179,6 +2179,9 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
         ]
         {
             tableRef = unnestOp.createCall(s.end(this), (List<SqlNode>) args);
+            if (true) {
+              throw new ParseException("Unnest function found");
+            }
         }
     |
         [ <LATERAL> { lateral = true; } ]
@@ -2236,7 +2239,8 @@ SqlNode Tablesample(SqlNode tableRef) :
     int repeatableSeed = 0;
 }
 {
-    <TABLESAMPLE> { s = span(); checkNotJoin(tableRef); }
+//    <TABLESAMPLE> { s = span(); checkNotJoin(tableRef); }
+    <TABLESAMPLE> { if (true) throw new ParseException("tablesample not supported."); }
     (
         <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
         {
@@ -2845,7 +2849,10 @@ SqlSnapshot Snapshot(SqlNode tableRef) :
     final SqlNode e;
 }
 {
-    { s = span(); } <FOR> <SYSTEM_TIME> <AS> <OF>
+    // IMPALA-XXXXX: Iceberg isn't supported yet.  For parsing purposes,
+    // system_version and system_time are combined here, but this will
+    // need to change when we support this.
+    { s = span(); } <FOR> (<SYSTEM_VERSION> | <SYSTEM_TIME>)  <AS> <OF>
     // Syntax for temporal table in
     // standard SQL 2011 IWD 9075-2:201?(E) 7.6 <table reference>
     // supports grammar as following:
@@ -4021,6 +4028,29 @@ SqlCall StringAggFunctionCall() :
         }
         return call;
     }
+}
+
+/**
+ * XXX:
+ */
+SqlCall UnnestFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+   (
+       <UNNEST> { op = SqlStdOperatorTable.UNNEST; }
+   )
+   { s = span(); }
+   <LPAREN>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   <RPAREN> {
+     throw new ParseException("Unnest function found");
+   }
 }
 
 /**
@@ -6500,6 +6530,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayAggFunctionCall() { return node; }
     |
         node = GroupByWindowingCall() { return node; }
+    |
+        node = UnnestFunctionCall() { return node; }
     )
 }
 
@@ -7445,6 +7477,9 @@ SqlNode NamedFunctionCall() :
     (
         LOOKAHEAD(2)
         call = StringAggFunctionCall()
+    |
+        LOOKAHEAD(1)
+        call = UnnestFunctionCall()
     |
         LOOKAHEAD(1)
         call = PercentileFunctionCall()
