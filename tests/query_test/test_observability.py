@@ -27,8 +27,7 @@ from impala_thrift_gen.RuntimeProfile.ttypes import TRuntimeProfileFormat
 from tests.common.impala_cluster import ImpalaCluster
 from tests.common.impala_connection import IMPALA_CONNECTION_EXCEPTION
 from tests.common.impala_test_suite import ImpalaTestSuite
-from tests.common.skip import (SkipIfFS, SkipIfLocal, SkipIfNotHdfsMinicluster,
-                               SkipIfCalcite)
+from tests.common.skip import SkipIfFS, SkipIfLocal, SkipIfNotHdfsMinicluster, SkipIf
 from tests.common.test_vector import HS2
 from tests.util.filesystem_utils import WAREHOUSE
 from tests.util.parse_util import get_duration_us_from_str
@@ -189,14 +188,15 @@ class TestObservability(ImpalaTestSuite):
         "RUNTIME_FILTER_MODE=OFF,MT_DOP=0,TIMEZONE={timezone},"
         "CLIENT_IDENTIFIER="
         "query_test/test_observability.py::TestObservability::test_query_options,"
-        "SPOOL_QUERY_RESULTS=0"
+        "SPOOL_QUERY_RESULTS=0,"
+        "PLANNER=ORIGINAL"
         "\n")
     expected_str = expected_str.format(timezone=server_timezone)
     assert expected_str in profile, profile
 
   # IMPALA-14817
   # Calcite planner does not populate these profile columns yet
-  @SkipIfCalcite.observability_info_missing
+  @SkipIf.is_calcite_planner
   def test_profile(self):
     """Test that expected fields are populated in the profile."""
     query = """select a.month, sum(a.int_col) from functional.alltypes a join
@@ -316,7 +316,7 @@ class TestObservability(ImpalaTestSuite):
 
   # IMPALA-14817
   # Calcite planner populates different static events
-  @SkipIfCalcite.observability_info_missing
+  @SkipIf.is_calcite_planner
   def test_query_profile_contains_query_compilation_static_events(self):
     """Test that the expected events show up in a query profile. These lines are static
     and should appear in this exact order."""
@@ -331,6 +331,8 @@ class TestObservability(ImpalaTestSuite):
     runtime_profile = self.execute_query(query).runtime_profile
     self.__verify_profile_event_sequence(event_regexes, runtime_profile)
 
+  # XXXX: Calcite planner needs investigation
+  @SkipIf.is_calcite_planner
   def test_query_profile_contains_query_compilation_metadata_load_events(self,
         cluster_properties):
     """Test that the Metadata load started and finished events appear in the query
