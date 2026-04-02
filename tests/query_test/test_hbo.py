@@ -189,13 +189,18 @@ class TestHBO(ImpalaTestSuite):
     time.sleep(1)
     # Scan node of the alltypes table with predicate string_col < 'hbo_test' has an
     # effective runtime filter. HBO stats on this shouldn't exist.
-    res = self.execute_query(
-        "explain select * from functional.alltypes where string_col < 'hbo_test'")
+    query = "explain select * from functional.alltypes where string_col < 'hbo_test'"
+    # Calcite adds an extra is not null predicate
+    if IS_CALCITE_PLANNER:
+      query += ' and month is not null'
+    res = self.execute_query(query)
     assert "from HBO" not in '\n'.join(res.data), '\n'.join(res.data)
     # The other scan node doesn't have any runtime filters. HBO stats on this should
     # exist.
-    res = self.execute_query(
-        "explain select * from functional.alltypestiny where string_col < 'hbo_test'")
+    query = "explain select * from functional.alltypestiny where string_col < 'hbo_test'"
+    if IS_CALCITE_PLANNER:
+      query += ' and month is not null'
+    res = self.execute_query(query)
     assert "cardinality=8 (from HBO)" in '\n'.join(res.data), '\n'.join(res.data)
 
   def test_runtime_filter_annotation_with_hbo_cardinality(self):
