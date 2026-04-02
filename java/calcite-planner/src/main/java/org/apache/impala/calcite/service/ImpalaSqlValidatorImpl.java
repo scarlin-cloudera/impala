@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -48,6 +49,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
 import org.apache.impala.calcite.schema.CalciteTable;
@@ -159,6 +161,22 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     }
   }
 
+  @Override public void validateWithItem(SqlWithItem withItem) {
+    // Little hack.  This code is already in Calcite. But this is supported
+    // by Impala. So we need to throw an Unsupported error rather than a
+    // validation error.
+    SqlNodeList columnList = withItem.columnList;
+    if (columnList != null) {
+      final RelDataType rowType = getValidatedNodeType(withItem.query);
+      final int fieldCount = rowType.getFieldCount();
+      if (columnList.size() != fieldCount) {
+        throw new CalciteContextException("", new UnsupportedFeatureException(
+            "Number of columns in with clause must match number of query columns"));
+      }   
+    }
+    super.validateWithItem(withItem);
+  }
+
   @Override public void validateCall(
       SqlCall call,
       SqlValidatorScope scope) {
@@ -200,6 +218,17 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     super.validateSelect(select, targetRowType);
     viewAliasHelper_.endProcessSelect();
   }
+
+  @Override
+  protected void validateValues(
+      SqlCall node,
+      RelDataType targetRowType,
+      final SqlValidatorScope scope) {
+    validateImpalaValues(node);
+    validateImpalaValues2(node);
+    super.validateValues(node, targetRowType, scope);
+  }
+
   @Override
   public SqlNode expandSelectExpr(SqlNode expr,
       SelectScope scope, SqlSelect select, Map<String, SqlNode> expansions) {
@@ -365,6 +394,23 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     }
     potentialCauseOfError_ = new UnsupportedFeatureException("Values clause not " +
         "supported with double parentheses.");
+  }
+
+  private void validateImpalaValues2(SqlNode sqlNode) {
+    SqlBasicCall row = (SqlBasicCall) sqlNode;
+    if (!(row.operand(0) instanceof SqlBasicCall)) {
+      return;
+    }
+    SqlBasicCall firstRow = (SqlBasicCall) row.operand(0);
+    if (firstRow.operandCount() > 1 || !(firstRow instanceof SqlBasicCall)) {
+      return;
+    }
+    if (firstRow.operand(0) instanceof SqlBasicCall &&
+        ((SqlBasicCall) firstRow.operand(0)).getKind() == SqlKind.AS) {
+      potentialCauseOfError_ = new UnsupportedFeatureException("Error handling " +
+          "values clause in Calcite with only one column that has an alias " +
+          "(IMPALA-XXXXX)");
+    }
   }
 
   public UnsupportedFeatureException getPossibleValidationException() {
