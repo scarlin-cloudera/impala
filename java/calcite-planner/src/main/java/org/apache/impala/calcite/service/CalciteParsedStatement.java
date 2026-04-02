@@ -29,6 +29,7 @@ import org.apache.impala.analysis.TableName;
 import org.apache.impala.analysis.StmtMetadataLoader;
 import org.apache.impala.analysis.ColumnLineageGraph.OperationType;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
 
 /**
@@ -51,12 +52,8 @@ public class CalciteParsedStatement implements ParsedStatement {
     }
     parsedNode_ = parsedSqlNode;
 
-    CalciteMetadataHandler.TableVisitor tableVisitor =
-        new CalciteMetadataHandler.TableVisitor(queryCtx.session.database);
-
-    parsedNode_.accept(tableVisitor);
-
-    tableNames_ = tableVisitor.tableNames_;
+    tableNames_ = CalciteMetadataHandler.TableVisitor.getTableNames(
+        parsedNode_, queryCtx.session.database);
   }
 
   @Override

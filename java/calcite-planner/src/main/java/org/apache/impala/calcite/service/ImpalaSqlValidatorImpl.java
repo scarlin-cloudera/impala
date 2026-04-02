@@ -24,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -43,10 +44,12 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
 import org.apache.impala.calcite.schema.CalciteTable;
@@ -164,6 +167,22 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
         );
       }
     }
+  }
+
+  @Override public void validateWithItem(SqlWithItem withItem) {
+    // Little hack.  This code is already in Calcite. But this is supported
+    // by Impala. So we need to throw an Unsupported error rather than a
+    // validation error.
+    SqlNodeList columnList = withItem.columnList;
+    if (columnList != null) {
+      final RelDataType rowType = getValidatedNodeType(withItem.query);
+      final int fieldCount = rowType.getFieldCount();
+      if (columnList.size() != fieldCount) {
+        throw new CalciteContextException("", new UnsupportedFeatureException(
+            "Number of columns in with clause must match number of query columns"));
+      }
+    }
+    super.validateWithItem(withItem);
   }
 
   @Override public void validateCall(

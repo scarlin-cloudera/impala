@@ -18,8 +18,10 @@
 package org.apache.impala.calcite.service;
 
 import org.apache.impala.analysis.StmtMetadataLoader.StmtTableCache;
+import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
+import org.apache.impala.thrift.TQueryCtx;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +44,13 @@ public class UnsupportedChecker {
   private static Pattern RIGHT_ANTI = Pattern.compile(".*\\bright\\santi\\b.*",
       Pattern.CASE_INSENSITIVE);
 
+  private static Pattern TABLESAMPLE = Pattern.compile(".*\\btablesample\\b.*",
+      Pattern.CASE_INSENSITIVE);
+
+  private static Pattern FOR_SYSTEM_VERSION_AS_OF =
+      Pattern.compile(".*\\bfor\\ssystem_version\\sas\\sof\\b.*",
+      Pattern.CASE_INSENSITIVE);
+
   private static Pattern INPUT_FILE_NAME = Pattern.compile(".*\\binput__file__name\\b.*",
       Pattern.CASE_INSENSITIVE);
 
@@ -54,17 +63,35 @@ public class UnsupportedChecker {
   private static Pattern TABLE_NOT_FOUND =
       Pattern.compile(".*\\bTable '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern OBJECT_NOT_FOUND =
+      Pattern.compile(".*\\bObject '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
+
+  private static Pattern OBJECT_NOT_FOUND_WITHIN  =
+      Pattern.compile(".*\\bObject '(.*)' not found within '(.*)'.*", Pattern.CASE_INSENSITIVE);
+
   private static Pattern COLUMN_NOT_FOUND =
       Pattern.compile(".*\\bColumn '(.*)' not found\\b.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern UNKNOWN_IDENTIFIER_ROW__ID =
+      Pattern.compile(".*\\bUnknown identifier 'ROW__ID'.*", Pattern.CASE_INSENSITIVE);
+
   public static void throwUnsupportedIfKnownException(Exception e)
       throws ImpalaException {
+    if (e.getMessage().equals("Unnest function found")) {
+      throw new UnsupportedFeatureException("Unnest function not supported.");
+    }
     String s = e.toString().replace("\n"," ");
     if (LEFT_ANTI.matcher(s).matches() || RIGHT_ANTI.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Anti joins not supported.");
     }
     if (LEFT_SEMI.matcher(s).matches() || RIGHT_SEMI.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Semi joins not supported.");
+    }
+    if (TABLESAMPLE.matcher(s).matches()) {
+      throw new UnsupportedFeatureException("Table sample not supported.");
+    }
+    if (FOR_SYSTEM_VERSION_AS_OF.matcher(s).matches()) {
+      throw new UnsupportedFeatureException("'for system_version as of' not supported.");
     }
     if (INPUT_FILE_NAME.matcher(s).matches() || FILE_POSITION.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Virtual columns not supported.");
@@ -75,7 +102,9 @@ public class UnsupportedChecker {
   }
 
   public static void throwUnsupportedIfKnownException(Exception e,
-      StmtTableCache stmtTableCache) throws ImpalaException {
+      StmtTableCache stmtTableCache, TQueryCtx queryCtx, Analyzer analyzer)
+      throws ImpalaException {
+    String stmt = queryCtx.client_request.stmt;
     throwUnsupportedIfKnownException(e);
     String s = e.toString().replace("\n"," ");
     Matcher m = TABLE_NOT_FOUND.matcher(s);
@@ -95,12 +124,43 @@ public class UnsupportedChecker {
       }
     }
 
+    m = OBJECT_NOT_FOUND.matcher(s);
+    if (m.matches()) {
+      if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Complex column " + m.group(1) + " not supported.");
+      }
+      if (CalciteMetadataHandler.isTableInCache(queryCtx, analyzer, stmtTableCache,
+          queryCtx.session.database, m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Table " + m.group(1) + " is an Iceberg table which is not supported.");
+      }
+    }
+
+    m = OBJECT_NOT_FOUND_WITHIN.matcher(s);
+    if (m.matches()) {
+      if (CalciteMetadataHandler.isTableInCache(queryCtx, analyzer, stmtTableCache,
+          m.group(2), m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Table " + m.group(1) + " is an Iceberg table which is not supported.");
+      }
+    }
+
     m = COLUMN_NOT_FOUND.matcher(s);
     if (m.matches()) {
       if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
             "Complex column " + m.group(1) + " not supported.");
       }
+      if (stmt.contains("`" + m.group(1) + "`")) {
+        throw new UnsupportedFeatureException(
+            "Backticks around column " + m.group(1) + " is not supported.");
+      }
+    }
+
+    m = UNKNOWN_IDENTIFIER_ROW__ID.matcher(s);
+    if (m.matches()) {
+      throw new UnsupportedFeatureException("RowId column is not supported.");
     }
   }
 }

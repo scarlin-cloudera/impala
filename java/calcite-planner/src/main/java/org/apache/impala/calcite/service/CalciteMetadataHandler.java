@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -43,6 +44,7 @@ import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeTable;
+import org.apache.impala.catalog.IcebergTable;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.thrift.TQueryCtx;
 
@@ -91,7 +93,7 @@ public class CalciteMetadataHandler {
    * Populate the CalciteSchema with tables being used by this query. Returns a
    * list of tables in the query that are not found in the database.
    */
-  public static List<String> populateCalciteSchema(CalciteCatalogReader reader,
+  public static void populateCalciteSchema(CalciteCatalogReader reader,
       FeCatalog catalog, StmtMetadataLoader.StmtTableCache stmtTableCache,
       Analyzer analyzer) throws ImpalaException {
     List<String> notFoundTables = new ArrayList<>();
@@ -101,15 +103,18 @@ public class CalciteMetadataHandler {
       FeDb db = catalog.getDb(tableName.getDb());
       // db is not found, this will probably fail in the validation step
       if (db == null) {
-        notFoundTables.add(tableName.toString());
         continue;
       }
 
       // table is not found, this will probably fail in the validation step
       FeTable feTable = db.getTable(tableName.getTbl());
       if (feTable == null) {
-        notFoundTables.add(tableName.toString());
         continue;
+      }
+
+      if (feTable instanceof IcebergTable) {
+        throw new UnsupportedFeatureException("Iceberg tables not supported " +
+            "with Calcite Planner.");
       }
 
       // populate the dbschema with its table, creating the dbschema if it's the
@@ -124,7 +129,6 @@ public class CalciteMetadataHandler {
     for (String dbName : dbSchemas.keySet()) {
       rootSchema.add(dbName, dbSchemas.get(dbName.toLowerCase()).build());
     }
-    return notFoundTables;
   }
 
   /**
@@ -145,7 +149,9 @@ public class CalciteMetadataHandler {
     // the top of the stack.
     public final Stack<Set<TableName>> withItemTableNames_ = new Stack<>();
 
-    public TableVisitor(String currentDb) {
+    public ImpalaException exception_ = null;
+
+    private TableVisitor(String currentDb) {
       this.currentDb_ = currentDb.toLowerCase();
     }
 
@@ -183,6 +189,11 @@ public class CalciteMetadataHandler {
     }
 
     private List<TableName> getTableNames(SqlNode fromNode) {
+      // Iceberg tables can sometimes be found under the SqlSnapshot node.
+      if (fromNode instanceof SqlSnapshot) {
+        return getTableNames(((SqlSnapshot) fromNode).getTableRef());
+      }
+
       List<TableName> localTableNames = new ArrayList<>();
       if (fromNode instanceof SqlIdentifier) {
         String tableName = fromNode.toString();
@@ -200,7 +211,8 @@ public class CalciteMetadataHandler {
           localTableNames.add(
               new TableName(parts.get(0).toLowerCase(), parts.get(1).toLowerCase()));
         } else {
-          errorTables_.add(tableName);
+          exception_ = new UnsupportedFeatureException(
+              "Table " + tableName + " is not supported.");
           return localTableNames;
         }
       }
@@ -217,6 +229,10 @@ public class CalciteMetadataHandler {
         if (basicCall.getKind().equals(SqlKind.AS)) {
           localTableNames.addAll(getTableNames(basicCall.operand(0)));
         }
+        if (basicCall.getKind() == SqlKind.UNNEST) {
+           exception_ = new UnsupportedFeatureException(
+               "Unnest function is not supported at this time.");
+        }
       }
       return localTableNames;
     }
@@ -226,6 +242,17 @@ public class CalciteMetadataHandler {
         if (tableNames.contains(tableName)) return true;
       }
       return false;
+    }
+
+    public static Set<TableName> getTableNames(SqlNode sqlNode, String db)
+        throws ImpalaException {
+
+      TableVisitor tableVisitor = new TableVisitor(db);
+      sqlNode.accept(tableVisitor);
+      if (tableVisitor.exception_ != null) {
+        throw tableVisitor.exception_;
+      }
+      return tableVisitor.tableNames_;
     }
   }
 
@@ -238,5 +265,14 @@ public class CalciteMetadataHandler {
       }
     }
     return false;
+  }
+
+  public static boolean isTableInCache(TQueryCtx queryCtx, Analyzer analyzer,
+      StmtMetadataLoader.StmtTableCache stmtTableCache, String db, String tableName) {
+    try {
+      return stmtTableCache.catalog.getTable(db, tableName) != null;
+    } catch (Exception e) {
+      return false;
+    }
   }
 }

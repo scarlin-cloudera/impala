@@ -2478,6 +2478,9 @@ public class Frontend {
     if (error instanceof ImpalaException) {
       throw (ImpalaException) error;
     }
+    if (error instanceof InconsistentMetadataFetchException) {
+      throw (InconsistentMetadataFetchException) error;
+    }
     throw new RuntimeException(error);
   }
 
@@ -2493,9 +2496,11 @@ public class Frontend {
           !(Parser.parse(queryCtx.client_request.stmt,
               queryCtx.client_request.query_options) instanceof QueryStmt);
     } catch (Exception f) {
-      // If an exception was thrown, it failed to parse in the original planner, so there
-      // is no reason to compile it there.
-      return false;
+      // If an exception was thrown, this means that the query failed to parse through
+      // the Parser.parse() method in the original planner. In this case, it's ok to
+      // fallback to the original planner.  We know it will fail there too, but it
+      // will go through the original planner code and return the error message there.
+      return true;
     }
   }
 
