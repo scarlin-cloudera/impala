@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
@@ -52,6 +51,7 @@ import org.apache.impala.analysis.TableRef;
 import org.apache.impala.analysis.TupleDescriptor;
 import org.apache.impala.calcite.rel.util.ImpalaBaseTableRef;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
 import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.catalog.Column;
@@ -112,7 +112,7 @@ public class CalciteTable extends RelOptAbstractTable
 
   public static RelDataType buildColumnsForRelDataType(FeTable table)
       throws ImpalaException {
-    RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl());
+    RelDataTypeFactory typeFactory = ImpalaTypeFactoryImpl.INSTANCE;
 
     RelDataTypeFactory.Builder builder = new RelDataTypeFactory.Builder(typeFactory);
 

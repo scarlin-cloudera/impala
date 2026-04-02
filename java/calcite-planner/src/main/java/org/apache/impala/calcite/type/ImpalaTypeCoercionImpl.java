@@ -33,7 +33,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.catalog.ScalarType;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -100,6 +102,18 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
         commonType);
 
     return coerced;
+  }
+
+  @Override
+  public boolean binaryComparisonCoercion(SqlCallBinding binding) {
+    // For binary comparisons, no coercion is needed if both operands are
+    // of type decimal, even if they are of different precisions.
+    if (binding.getOperandCount() == 2 &&
+        SqlTypeUtil.isDecimal(binding.getOperandType(0)) &&
+        SqlTypeUtil.isDecimal(binding.getOperandType(1))) {
+      return false;
+    }
+    return super.binaryComparisonCoercion(binding);
   }
 
   private boolean coerceInOperand(SqlValidatorScope scope, SqlCall call,
