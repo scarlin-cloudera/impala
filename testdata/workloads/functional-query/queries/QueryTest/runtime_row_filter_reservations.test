@@ -34,11 +34,6 @@ row_regex:.*minimum memory reservation on backend '.*' is greater than memory av
  the query for buffer reservations\. Increase the buffer_pool_limit to 294.17 MB\. See
  'Per Host Min Memory Reservation' in the query profile for more information about the
  per-node memory requirements\.
----- CALCITE_PLANNER_CATCH
-row_regex:.*minimum memory reservation on backend '.*' is greater than memory available to
- the query for buffer reservations\. Increase the buffer_pool_limit to 166.17 MB\. See
- 'Per Host Min Memory Reservation' in the query profile for more information about the
- per-node memory requirements\.
 ====
 ---- QUERY
 # Confirm that with broadcast join, memory limit is not hit.
@@ -72,11 +67,6 @@ select STRAIGHT_JOIN * from alltypes a join [SHUFFLE] alltypes b
 ---- CATCH
 row_regex:.*minimum memory reservation on backend '.*' is greater than memory available to
  the query for buffer reservations\. Increase the buffer_pool_limit to 390.11 MB\. See
- 'Per Host Min Memory Reservation' in the query profile for more information about the
- per-node memory requirements\.
----- CALCITE_PLANNER_CATCH
-row_regex:.*minimum memory reservation on backend '.*' is greater than memory available to
- the query for buffer reservations\. Increase the buffer_pool_limit to 134.11 MB\. See
  'Per Host Min Memory Reservation' in the query profile for more information about the
  per-node memory requirements\.
 ====
