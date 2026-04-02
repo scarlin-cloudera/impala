@@ -88,6 +88,8 @@ would need to be cast to VARCHAR(5)
 select cast("xyzzzzz12" as varchar(-1))
 ---- CATCH
 Syntax error
+---- CALCITE_PLANNER_CATCH
+ParseException
 ====
 ====
 ---- QUERY
