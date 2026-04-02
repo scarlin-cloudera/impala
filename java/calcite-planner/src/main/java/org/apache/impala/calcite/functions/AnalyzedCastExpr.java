@@ -21,6 +21,7 @@ import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.CastExpr;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.StringLiteral;
+import org.apache.impala.analysis.SlotRef;
 import org.apache.impala.catalog.Type;
 import org.apache.impala.common.AnalysisException;
 
@@ -31,12 +32,16 @@ import java.util.List;
  */
 public class AnalyzedCastExpr extends CastExpr {
 
-  public AnalyzedCastExpr(Type targetType, List<Expr> paramList) {
+  private final boolean isImplicit_;
+
+  public AnalyzedCastExpr(Type targetType, List<Expr> paramList, boolean isImplicit) {
     super(targetType, paramList.get(0).clone(), getFormat(paramList));
+    isImplicit_ = isImplicit;
   }
 
   public AnalyzedCastExpr(AnalyzedCastExpr other) {
     super(other);
+    isImplicit_ = other.isImplicit_;
   }
 
   @Override
@@ -48,12 +53,26 @@ public class AnalyzedCastExpr extends CastExpr {
   protected void analyzeImpl(Analyzer analyzer) throws AnalysisException {
   }
 
+  @Override
+  public SlotRef unwrapSlotRef(boolean implicitOnly) {
+    if (implicitOnly && !isImplicit_) {
+      return null;
+    }
+    Expr unwrappedExpr = children_.get(0);
+    return (unwrappedExpr instanceof SlotRef) ? (SlotRef) unwrappedExpr : null;
+  }
+
   /**
-   * Calcite casts will not be implicit. TODO: need to fix for the toSql routine.
+   * XXX:
    */
   @Override
   public boolean isImplicit() {
     return false;
+  }
+
+  @Override
+  public boolean allowsImplicitConversion() {
+    return isImplicit_;
   }
 
   private static String getFormat(List<Expr> paramsList) {
