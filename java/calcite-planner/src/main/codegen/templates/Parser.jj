@@ -1934,6 +1934,27 @@ void AddSelectItem(List<SqlNode> list) :
 }
 
 /**
+ * Parses one item in a select list.
+ */
+void AddValuesItem(List<SqlNode> list) :
+{
+    final SqlNode e;
+    final SqlIdentifier id;
+}
+{
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    (
+        [ <AS> ]
+        (
+            // Added Impala code to handle when there are quotes and no quotes
+            id = SimpleIdentifierFromAllQuotesOrNonQuotes()
+        )
+        { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, id)); }
+    |   { list.add(e); }
+    )
+}
+
+/**
  * Parses one unaliased expression in a select list.
  */
 SqlNode SelectExpression() :
@@ -1946,6 +1967,19 @@ SqlNode SelectExpression() :
     }
 |
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+        return e;
+    }
+}
+
+/**
+ * Parses one unaliased expression in a select list.
+ */
+SqlNode ValuesExpression() :
+{
+    SqlNode e;
+}
+{
+    e = Expression(ExprContext.ACCEPT_NON_QUERY) {
         return e;
     }
 }
@@ -2447,27 +2481,105 @@ SqlNode ExplicitTable(SqlParserPos pos) :
 SqlNode TableConstructor() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
-    final Span s;
+    final List<SqlNode> outerList = new ArrayList<SqlNode>();
+    Span s = null;
+    SqlNode e;
+    SqlNode row;
+    SqlNode last;
 }
 {
     (
         <VALUES> { s = span(); }
-    |
-        <VALUE>
-        {
-            s = span();
-            if (!this.conformance.isValueAllowed()) {
-                throw SqlUtil.newContextException(getPos(), RESOURCE.valueNotAllowed());
-            }
-        }
     )
-    AddRowConstructor(list)
+    <LPAREN>
     (
-        LOOKAHEAD(2)
-        <COMMA> AddRowConstructor(list)
-    )*
+    (
+      <LPAREN>
+      AddValuesItem(list)
+      ( <COMMA> AddValuesItem(list) )*
+      <RPAREN>
+      {
+        last = list.get(list.size() - 1);
+        row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+        outerList.add(row);
+        list.clear();
+      }
+      ( 
+        <COMMA>
+        <LPAREN>
+          AddValuesItem(list)
+          ( <COMMA> AddValuesItem(list) )*
+        <RPAREN>
+        {
+          last = list.get(list.size() - 1);
+          row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+          outerList.add(row);
+          list.clear();
+        }
+      )*
+      <RPAREN>
+    ) 
+    |
+    (
+      AddValuesItem(list)
+      ( <COMMA> AddValuesItem(list) )*
+      <RPAREN>
+      {
+        last = list.get(list.size() - 1);
+        row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+        outerList.add(row);
+        list.clear();
+      }
+      ( 
+        <COMMA>
+        <LPAREN>
+          AddValuesItem(list)
+          ( <COMMA> AddValuesItem(list) )*
+        <RPAREN>
+        {
+          last = list.get(list.size() - 1);
+          row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+          outerList.add(row);
+          list.clear();
+        }
+      )*
+    )
+    )
     {
-        return SqlStdOperatorTable.VALUES.createCall(s.end(this), list);
+        return SqlStdOperatorTable.VALUES.createCall(s.end(this), outerList);
+    }
+}
+
+/** Parses a row constructor and adds it to a list. */
+void AddValuesRowConstructor(List<SqlNode> list) :
+{
+    SqlNode e;
+}
+{
+    e = ValuesRowConstructor() { list.add(e); }
+}
+
+/**
+ * Parses a row constructor in the context of a VALUES expression.
+ */
+SqlNode ValuesRowConstructor() :
+{
+    final List<SqlNode> valueList = new ArrayList<SqlNode>();
+//    final SqlNodeList valueList;
+    final SqlNode value;
+    final SqlIdentifier id;
+    final Span s;
+}
+{
+    <LPAREN>
+    AddValuesItem(valueList) { s = span(); }
+    ( <COMMA> AddValuesItem(valueList) )*
+    <RPAREN>
+    {
+        SqlNodeList valueSqlNodeList = new SqlNodeList(valueList,
+                valueList.get(0).getParserPosition());
+        return SqlStdOperatorTable.ROW.createCall(s.end(valueSqlNodeList),
+            valueList);
     }
 }
 
@@ -2487,6 +2599,7 @@ SqlNode RowConstructor() :
 {
     final SqlNodeList valueList;
     final SqlNode value;
+    final SqlIdentifier id;
     final Span s;
 }
 {
@@ -2498,7 +2611,8 @@ SqlNode RowConstructor() :
         LOOKAHEAD(3)
         <LPAREN> { s = span(); }
         <ROW>
-        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
+        valueList =
+            ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_NONCURSOR)
         <RPAREN> { s.add(this); }
     |
         LOOKAHEAD(3)
@@ -2507,7 +2621,8 @@ SqlNode RowConstructor() :
         |
             { s = Span.of(); }
         )
-        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
+        valueList =
+            ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_NONCURSOR)
     |
         value = Expression(ExprContext.ACCEPT_NONCURSOR)
         {
