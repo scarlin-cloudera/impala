@@ -272,7 +272,7 @@ public class FunctionResolver {
           : getCaseArgs(name, argTypes);
     }
 
-    return ImpalaTypeConverter.getNormalizedImpalaTypes(argTypes);
+    return ImpalaTypeConverter.createImpalaTypes(argTypes);
   }
 
   private static int getCaseOperandNum(String name) {
