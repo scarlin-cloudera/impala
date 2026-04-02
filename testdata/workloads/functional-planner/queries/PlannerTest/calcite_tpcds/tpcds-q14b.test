@@ -111,7 +111,7 @@ with  cross_items as
 Max Per-Host Resource Reservation: Memory=297.00MB Threads=1
 Per-Host Resource Estimates: Memory=596MB
 ImpalaSortRel(sort0=[$1], sort1=[$2], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[100:TINYINT])
-  ImpalaProjectRel(CHANNEL=[CAST(_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"):VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID=[$0], I_CLASS_ID=[$1], I_CATEGORY_ID=[$2], SALES=[$3], NUMBER_SALES=[$4], CHANNEL0=[CAST(_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"):VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID0=[$6], I_CLASS_ID0=[$7], I_CATEGORY_ID0=[$8], SALES0=[$9], NUMBER_SALES0=[$10])
+  ImpalaProjectRel(CHANNEL=[_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID=[$0], I_CLASS_ID=[$1], I_CATEGORY_ID=[$2], SALES=[$3], NUMBER_SALES=[$4], CHANNEL0=[_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID0=[$6], I_CLASS_ID0=[$7], I_CATEGORY_ID0=[$8], SALES0=[$9], NUMBER_SALES0=[$10])
     ImpalaJoinRel(condition=[AND(=($0, $6), =($1, $7), =($2, $8))], joinType=[inner])
       ImpalaJoinRel(condition=[>($3, CAST($5):DECIMAL(38, 2))], joinType=[inner])
         ImpalaFilterRel(condition=[IS NOT NULL($3)])
@@ -1282,7 +1282,7 @@ PLAN-ROOT SINK
 Max Per-Host Resource Reservation: Memory=3.61GB Threads=219
 Per-Host Resource Estimates: Memory=8.06GB
 ImpalaSortRel(sort0=[$1], sort1=[$2], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[100:TINYINT])
-  ImpalaProjectRel(CHANNEL=[CAST(_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"):VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID=[$0], I_CLASS_ID=[$1], I_CATEGORY_ID=[$2], SALES=[$3], NUMBER_SALES=[$4], CHANNEL0=[CAST(_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"):VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID0=[$6], I_CLASS_ID0=[$7], I_CATEGORY_ID0=[$8], SALES0=[$9], NUMBER_SALES0=[$10])
+  ImpalaProjectRel(CHANNEL=[_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID=[$0], I_CLASS_ID=[$1], I_CATEGORY_ID=[$2], SALES=[$3], NUMBER_SALES=[$4], CHANNEL0=[_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID0=[$6], I_CLASS_ID0=[$7], I_CATEGORY_ID0=[$8], SALES0=[$9], NUMBER_SALES0=[$10])
     ImpalaJoinRel(condition=[AND(=($0, $6), =($1, $7), =($2, $8))], joinType=[inner])
       ImpalaJoinRel(condition=[>($3, CAST($5):DECIMAL(38, 2))], joinType=[inner])
         ImpalaFilterRel(condition=[IS NOT NULL($3)])
@@ -3238,7 +3238,7 @@ max-parallelism=7 segment-costs=[1651019150, 42055157] cpu-comparison-result=409
 Max Per-Host Resource Reservation: Memory=3.61GB Threads=219
 Per-Host Resource Estimates: Memory=8.06GB
 ImpalaSortRel(sort0=[$1], sort1=[$2], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[100:TINYINT])
-  ImpalaProjectRel(CHANNEL=[CAST(_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"):VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID=[$0], I_CLASS_ID=[$1], I_CATEGORY_ID=[$2], SALES=[$3], NUMBER_SALES=[$4], CHANNEL0=[CAST(_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"):VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID0=[$6], I_CLASS_ID0=[$7], I_CATEGORY_ID0=[$8], SALES0=[$9], NUMBER_SALES0=[$10])
+  ImpalaProjectRel(CHANNEL=[_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID=[$0], I_CLASS_ID=[$1], I_CATEGORY_ID=[$2], SALES=[$3], NUMBER_SALES=[$4], CHANNEL0=[_UTF-8'store':VARCHAR(2147483647) CHARACTER SET "UTF-8"], I_BRAND_ID0=[$6], I_CLASS_ID0=[$7], I_CATEGORY_ID0=[$8], SALES0=[$9], NUMBER_SALES0=[$10])
     ImpalaJoinRel(condition=[AND(=($0, $6), =($1, $7), =($2, $8))], joinType=[inner])
       ImpalaJoinRel(condition=[>($3, CAST($5):DECIMAL(38, 2))], joinType=[inner])
         ImpalaFilterRel(condition=[IS NOT NULL($3)])
