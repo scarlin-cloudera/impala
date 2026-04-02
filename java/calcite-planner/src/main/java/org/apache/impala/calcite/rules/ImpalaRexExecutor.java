@@ -45,9 +45,11 @@ import org.apache.impala.common.ImpalaException;
 import org.apache.impala.service.FeSupport;
 import org.apache.impala.thrift.TColumnValue;
 import org.apache.impala.thrift.TQueryCtx;
+import org.apache.impala.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -156,11 +158,15 @@ public class ImpalaRexExecutor implements RexExecutor {
   }
 
   private static boolean isLiteralOrCastOfLiteral(RexNode operand) {
-    while ((operand instanceof RexCall) &&
-        ((RexCall) operand).getKind() == SqlKind.CAST) {
+    while ((operand instanceof RexCall) && isCast((RexCall) operand)) {
       operand = ((RexCall) operand).getOperands().get(0);
     }
     return (operand instanceof RexLiteral);
+  }
+
+  private static boolean isCast(RexCall rexCall) {
+    return rexCall.getKind() == SqlKind.CAST ||
+        rexCall.getOperator().getName().equals("EXPLICIT_CAST");
   }
 
   private static boolean isIntervalConst(RexNode operand) {

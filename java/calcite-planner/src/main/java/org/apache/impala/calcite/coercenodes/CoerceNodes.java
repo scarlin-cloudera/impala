@@ -312,62 +312,7 @@ public class CoerceNodes{
    */
   private static RelNode processValuesNode(RelNode relNode, List<RelNode> inputs,
       RexBuilder rexBuilder, boolean isInputChanged) {
-    final LogicalValues values = (LogicalValues) relNode;
-    if (values.getTuples().size() == 0) {
-      return relNode;
-    }
-
-    int nColumns = values.getRowType().getFieldList().size();
-    // initialize list to have null values for all columns
-    List<RelDataType> relDataTypes = Arrays.asList(new RelDataType[nColumns]);
-
-    boolean needProject = false;
-    for (List<RexLiteral> tuple : values.getTuples()) {
-      List<RexNode> rexNodes = castToRexNodeList(tuple);
-      List<RexNode> changedRexNodes = processRexNodes(relNode, inputs, rexNodes);
-      if (changedRexNodes == null) {
-        continue;
-      }
-      needProject = true;
-      Preconditions.checkState(changedRexNodes.size() == relDataTypes.size());
-      for (int i = 0; i < changedRexNodes.size(); ++i) {
-        if (changedRexNodes.get(i) != null) {
-          Preconditions.checkState(changedRexNodes.get(i).getKind() == SqlKind.CAST ||
-              changedRexNodes.get(i) instanceof RexLiteral);
-        }
-        // if changedRexNodes.get(i) is something other than null, the type needs to
-        // be coerced. We want to take the tightest type we can. The current tightest
-        // type is in the relDataTypes.get(i). On initialization, it is set to null,
-        // so if this is the first row that has a coerced type for the ith column,
-        // the tightest type will be the current changedRexNodes.get(i).getType() type.
-        relDataTypes.set(i, getCompatibleDataType(
-            relDataTypes.get(i), changedRexNodes.get(i).getType(), rexBuilder));
-      }
-    }
-
-    if (!needProject) {
-      return relNode;
-    }
-
-    // Need to create a project node on top of the values: A project node
-    // does not add any overhead performance-wise since it doesn't create
-    // a new node. However, it is needed here because Calcite creates string
-    // literals as CHAR type and Impala requires a STRING type. The project
-    // node creates this casting which will get removed when converting to the
-    // Impala Expr object (where the RelNodes get converted to the physical layer).
-    List<RexNode> projects = new ArrayList<>();
-
-    for (int i = 0; i < relDataTypes.size(); ++i) {
-      RexInputRef inputRef = rexBuilder.makeInputRef(values, i);
-
-      RexNode project = (relDataTypes.get(i) != null)
-          ? rexBuilder.makeCast(relDataTypes.get(i), inputRef)
-          : inputRef;
-      projects.add(project);
-    }
-
-    return LogicalProject.create(values, new ArrayList<>(), projects,
-        values.getRowType().getFieldNames());
+    return relNode;
   }
 
   //////////////////////////////////////////////////////////

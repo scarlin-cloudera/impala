@@ -56,7 +56,6 @@ import org.apache.impala.calcite.operators.ImpalaRexBuilder;
 import org.apache.impala.calcite.rules.ImpalaCoreRules;
 import org.apache.impala.calcite.rules.ImpalaMQContext;
 import org.apache.impala.calcite.rules.ImpalaRexExecutor;
-import org.apache.impala.calcite.rules.RemoveUnraggedCharCastRexExecutor;
 import org.apache.impala.calcite.schema.ImpalaCost;
 import org.apache.impala.calcite.schema.ImpalaRelMetadataProvider;
 import org.apache.impala.calcite.util.LogUtil;
@@ -94,7 +93,6 @@ public class CalciteRelNodeConverter implements CompilerStep {
     this.sqlValidator_ = analysisResult.getSqlValidator();
     this.planner_ = new VolcanoPlanner(ImpalaCost.FACTORY, new ImpalaMQContext());
     planner_.addRelTraitDef(ConventionTraitDef.INSTANCE);
-    planner_.setExecutor(new RemoveUnraggedCharCastRexExecutor());
     this.rexBuilder_ = new ImpalaRexBuilder(typeFactory_);
     cluster_ = RelOptCluster.create(planner_, this.rexBuilder_);
     viewExpander_ = createViewExpander(
@@ -163,7 +161,6 @@ public class CalciteRelNodeConverter implements CompilerStep {
 
     LogUtil.logDebug(decorrelatedPlan, "Plan after subquery decorrelation phase");
 
-    rexBuilder_.setPostAnalysis();
     return decorrelatedPlan;
   }
 
