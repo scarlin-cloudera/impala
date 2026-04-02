@@ -45,9 +45,10 @@ import org.apache.impala.common.ImpalaException;
 import org.apache.impala.service.FeSupport;
 import org.apache.impala.thrift.TColumnValue;
 import org.apache.impala.thrift.TQueryCtx;
+import org.apache.impala.util.StringUtils;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -211,21 +212,9 @@ public class ImpalaRexExecutor implements RexExecutor {
       byte[] bytes = new byte[colVal.binary_val.remaining()];
       colVal.binary_val.get(bytes);
 
-      // Converting strings between the BE/FE does not work properly for the
-      // extended ASCII characters above 127. Bail in such cases to avoid
-      // producing incorrect results.
-      for (byte b: bytes) {
-        if (b < 0) {
-          return constExp;
-        }
-      }
-      try {
-        String newString = new String(bytes, "US-ASCII");
-        return builder.makeLiteral(newString, returnType, true);
-      } catch (UnsupportedEncodingException e) {
-        LOG.debug("Could not interpret return value for " + colVal);
-        return constExp;
-      }
+      String newString = StringUtils.fromUtf8Buffer(ByteBuffer.wrap(bytes), true);
+      newString = newString.replace("\\", "\\\\");
+      return builder.makeLiteral(newString, returnType, true);
     }
     Preconditions.checkState(!colVal.isSetTimestamp_val(),
         "Simplified into timestamp constant but this should not happen");
