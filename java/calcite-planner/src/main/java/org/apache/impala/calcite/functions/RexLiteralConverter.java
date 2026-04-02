@@ -97,7 +97,7 @@ public class RexLiteralConverter {
       case VARCHAR:
         // Always treat all string literals as type STRING
         return new StringLiteral(rexLiteral.getValueAs(String.class),
-            ImpalaTypeConverter.createImpalaType(rexLiteral.getType()), false);
+            ImpalaTypeConverter.createImpalaType(rexLiteral.getType()), true);
       case DATE:
         DateString dateStringClass = rexLiteral.getValueAs(DateString.class);
         String dateString = (dateStringClass == null) ? null : dateStringClass.toString();
@@ -125,7 +125,7 @@ public class RexLiteralConverter {
 
     String timestamp = rexLiteral.getValueAs(TimestampString.class).toString();
     List<Expr> argList =
-        Lists.newArrayList(new StringLiteral(timestamp, Type.STRING, false));
+        Lists.newArrayList(new StringLiteral(timestamp, Type.STRING, true));
     Function castFunc = FunctionResolver.getExactFunction("casttotimestamp", typeNames);
     return new AnalyzedFunctionCallExpr(castFunc, argList, Type.TIMESTAMP);
   }
@@ -135,7 +135,7 @@ public class RexLiteralConverter {
         ImmutableList.of(ImpalaTypeConverter.getRelDataType(Type.STRING));
     String nanOrInf = o.toString();
     List<Expr> argList =
-        Lists.newArrayList(new StringLiteral(nanOrInf, Type.STRING, false));
+        Lists.newArrayList(new StringLiteral(nanOrInf, Type.STRING, true));
     Preconditions.checkState(t.equals(Type.DOUBLE) || t.equals(Type.FLOAT));
     String fnName = t.equals(Type.DOUBLE) ? "casttodouble" : "casttofloat";
     Function castFunc = FunctionResolver.getExactFunction(fnName, typeNames);
