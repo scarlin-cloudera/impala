@@ -1374,6 +1374,31 @@ select unhex("FG");
 STRING
 ---- RESULTS
 ''
+====
+---- QUERY
+# IMPALA-14910: limit expression
+select id from functional.alltypes order by id limit 1 + 1
+---- RESULTS
+0
+1
+---- TYPES
+int
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# IMPALA-14910: limit expression
+select id from functional.alltypes order by id limit 1 + .5
+---- CATCH
+LIMIT expression must be an integer type
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# IMPALA-14910: limit expression
+select id from functional.alltypes order by id limit 2 - 3
+---- CATCH
+LIMIT must be a non-negative integer
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
