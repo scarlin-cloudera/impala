@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.impala.catalog.Type;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 
 import java.math.BigDecimal;
@@ -72,6 +73,11 @@ public class ImpalaRexBuilder extends RexBuilder {
         type = ImpalaTypeConverter.getLiteralDataType(bd0, type);
       }
     }
+
+    if (SqlTypeUtil.inCharFamily(typeName)) {
+      type = ImpalaTypeConverter.getRelDataType(Type.STRING, false);
+    }
+
     return super.makeLiteral(o, type, typeName);
   }
 }
