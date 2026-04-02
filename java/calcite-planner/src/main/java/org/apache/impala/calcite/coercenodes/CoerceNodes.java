@@ -26,6 +26,7 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
@@ -208,7 +209,28 @@ public class CoerceNodes{
    */
   private static RelNode processSortNode(RelNode relNode, List<RelNode> inputs,
       RexBuilder rexBuilder, boolean isInputChanged) {
-    return isInputChanged ? relNode.copy(relNode.getTraitSet(), inputs) : relNode;
+    final LogicalSort sort = (LogicalSort) relNode;
+    RexNode newFetch = sort.fetch;
+    RexNode newOffset = sort.offset;
+    if (sort.fetch instanceof RexCall) {
+      isInputChanged = true;
+      List<RexNode> changedList =
+          processRexNodes(sort, inputs, ImmutableList.of(sort.fetch));
+      if (changedList != null) {
+        newFetch = changedList.get(0); 
+      }
+    }
+    if (sort.offset instanceof RexCall) {
+      isInputChanged = true;
+      List<RexNode> changedList =
+          processRexNodes(sort, inputs, ImmutableList.of(sort.offset));
+      if (changedList != null) {
+        newOffset= changedList.get(0); 
+      }
+    }
+    return isInputChanged
+        ? LogicalSort.create(inputs.get(0), sort.getCollation(), newOffset, newFetch)
+        : relNode;
   }
 
   /**
