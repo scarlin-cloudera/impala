@@ -136,6 +136,8 @@ class SkipIf:
       reason="Test cluster runs slowly due to enablement of code coverage or sanitizer")
   not_tuple_cache = pytest.mark.skipif(not IS_TUPLE_CACHE,
       reason="Tuple Cache needed")
+  is_calcite_planner = pytest.mark.skipif(True,
+      reason="Disabled for Calcite Planner")
 
 
 class SkipIfLocal:
@@ -295,13 +297,23 @@ class SkipIfExploration:
 
 
 class SkipIfCalcite:
-  hints_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
-      reason="hints not supported yet")
-  lineage_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
-      reason="lineage not supported yet")
   kudu_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="kudu not supported yet")
   row_filtering_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="row filtering not supported yet")
   observability_info_missing = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="some observability test information is missing")
+  impala_xxxx1 = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-XXXXX: needs jira")
+  hints_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="hints not supported yet")
+  lineage_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="lineage not supported yet")
+  need_to_add_warnings = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-XXXXX: need to add warnings")
+  ok_3_0_reserved_keywords = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="'at' is ok to use in select query")
+  functions_fallback_db_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="fallback_db_for_functions not supported for Calcite")
+  disable_having_ordinal = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="ordinals in having not allowed for Calcite")
