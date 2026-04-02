@@ -85,6 +85,9 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       .add("localtime")
       .add("translate")
       .add("sleep")
+      .add("abs")
+      .add("first_value")
+      .add("last_value")
       .build();
 
   private static ImpalaOperatorTable INSTANCE;
