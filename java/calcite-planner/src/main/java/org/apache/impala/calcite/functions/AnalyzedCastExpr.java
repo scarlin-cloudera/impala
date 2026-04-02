@@ -21,6 +21,7 @@ import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.CastExpr;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.StringLiteral;
+import org.apache.impala.analysis.SlotRef;
 import org.apache.impala.catalog.Type;
 import org.apache.impala.common.AnalysisException;
 
@@ -31,12 +32,31 @@ import java.util.List;
  */
 public class AnalyzedCastExpr extends CastExpr {
 
-  public AnalyzedCastExpr(Type targetType, List<Expr> paramList) {
+  // True if there is a real implicit function used.
+  // Unfortunately, this has been coded in a slightly confusing way. There are two types
+  // of "implicit" variables here.
+  // The parent CastExpr contains an "isImplicit_" variable, but this one cannot be used.
+  // When the substitute() method is called from the ExprSubstitutionMap, it drops all
+  // casts where the CastExpr.isImplicit_ is true. This does not work for Calcite because
+  // Calcite creates the properly resolved functions before optimization time. The
+  // analysis step is complete, so any cast created within Calcite should not be blindly
+  // removed by the substitute() statement. This is why isImplicit_ needs to always be
+  // false for the parent.
+  // However, when "unwrapSlotRef" is called, the logic is different and the cast does
+  // need to be removed if it is implicit. So the userDefinedCast_ variable is set up
+  // to handle these situations, and the unwrapSlotRef() method examines this variable.
+  // The allowsImplicitConversion() method also exists for the partition pruning, since
+  // pruning works differently if there is an actual implicit cast.
+  private final boolean userDefinedCast_;
+
+  public AnalyzedCastExpr(Type targetType, List<Expr> paramList, boolean userDefinedCast) {
     super(targetType, paramList.get(0).clone(), getFormat(paramList));
+    userDefinedCast_ = userDefinedCast;
   }
 
   public AnalyzedCastExpr(AnalyzedCastExpr other) {
     super(other);
+    userDefinedCast_ = other.userDefinedCast_;
   }
 
   @Override
@@ -48,12 +68,27 @@ public class AnalyzedCastExpr extends CastExpr {
   protected void analyzeImpl(Analyzer analyzer) throws AnalysisException {
   }
 
+  @Override
+  public SlotRef unwrapSlotRef(boolean implicitOnly) {
+    if (implicitOnly && userDefinedCast_) {
+      return null;
+    }
+    Expr unwrappedExpr = children_.get(0);
+    return (unwrappedExpr instanceof SlotRef) ? (SlotRef) unwrappedExpr : null;
+  }
+
   /**
-   * Calcite casts will not be implicit. TODO: need to fix for the toSql routine.
+   * isImplicit() always returns false so that the Expr.substitute() method doesn't
+   * remove the cast. See comment about userDefinedCost_ for more details.
    */
   @Override
   public boolean isImplicit() {
     return false;
+  }
+
+  @Override
+  public boolean allowsImplicitConversion() {
+    return !userDefinedCast_;
   }
 
   private static String getFormat(List<Expr> paramsList) {
