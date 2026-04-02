@@ -280,7 +280,7 @@ public class FunctionResolver {
           : getCaseArgs(name, argTypes);
     }
 
-    return ImpalaTypeConverter.getNormalizedImpalaTypes(argTypes);
+    return ImpalaTypeConverter.createImpalaTypes(argTypes);
   }
 
   private static int getCaseOperandNum(String name) {
@@ -308,7 +308,7 @@ public class FunctionResolver {
       if (!shouldSkipOperandForCase(numOperands, i)) {
         Type impalaType = ImpalaTypeConverter.createImpalaType(argTypes.get(i));
         compatibleType = Type.getAssignmentCompatibleType(compatibleType, impalaType,
-            TypeCompatibility.DEFAULT);
+            TypeCompatibility.STRICT_DECIMAL);
       }
     }
 

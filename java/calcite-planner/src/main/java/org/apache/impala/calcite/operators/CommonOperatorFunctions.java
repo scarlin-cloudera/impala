@@ -20,7 +20,6 @@ package org.apache.impala.calcite.operators;
 
 import com.google.common.base.Preconditions;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.core.Aggregate.AggCallBinding;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -38,10 +37,12 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.impala.calcite.functions.FunctionResolver;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
+import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -60,8 +61,7 @@ public class CommonOperatorFunctions {
       SqlOperator op) {
     final List<RelDataType> operandTypes = getOperandTypes(opBinding);
 
-    RexBuilder rexBuilder =
-        new RexBuilder(new JavaTypeFactoryImpl(new ImpalaTypeSystemImpl()));
+    RexBuilder rexBuilder = new RexBuilder(ImpalaTypeFactoryImpl.INSTANCE);
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     // Resolve Impala function through Impala method.
@@ -74,7 +74,7 @@ public class CommonOperatorFunctions {
 
     RelDataType returnType = fn.getReturnType().equals(Type.DECIMAL)
         ? ImpalaTypeConverter.getCompatibleType(operandTypes, factory)
-        : ImpalaTypeConverter.getRelDataType(fn.getReturnType());
+        : ImpalaTypeConverter.createRelDataType(fn.getReturnType());
 
     return isNullable(operandTypes)
         ? returnType

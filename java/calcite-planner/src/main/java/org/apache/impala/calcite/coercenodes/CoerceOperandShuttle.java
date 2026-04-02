@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlDatetimePlusOperator;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -43,6 +44,7 @@ import org.apache.calcite.util.Util;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.ScalarType;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.catalog.TypeCompatibility;
 import org.apache.impala.calcite.functions.FunctionResolver;
 import org.apache.impala.calcite.functions.ImplicitTypeChecker;
 import org.apache.impala.calcite.operators.ImpalaDecodeFunction;
@@ -163,7 +165,7 @@ public class CoerceOperandShuttle extends RexShuttle {
         SqlTypeUtil.isDecimal(castedOperandsCall.getType()));
 
     List<RexNode> newOperands = getCastedArgTypes(fn, castedOperandsCall.getOperands(),
-        retType, factory, rexBuilder);
+        retType, factory, rexBuilder, castedOperandsCall.getOperator());
 
     // keep the original call if nothing changed, else build a new RexCall.
     return retType.equals(castedOperandsCall.getType())
@@ -188,8 +190,8 @@ public class CoerceOperandShuttle extends RexShuttle {
     RelDataType retType = castedOver.getType();
 //    RelDataType retType = getReturnType(rexBuilder, castedOver, fn.getReturnType());
 
-    List<RexNode> newOperands =
-        getCastedArgTypes(fn, castedOver.getOperands(), retType, factory, rexBuilder);
+    List<RexNode> newOperands = getCastedArgTypes(fn, castedOver.getOperands(), retType,
+        factory, rexBuilder, castedOver.getAggOperator());
 
     return retType.equals(castedOver.getType()) &&
            newOperands.equals(castedOver.getOperands())
@@ -335,7 +337,8 @@ public class CoerceOperandShuttle extends RexShuttle {
    * Return a list of the operands, casting whenever needed.
    */
   private static List<RexNode> getCastedArgTypes(Function fn, List<RexNode> operands,
-      RelDataType retType, RelDataTypeFactory factory, RexBuilder rexBuilder) {
+      RelDataType retType, RelDataTypeFactory factory, RexBuilder rexBuilder,
+      SqlOperator op) {
     List<RelDataType> argTypes = Util.transform(operands, RexNode::getType);
     List<RexNode> newOperands = new ArrayList<>();
     // The "Case" operator is special because the operands alternate between
@@ -343,6 +346,8 @@ public class CoerceOperandShuttle extends RexShuttle {
     // boolean, so they don't need casting.
     boolean isCaseFunction = isCaseFunction(fn);
     boolean castedOperand = false;
+    Type commonDecOperandType = getCommonDecimalType(op, argTypes, factory);
+
     Preconditions.checkState(argTypes.size() == 0 || fn.getNumArgs() > 0);
     for (int i = 0; i < argTypes.size(); ++i) {
       if (isCaseFunction &&
@@ -354,8 +359,16 @@ public class CoerceOperandShuttle extends RexShuttle {
 
       // in the case of varargs, take the last argument in the signature.
       int indexToUse = Math.min(i, fn.getNumArgs() - 1);
-      Type toImpalaType = fn.getArgs()[indexToUse];
-      RelDataType toType = useReturnTypeForCastingArg(fn, argTypes.get(indexToUse))
+
+      // Use the common decimal type if it's a wildcard decimal and the common
+      // type is defined. If the common type is not defined, leave it as is, and
+      // the "getCastedToType()" will resolve the toType from however the fromType
+      // is defined.
+      Type tmpType = fn.getArgs()[indexToUse];
+      Type toImpalaType = tmpType.isWildcardDecimal() && commonDecOperandType != null
+          ? commonDecOperandType
+          : tmpType;
+      RelDataType toType = isCaseFunction(fn)
           ? retType
           : getCastedToType(argTypes.get(i), toImpalaType, factory,
               isNullable(operands.get(i)));
@@ -370,6 +383,40 @@ public class CoerceOperandShuttle extends RexShuttle {
     }
 
     return castedOperand ? newOperands : operands;
+  }
+
+  public static Type getCommonDecimalType(SqlOperator op, List<RelDataType> argTypes,
+      RelDataTypeFactory factory) {
+    RelDataType commonDecRelDataType = getCommonDecimalRelDataType(op, argTypes, factory);
+    return commonDecRelDataType != null
+        ? ImpalaTypeConverter.createImpalaType(commonDecRelDataType)
+        : null;
+  }
+
+  public static RelDataType getCommonDecimalRelDataType(SqlOperator op,
+      List<RelDataType> argTypes, RelDataTypeFactory factory) {
+
+    SqlKind kind = op.getKind();
+    if (kind.belongsTo(SqlKind.BINARY_ARITHMETIC) ||
+        kind.belongsTo(SqlKind.BINARY_COMPARISON)) {
+      return null;
+    }
+
+    List<RelDataType> decimalOperands = new ArrayList<>();
+    for (RelDataType argType : argTypes) {
+      if (argType.getSqlTypeName().equals(SqlTypeName.DECIMAL)) {
+        decimalOperands.add(argType);
+      }
+    }
+    if (decimalOperands.size() == 0) {
+      return null;
+    }
+
+    RelDataType dType = ImpalaTypeConverter.getCompatibleType(decimalOperands, factory);
+    if (dType == null) {
+      throw new RuntimeException("could not find compatible decimal type");
+    }
+    return dType;
   }
 
   /**
@@ -392,18 +439,6 @@ public class CoerceOperandShuttle extends RexShuttle {
       default:
         return true;
     }
-  }
-
-  private static boolean useReturnTypeForCastingArg(Function fn, RelDataType argType) {
-    // case functions use the precalculated return type from the function resolver.
-    if (isCaseFunction(fn)) {
-      return true;
-    }
-
-    // For functions that have decimal varargs and return a decimal
-    // (e.g. greatest, least), the type has been calculated at validation time.
-    return SqlTypeUtil.isDecimal(argType) &&
-        fn.getReturnType().isDecimal() && fn.hasVarArgs();
   }
 
   private static boolean isCaseFunction(Function fn) {
@@ -430,6 +465,10 @@ public class CoerceOperandShuttle extends RexShuttle {
 
     if (!toImpalaType.isDecimal() || SqlTypeUtil.isNull(fromType)) {
       return ImpalaTypeConverter.getRelDataType(toImpalaType, isNullable);
+    }
+
+    if (!toImpalaType.isWildcardDecimal()) {
+      return ImpalaTypeConverter.createRelDataType(factory, toImpalaType);
     }
 
     // Integer based type needs special conversion to Decimal types based on the
