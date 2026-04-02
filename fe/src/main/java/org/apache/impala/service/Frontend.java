@@ -2456,6 +2456,10 @@ public class Frontend {
     if (error instanceof ImpalaException) {
       throw (ImpalaException) error;
     }
+    if (error instanceof InconsistentMetadataFetchException) {
+      throw (InconsistentMetadataFetchException) error;
+    }
+    LOG.info("SJC: ERROR IS OF TYPE: " + error.getClass());
     throw new RuntimeException(error);
   }
 
@@ -2471,9 +2475,9 @@ public class Frontend {
           !(Parser.parse(queryCtx.client_request.stmt,
               queryCtx.client_request.query_options) instanceof QueryStmt);
     } catch (Exception f) {
-      // If an exception was thrown, it failed to parse in the original planner, so there
-      // is no reason to compile it there.
-      return false;
+      // If an exception was thrown, reparse it anyway in the original planner because
+      // the test framework, by default, contains the error from the original planner.
+      return true;
     }
   }
 

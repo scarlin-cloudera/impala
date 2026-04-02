@@ -181,14 +181,24 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
           sqlValidator_.getPossibleValidationException());
     } catch (ImpalaException e) {
       try {
-        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_);
+        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
+            queryCtx_, analyzer_);
       } catch (ImpalaException u) {
         e = u;
       }
       return CalciteAnalysisResult.createErrorAnalysisResult(this, e);
     } catch (CalciteContextException e) {
+      if (e.getCause() instanceof UnsupportedFeatureException) {
+        return CalciteAnalysisResult.createErrorAnalysisResult(this,
+            (UnsupportedFeatureException)e.getCause());
+      }
+      if (sqlValidator_.getPossibleValidationException() != null) {
+        return CalciteAnalysisResult.createErrorAnalysisResult(this,
+            sqlValidator_.getPossibleValidationException());
+      }
       try {
-        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_);
+        UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
+            queryCtx_, analyzer_);
       } catch (ImpalaException u) {
         return CalciteAnalysisResult.createErrorAnalysisResult(this, u);
       }
@@ -242,9 +252,8 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
         String sql = ((FeView) feTable).getQueryStmt().toSql();
         CalciteQueryParser queryParser = new CalciteQueryParser(sql);
         SqlNode parsedSqlNode = queryParser.parse();
-        CalciteMetadataHandler.TableVisitor tableVisitor =
-            new CalciteMetadataHandler.TableVisitor(/* currentDb */ "default");
-        parsedSqlNode.accept(tableVisitor);
+        Set<TableName> tableNames = CalciteMetadataHandler.TableVisitor.getTableNames(
+            parsedSqlNode, "default");
 
         boolean childViewCreatedBySuperuser =
             !PrivilegeRequestBuilder.isViewCreatedByNonSuperuser(feTable);
@@ -274,7 +283,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
 
         // Recurse if 'feTable' is also a view. Note that the privilege requests for the
         // tables referenced by 'feTable' will be registered within the recursive call.
-        registerPrivReqsInTables(tableVisitor.tableNames_,
+        registerPrivReqsInTables(tableNames,
             shouldMaskPrivChecks || childViewCreatedBySuperuser, catalog, validator);
 
         // Set 'maskPrivChecks_' back to false in this case because we do not know if

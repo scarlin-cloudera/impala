@@ -46,7 +46,7 @@ public class CalciteQueryParser implements CompilerStep {
     this.sqlStmt_ = stmt;
   }
 
-  public SqlNode parse() throws ParseException {
+  public SqlNode parse() throws ParseException, ImpalaException {
     try {
       // Create an SQL parser
       SqlParser parser = SqlParser.create(sqlStmt_,
@@ -59,11 +59,7 @@ public class CalciteQueryParser implements CompilerStep {
       SqlNode sqlNode = parser.parseQuery();
       return sqlNode;
     } catch (SqlParseException e) {
-      try {
-        UnsupportedChecker.throwUnsupportedIfKnownException(e);
-      } catch (ImpalaException u) {
-        throw new ParseException(u.getMessage());
-      }
+      UnsupportedChecker.throwUnsupportedIfKnownException(e);
       throw new ParseException(e.getMessage());
     }
   }
