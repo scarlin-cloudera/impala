@@ -24,6 +24,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.impala.analysis.AnalysisContext.AnalysisResult;
 import org.apache.impala.analysis.AnalysisDriver;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.common.UnsupportedFeatureException;
 
 /**
  * CalciteAnalysisResult is an AnalysisResult with added analysis result
@@ -70,5 +71,19 @@ public class CalciteAnalysisResult extends AnalysisResult {
     return typeFactory_;
   }
 
+  @Override
+  public boolean shouldFallbackBecauseOfException() {
+    return getException() instanceof UnsupportedFeatureException;
+  }
+
+  public static CalciteAnalysisResult createValidAnalysisResult(CalciteAnalysisDriver a,
+      ImpalaException potentialException) {
+    return new CalciteAnalysisResult(a, null, potentialException);
+  }
+
+  public static CalciteAnalysisResult createErrorAnalysisResult(CalciteAnalysisDriver a,
+      ImpalaException exception) {
+    return new CalciteAnalysisResult(a, exception, null);
+  }
 
 }
