@@ -50,6 +50,7 @@ import org.apache.impala.authorization.Privilege;
 import org.apache.impala.authorization.PrivilegeRequestBuilder;
 import org.apache.impala.calcite.operators.ImpalaOperatorTable;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
+import org.apache.impala.calcite.schema.ImpalaViewTable;
 import org.apache.impala.calcite.type.ImpalaTypeCoercionFactory;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
 import org.apache.impala.calcite.util.SimplifiedAnalyzer;
@@ -67,6 +68,7 @@ import org.apache.impala.planner.PlannerContext;
 import org.apache.impala.planner.SingleNodePlannerIntf;
 import org.apache.impala.thrift.TQueryCtx;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 /**
  * The CalciteAnalysisDriver is the implementation of AnalysisDriver which validates
@@ -173,21 +175,22 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
         analyzer_.registerPrivReq(builder -> builder.allOf(Privilege.VIEW_METADATA)
             .onDb(ctx_.getCatalog().getDb(fnName.getDb())).build());
       }
-      return new CalciteAnalysisResult(this);
+      return CalciteAnalysisResult.createValidAnalysisResult(this,
+          sqlValidator_.getPossibleValidationException());
     } catch (ImpalaException e) {
       try {
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_);
       } catch (ImpalaException u) {
         e = u;
       }
-      return new CalciteAnalysisResult(this, e);
+      return CalciteAnalysisResult.createErrorAnalysisResult(this, e);
     } catch (CalciteContextException e) {
       try {
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_);
       } catch (ImpalaException u) {
-        return new CalciteAnalysisResult(this, u);
+        return CalciteAnalysisResult.createErrorAnalysisResult(this, u);
       }
-      return new CalciteAnalysisResult(this,
+      return CalciteAnalysisResult.createErrorAnalysisResult(this,
           new AnalysisException(e.getMessage(), e.getCause()));
     }
   }
@@ -228,7 +231,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
    */
   private void registerPrivReqsInTables(Set<TableName> tableNamesInQuery,
       boolean shouldMaskPrivChecks, FeCatalog catalog, ImpalaSqlValidatorImpl validator)
-      throws ParseException {
+      throws ParseException, ImpalaException {
 
     for (TableName tableName : tableNamesInQuery) {
       FeTable feTable = registerTablePrivReq(tableName, catalog);
@@ -260,7 +263,12 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
           analyzer_.setMaskPrivChecks(null);
         }
         // Register privilege requests for columns referenced by the child view.
-        validator.validate(parsedSqlNode);
+        parsedSqlNode = validate(validator, parsedSqlNode, queryParser);
+
+        ImpalaViewTable calciteView =
+            reader_.getTable(tableName.toPath()).unwrap(ImpalaViewTable.class);
+        Preconditions.checkNotNull(calciteView);
+        calciteView.setValidatedNode(parsedSqlNode);
 
         // Recurse if 'feTable' is also a view. Note that the privilege requests for the
         // tables referenced by 'feTable' will be registered within the recursive call.
@@ -272,6 +280,26 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
         if (!shouldMaskPrivChecks && childViewCreatedBySuperuser) {
           analyzer_.unsetMaskPrivChecks();
         }
+      }
+    }
+  }
+
+  private SqlNode validate(ImpalaSqlValidatorImpl validator, SqlNode parsedSqlNode,
+      CalciteQueryParser queryParser) throws ParseException, ImpalaException {
+    try {
+      validator.startValidatingView(false);
+      parsedSqlNode = validator.validate(parsedSqlNode);
+      validator.endValidatingView();
+      return parsedSqlNode;
+    } catch (Exception e) { //XXX: have a more specific exception here
+      if (validator.foundAliasIssue()) {
+        parsedSqlNode = queryParser.parse();
+        validator.startValidatingView(true);
+        parsedSqlNode = validator.validate(parsedSqlNode);
+        validator.endValidatingView();
+        return parsedSqlNode;
+      } else {
+        throw e;
       }
     }
   }
