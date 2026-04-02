@@ -36,44 +36,60 @@ BIGINT,BIGINT,BIGINT,BIGINT,BIGINT,BIGINT
 select ds_theta_sketch(bool_col) from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch(BOOLEAN)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH; operand types: [BOOLEAN]
 ====
 ---- QUERY
 select ds_theta_sketch(smallint_col) from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch(SMALLINT)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH; operand types: [SMALLINT]
 ====
 ---- QUERY
 select ds_theta_sketch(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch(DATE)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH; operand types: [DATE]
 ====
 ---- QUERY
 select ds_theta_sketch(d1) from functional_parquet.decimal_tbl;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch(DECIMAL(9,0))
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH; operand types: [DECIMAL(9, 0)]
 ====
 ---- QUERY
 # Check that unsupported types give error with ds_theta_sketch_and_estimate().
 select ds_theta_sketch_and_estimate(bool_col) from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(BOOLEAN)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE; operand types: [BOOLEAN]
 ====
 ---- QUERY
 select ds_theta_sketch_and_estimate(smallint_col) from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(SMALLINT)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE; operand types: [SMALLINT]
 ====
 ---- QUERY
 select ds_theta_sketch_and_estimate(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(DATE)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE; operand types: [DATE]
 ====
 ---- QUERY
 select ds_theta_sketch_and_estimate(d1) from functional_parquet.decimal_tbl;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(DECIMAL(9,0))
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE; operand types: [DECIMAL(9, 0)]
 ====
 ---- QUERY
 # Check if Theta works with null values.
