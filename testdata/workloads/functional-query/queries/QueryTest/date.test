@@ -213,11 +213,15 @@ DATE,DATE
 select cast(date '2000-12-21' as int);
 ---- CATCH
 AnalysisException: Invalid type cast of DATE '2000-12-21' from DATE to INT
+---- CALCITE_PLANNER_CATCH
+AnalysisException: Invalid type cast from DATE to INT
 ====
 ---- QUERY
 select cast(123.45 as date);
 ---- CATCH
 AnalysisException: Invalid type cast of 123.45 from DECIMAL(5,2) to DATE
+---- CALCITE_PLANNER_CATCH
+AnalysisException: Invalid type cast from DECIMAL(5,2) to DATE
 ====
 ---- QUERY
 select count(*) from date_tbl where date_col <= '1399-12-31';

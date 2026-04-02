@@ -26,9 +26,12 @@ select extract(year from timestamp_col) from functional.alltypes limit 10
 FunctionContextImpl::AllocateForResults() failed to allocate 4 bytes.
 ====
 ---- QUERY
+# IMPALA-XXXXX: need to make trunc statement work properly
 select trunc(timestamp_col, 'YEAR') from functional.alltypes limit 10
 ---- CATCH
 FunctionContextImpl::AllocateForResults() failed to allocate 4 bytes.
+---- CALCITE_PLANNER_CATCH
+Cannot apply 'TRUNC' to arguments of type
 ====
 ---- QUERY
 select first_value(string_col) over (partition by month order by year) from functional.alltypes

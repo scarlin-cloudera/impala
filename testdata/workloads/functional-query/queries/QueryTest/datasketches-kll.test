@@ -61,22 +61,30 @@ FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT
 select ds_kll_sketch(double_col) from functional_parquet.alltypestiny;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_kll_sketch(DOUBLE)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_KLL_SKETCH; operand types: [DOUBLE]
 ====
 ---- QUERY
 select ds_kll_sketch(string_col) from functional_parquet.alltypestiny;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_kll_sketch(STRING)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_KLL_SKETCH; operand types: [VARCHAR(2147483647)]
 ====
 ---- QUERY
 select ds_kll_sketch(timestamp_col) from functional_parquet.alltypestiny;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_kll_sketch(TIMESTAMP)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_KLL_SKETCH; operand types: [TIMESTAMP(15)]
 ====
 ---- QUERY
 select ds_kll_sketch(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypestiny;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_kll_sketch(DATE)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_KLL_SKETCH; operand types: [DATE]
 ====
 ---- QUERY
 # Check that ds_kll_quantile() returns null for null inputs.
@@ -406,6 +414,8 @@ select
 from functional_parquet.alltypessmall;
 ---- CATCH
 AnalysisException: No matching function with signature: ds_kll_quantiles_as_string(STRING)
+---- CALCITE_PLANNER_CATCH
+Cannot infer return type for DS_KLL_QUANTILES_AS_STRING; operand types: [VARCHAR(2147483647)]
 ====
 ---- QUERY
 # Checks that ds_kll_pmf_as_string() produces NULL for an empty dataset.
