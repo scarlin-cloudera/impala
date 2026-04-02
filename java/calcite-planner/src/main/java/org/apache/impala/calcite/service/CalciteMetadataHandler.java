@@ -41,12 +41,14 @@ import org.apache.impala.calcite.schema.CalciteDb;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.validate.ImpalaSnapshotSqlNode;
+import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
 
 import com.google.common.base.Splitter;
@@ -97,7 +99,7 @@ public class CalciteMetadataHandler {
    * Populate the CalciteSchema with tables being used by this query. Returns a
    * list of tables in the query that are not found in the database.
    */
-  public static List<String> populateCalciteSchema(CalciteCatalogReader reader,
+  public static void populateCalciteSchema(CalciteCatalogReader reader,
       FeCatalog catalog, StmtMetadataLoader.StmtTableCache stmtTableCache,
       Map<TableName, List<TimeTravelSpec>> timeTravelSpecMap,
       Analyzer analyzer) throws ImpalaException {
@@ -108,14 +110,12 @@ public class CalciteMetadataHandler {
       FeDb db = catalog.getDb(tableName.getDb());
       // db is not found, this will probably fail in the validation step
       if (db == null) {
-        notFoundTables.add(tableName.toString());
         continue;
       }
 
       // table is not found, this will probably fail in the validation step
       FeTable feTable = db.getTable(tableName.getTbl());
       if (feTable == null) {
-        notFoundTables.add(tableName.toString());
         continue;
       }
 
@@ -162,7 +162,6 @@ public class CalciteMetadataHandler {
     for (String dbName : dbSchemas.keySet()) {
       rootSchema.add(dbName, dbSchemas.get(dbName.toLowerCase()).build());
     }
-    return notFoundTables;
   }
 
   /**
@@ -173,17 +172,14 @@ public class CalciteMetadataHandler {
     private final String currentDb_;
     private final Map<TableName, List<TimeTravelSpec>> tableNames_ = new HashMap<>();
 
-    // Error condition for now. Complex tables are not yet supported
-    // so if we see a table name that has more than 2 parts, this variable
-    // will contain that table.
-    public final List<String> errorTables_ = new ArrayList<>();
-
     // This stack contains the sets of TableName's of the currently visited SqlWith
     // nodes, with the set of TableName's of the most recently visited SqlWith node being
     // the top of the stack.
     public final Stack<Set<TableName>> withItemTableNames_ = new Stack<>();
 
-    public TableVisitor(String currentDb) {
+    public ImpalaException exception_ = null;
+
+    private TableVisitor(String currentDb) {
       this.currentDb_ = currentDb.toLowerCase();
     }
 
@@ -233,7 +229,8 @@ public class CalciteMetadataHandler {
       String tableNameString = identifer.toString();
       List<String> parts = Splitter.on('.').splitToList(tableNameString);
       if (parts.size() > 2) {
-        errorTables_.add(tableNameString);
+        exception_ = new UnsupportedFeatureException(
+              "Table " + tableNameString + " is not supported.");
         return;
       }
       TableName tableName = parts.size() == 1
@@ -276,6 +273,10 @@ public class CalciteMetadataHandler {
         if (basicCall.getKind().equals(SqlKind.AS)) {
           visitTableNameNode(basicCall.operand(0));
         }
+        if (basicCall.getKind() == SqlKind.UNNEST) {
+           exception_ = new UnsupportedFeatureException(
+               "Unnest function is not supported at this time.");
+        }
       }
     }
 
@@ -285,6 +286,22 @@ public class CalciteMetadataHandler {
       }
       return false;
     }
+
+    public static Set<TableName> getTableNames(
+        SqlNode sqlNode, String db) throws ImpalaException {
+      return getTableNameMap(sqlNode, db).keySet();
+    }
+
+    public static Map<TableName, List<TimeTravelSpec>> getTableNameMap(
+        SqlNode sqlNode, String db) throws ImpalaException {
+
+      TableVisitor tableVisitor = new TableVisitor(db);
+      sqlNode.accept(tableVisitor);
+      if (tableVisitor.exception_ != null) {
+        throw tableVisitor.exception_;
+      }
+      return tableVisitor.tableNames_;
+    }
   }
 
   public static boolean anyTableContainsColumn(
@@ -293,6 +310,11 @@ public class CalciteMetadataHandler {
     for (FeTable table : stmtTableCache.tables.values()) {
       if (table.getColumn(onlyColumnPart) != null) {
         return true;
+      }
+      for (Column c : table.getVirtualColumns()) {
+        if (c.getName().equals(onlyColumnPart.toLowerCase())) {
+          return true;
+        }
       }
     }
     return false;

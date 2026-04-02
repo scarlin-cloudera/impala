@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
@@ -38,14 +39,17 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
 import org.apache.impala.calcite.schema.CalciteTable;
@@ -55,6 +59,7 @@ import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.common.UnsupportedFeatureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,6 +102,13 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
   public RelDataType deriveType(
       SqlValidatorScope scope,
       SqlNode operand) {
+    if (operand instanceof SqlDataTypeSpec) {
+      SqlDataTypeSpec spec = (SqlDataTypeSpec) operand;
+      if (spec.getTypeName().names.get(0).toLowerCase().equals("uuid")) {
+        throw new CalciteContextException("", new UnsupportedFeatureException(
+            "Uuid type not supported yet."));
+      }
+    }
     // This code is needed because Calcite treats all integer literals (except
     // BIGINT) as Integers, but Impala needs the finer granularity of smaller
     // integers (e.g. tinyint)
@@ -162,6 +174,24 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
         );
       }
     }
+  }
+
+  @Override public void validateWithItem(SqlWithItem withItem) {
+    // Impala supports the case (for better or for worse) where the number of
+    // columns in the with clause definition do not match the number of columns
+    // being selected out (e.g. "with t(c1) as (select c1, c2 from ...)")
+    // Calcite will throw its own exception, but we need to throw an
+    // "UnsupportedFeatureException so this can be run by the original planner.
+    SqlNodeList columnList = withItem.columnList;
+    if (columnList != null) {
+      final RelDataType rowType = getValidatedNodeType(withItem.query);
+      final int fieldCount = rowType.getFieldCount();
+      if (columnList.size() != fieldCount) {
+        throw new CalciteContextException("", new UnsupportedFeatureException(
+            "Number of columns in with clause must match number of query columns"));
+      }
+    }
+    super.validateWithItem(withItem);
   }
 
   @Override public void validateCall(
