@@ -18,14 +18,17 @@
 package org.apache.impala.calcite.operators;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.analysis.FunctionCallExpr;
@@ -42,6 +45,9 @@ public class ImpalaOperator extends SqlFunction {
 
   private final FeDb db_;
 
+  // Need to define the id_ to contain both dbName and funcName
+  private final SqlIdentifier id_;
+
   public ImpalaOperator(String name) {
     this(BuiltinsDb.getInstance(), name);
   }
@@ -52,6 +58,7 @@ public class ImpalaOperator extends SqlFunction {
     isDeterministic_ =
         !FunctionCallExpr.NON_DETERMINISTIC_FNS.contains(name.toLowerCase());
     db_ = db;
+    id_ = new SqlIdentifier(ImmutableList.of(db.getName(), name), SqlParserPos.ZERO);
   }
 
   @Override
@@ -82,6 +89,11 @@ public class ImpalaOperator extends SqlFunction {
   @Override
   public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION;
+  }
+
+  @Override
+  public SqlIdentifier getNameAsId() {
+    return id_;
   }
 
   @Override

@@ -18,15 +18,18 @@
 package org.apache.impala.calcite.operators;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.impala.catalog.BuiltinsDb;
 import org.apache.impala.catalog.FeDb;
 
@@ -40,6 +43,9 @@ public class ImpalaAggOperator extends SqlAggFunction {
 
   private final FeDb db_;
 
+  // Need to define the id_ to contain both dbName and funcName
+  private final SqlIdentifier id_;
+
   public ImpalaAggOperator(String name) {
     this(BuiltinsDb.getInstance(), name);
   }
@@ -48,6 +54,7 @@ public class ImpalaAggOperator extends SqlAggFunction {
     super(name.toUpperCase(), SqlKind.OTHER, null, null, null,
         SqlFunctionCategory.USER_DEFINED_FUNCTION);
     db_ = db;
+    id_ = new SqlIdentifier(ImmutableList.of(db.getName(), name), SqlParserPos.ZERO);
   }
 
   @Override
@@ -78,6 +85,11 @@ public class ImpalaAggOperator extends SqlAggFunction {
   @Override
   public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION;
+  }
+
+  @Override
+  public SqlIdentifier getNameAsId() {
+    return id_;
   }
 
   public FeDb getDb() {

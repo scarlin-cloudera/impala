@@ -129,8 +129,9 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       return;
     }
 
-    String funcName = opName.isSimple() ? opName.names.get(0) : opName.names.get(1);
-    String dbName = opName.isSimple() ? null : opName.names.get(0);
+    String funcName = opName.names.size() == 1 ? opName.names.get(0) : opName.names.get(1);
+    String dbName = opName.names.size() == 1 ? null : opName.names.get(0);
+
     String lowercaseFuncName = funcName.toLowerCase();
 
     // A little hack. We need our own version of "cast" when it is explicit. But
@@ -170,17 +171,13 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       return;
     }
 
-    String fullName = dbName == null || catalog_ == null
-        ? funcName
-        : dbName + "." + funcName;
-
     if (usedFunctions_ != null) {
       usedFunctions_.add(functions.get(0));
     }
 
     SqlOperator impalaOp = (functions.get(0) instanceof AggregateFunction)
-        ? new ImpalaAggOperator(dbToUse, fullName)
-        : new ImpalaOperator(dbToUse, fullName);
+        ? new ImpalaAggOperator(dbToUse, funcName)
+        : new ImpalaOperator(dbToUse, funcName);
 
     operatorList.add(impalaOp);
   }
