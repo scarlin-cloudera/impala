@@ -129,7 +129,7 @@ public class ImpalaValuesRel extends Values
       return nullLiteral;
     }
 
-    return LiteralExpr.createFromStr(expr.getStringValue(), impalaType, true);
+    return LiteralExpr.createFromUnescapedStr(expr.getStringValue(), impalaType);
   }
 
   @Override
