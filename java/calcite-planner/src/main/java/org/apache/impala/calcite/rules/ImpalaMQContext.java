@@ -19,6 +19,7 @@ package org.apache.impala.calcite.rules;
 import org.apache.calcite.plan.Context;
 
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.impala.calcite.service.CalciteRelNodeConverter;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -29,6 +30,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class ImpalaMQContext implements Context {
   // Input columns from a parent RelNode passed through the RelMetadataQuery framework.
   private ImmutableBitSet inputRefs_ = ImmutableBitSet.of();
+
+  public final CalciteRelNodeConverter relNodeConverter_;
+
+  public ImpalaMQContext() {
+    this(null);
+  }
+
+  public ImpalaMQContext(CalciteRelNodeConverter relNodeConverter) {
+    this.relNodeConverter_ = relNodeConverter;
+  }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;

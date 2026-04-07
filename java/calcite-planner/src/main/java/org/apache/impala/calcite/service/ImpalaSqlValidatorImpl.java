@@ -22,6 +22,8 @@ import com.google.common.base.Preconditions;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -32,6 +34,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorScope.Resolve;
 import org.apache.calcite.sql.validate.SqlValidatorScope.ResolvedImpl;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
@@ -39,6 +42,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.authorization.Privilege;
@@ -52,6 +56,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The ImpalaSqlValidatorImpl is responsible for registering column-level and
@@ -61,6 +70,11 @@ import java.math.BigDecimal;
 public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
 
   private Analyzer analyzer_;
+
+  // Object to correct issue with aliasing within a view. See comment in
+  // ViewAliasCorrector.java for more detail.
+  private ViewAliasCorrector.CurrentPhase viewAliasCorrector_ =
+      ViewAliasCorrector.NOOP;
 
   protected static final Logger LOG =
       LoggerFactory.getLogger(ImpalaSqlValidatorImpl.class.getName());
@@ -154,5 +168,68 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
           builder -> builder.allOf(Privilege.VIEW_METADATA)
               .onDb(BuiltinsDb.getInstance().getName(), null).build());
     }
+  }
+
+  @Override
+  protected void validateSelect(
+      SqlSelect select,
+      RelDataType targetRowType) {
+    // A select node is visited here, Notify the current phase of the alias
+    // corrector object to handle any gathering or correction needed.
+    // Since this method is called from a visitor, other "enter" methods
+    // from nested selects may call enterSelect() before the exitSelect() is
+    // called.
+    viewAliasCorrector_.enterSelect(select);
+
+    try {
+      super.validateSelect(select, targetRowType);
+      // Let corrector know that this level of select is done processing.
+    } finally {
+      viewAliasCorrector_.exitSelect();
+    }
+  }
+
+  @Override
+  public SqlNode expandSelectExpr(SqlNode expr,
+      SelectScope scope, SqlSelect select, Map<String, SqlNode> expansions) {
+
+    // Allow the corrector to fix the aliases if necessary.
+    expr = viewAliasCorrector_.processSelectItem(expr);
+    // Normal processing of expandSelectExpr by Calcite.
+    return super.expandSelectExpr(expr, scope, select, expansions);
+  }
+
+  public void restartValidatingView() {
+    Preconditions.checkState(
+        viewAliasCorrector_ instanceof ViewAliasCorrector.ViewGatherAliases);
+    viewAliasCorrector_.validateFinished();
+    ViewAliasCorrector.ViewGatherAliases firstPhase =
+        (ViewAliasCorrector.ViewGatherAliases) viewAliasCorrector_;
+    viewAliasCorrector_ =
+        new ViewAliasCorrector.ViewAttemptAliasCorrection(firstPhase);
+  }
+
+  /**
+   * Called before validation starts. Allows this validator to set the current
+   * phase...first phase is to gather the information if the alias problem exists,
+   * second phase is to correct the problem. See ViewAliasCorrector for more detail.
+   */
+  public void startValidatingView() {
+    viewAliasCorrector_ = new ViewAliasCorrector.ViewGatherAliases();
+  }
+
+  /**
+   * Called after validation ends. Resets processtor to NOOP.
+   */
+  public void endValidatingView() {
+    viewAliasCorrector_.validateFinished();
+    viewAliasCorrector_ = ViewAliasCorrector.NOOP;
+  }
+
+  /**
+   * Returns true if the corrector has found a problem with a view.
+   */
+  public boolean foundAliasIssueInView() {
+    return viewAliasCorrector_.hasAliasIssue();
   }
 }
