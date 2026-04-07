@@ -50,6 +50,7 @@ import org.apache.impala.authorization.Privilege;
 import org.apache.impala.authorization.PrivilegeRequestBuilder;
 import org.apache.impala.calcite.operators.ImpalaOperatorTable;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
+import org.apache.impala.calcite.schema.ImpalaViewTable;
 import org.apache.impala.calcite.type.ImpalaTypeCoercionFactory;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
@@ -68,6 +69,7 @@ import org.apache.impala.planner.PlannerContext;
 import org.apache.impala.planner.SingleNodePlannerIntf;
 import org.apache.impala.thrift.TQueryCtx;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -266,7 +268,14 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
           analyzer_.setMaskPrivChecks(null);
         }
         // Register privilege requests for columns referenced by the child view.
-        validator.validate(parsedSqlNode);
+        parsedSqlNode = validateView(validator, parsedSqlNode, queryParser);
+
+        ImpalaViewTable calciteView =
+            reader_.getTable(tableName.toPath()).unwrap(ImpalaViewTable.class);
+        Preconditions.checkNotNull(calciteView);
+        // Set the validated node into the view so it won't have to be re-validated
+        // when the SqlNode AST gets turned into a RelNode tree for the view.
+        calciteView.setValidatedNode(parsedSqlNode);
 
         // Recurse if 'feTable' is also a view. Note that the privilege requests for the
         // tables referenced by 'feTable' will be registered within the recursive call.
@@ -279,6 +288,26 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
           analyzer_.unsetMaskPrivChecks();
         }
       }
+    }
+  }
+
+  private SqlNode validateView(ImpalaSqlValidatorImpl validator, SqlNode parsedSqlNode,
+      CalciteQueryParser queryParser) throws ParseException, ImpalaException {
+    try {
+      validator.startValidatingView();
+      parsedSqlNode = validator.validate(parsedSqlNode);
+      return parsedSqlNode;
+    } catch (Exception e) {
+      validator.restartValidatingView();
+      if (validator.foundAliasIssueInView()) {
+        parsedSqlNode = queryParser.parse();
+        parsedSqlNode = validator.validate(parsedSqlNode);
+        return parsedSqlNode;
+      } else {
+        throw e;
+      }
+    } finally {
+      validator.endValidatingView();
     }
   }
 
