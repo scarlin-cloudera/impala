@@ -1,0 +1,83 @@
+====
+---- QUERY
+set planner=calcite;
+set fallback_planner=calcite;
+values(1);
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# IMPALA-XXXXX: Because of known Calcite issue, an unsupported
+# exception should be thrown and this should fallback.
+set planner=calcite;
+set fallback_planner=calcite;
+select tmp.val from (values
+(0 as val),
+(34304461)) as tmp;
+---- RUNTIME_PROFILE
+row_regex: PlannerType: OriginalPlanner
+====
+---- QUERY
+# With 2 columns in the values clause, this
+# should not fallback.
+set planner=calcite;
+set fallback_planner=calcite;
+select tmp.val from (values
+(0 as val, 1 as val2),
+(34304461, 2)) as tmp;
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# No alias for column should not fallback
+set planner=calcite;
+set fallback_planner=calcite;
+select * from (values
+(0),
+(34304461)) tmp;
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# Standard aliasing syntax should not fallback
+set planner=calcite;
+set fallback_planner=calcite;
+select tmp.val1 from (values
+(0),
+(34304461)) tmp(val1);
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+---- QUERY
+# IMPALA-XXXXX: alias on the left should cause fallback
+set planner=calcite;
+set fallback_planner=calcite;
+select a.val from
+(values(1 as val)) a
+cross join
+(values(2, 3)) b;
+---- RUNTIME_PROFILE
+row_regex: PlannerType: OriginalPlanner
+====
+---- QUERY
+# IMPALA-XXXXX: alias on the right should cause fallback
+set planner=calcite;
+set fallback_planner=calcite;
+select a.val from
+(values(2, 3)) b
+cross join
+(values(1 as val)) a;
+---- RUNTIME_PROFILE
+row_regex: PlannerType: OriginalPlanner
+====
+---- QUERY
+# 2 columns with alias on left should not fallback
+set planner=calcite;
+set fallback_planner=calcite;
+select a.val from
+(values(1 as val, 2 as val2)) a
+cross join
+(values(2, 3)) b;
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
