@@ -2380,42 +2380,101 @@ SqlNode ExplicitTable(SqlParserPos pos) :
 }
 
 /**
+ * Parses one item in a select list.
+ */
+void AddValuesItem(List<SqlNode> list) :
+{
+    final SqlNode e;
+    final SqlIdentifier id;
+}
+{
+    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    (
+        [ <AS> ]
+        (
+            // Added Impala code to handle when there are quotes and no quotes
+            id = SimpleIdentifierFromAllQuotesOrNonQuotes()
+        )
+        { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, id)); }
+    |   { list.add(e); }
+    )
+}
+
+/**
  * Parses a VALUES leaf query expression.
  */
 SqlNode TableConstructor() :
 {
     final List<SqlNode> list = new ArrayList<SqlNode>();
-    final Span s;
+    final List<SqlNode> outerList = new ArrayList<SqlNode>();
+    Span s = null;
+    SqlNode e;
+    SqlNode row;
+    SqlNode last;
 }
 {
     (
         <VALUES> { s = span(); }
-    |
-        <VALUE>
-        {
-            s = span();
-            if (!this.conformance.isValueAllowed()) {
-                throw SqlUtil.newContextException(getPos(), RESOURCE.valueNotAllowed());
-            }
-        }
     )
-    AddRowConstructor(list)
+    <LPAREN>
     (
-        LOOKAHEAD(2)
-        <COMMA> AddRowConstructor(list)
-    )*
+      // Double parens version for Impala
+      (
+        <LPAREN>
+        AddValuesItem(list)
+        ( <COMMA> AddValuesItem(list) )*
+        <RPAREN>
+        {
+          last = list.get(list.size() - 1);
+          row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+          outerList.add(row);
+          list.clear();
+        }
+        (
+          <COMMA>
+          <LPAREN>
+            AddValuesItem(list)
+            ( <COMMA> AddValuesItem(list) )*
+          <RPAREN>
+          {
+            last = list.get(list.size() - 1);
+            row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+            outerList.add(row);
+            list.clear();
+          }
+        )*
+      <RPAREN>
+    )
+    |
+    (
+      // Single parens version
+      AddValuesItem(list)
+      ( <COMMA> AddValuesItem(list) )*
+      <RPAREN>
+      {
+        last = list.get(list.size() - 1);
+        row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+        outerList.add(row);
+        list.clear();
+      }
+      (
+        <COMMA>
+        <LPAREN>
+          AddValuesItem(list)
+          ( <COMMA> AddValuesItem(list) )*
+        <RPAREN>
+        {
+          last = list.get(list.size() - 1);
+          row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+          outerList.add(row);
+          list.clear();
+        }
+      )*
+    )
+    )
     {
-        return SqlStdOperatorTable.VALUES.createCall(s.end(this), list);
+        return SqlStdOperatorTable.VALUES.createCall(s.end(this), outerList);
     }
-}
-
-/** Parses a row constructor and adds it to a list. */
-void AddRowConstructor(List<SqlNode> list) :
-{
-    SqlNode e;
-}
-{
-    e = RowConstructor() { list.add(e); }
 }
 
 /**
