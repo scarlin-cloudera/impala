@@ -18,6 +18,7 @@
 package org.apache.impala.calcite.rules;
 
 import com.google.common.base.Preconditions;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -125,6 +126,10 @@ public class ImpalaRexExecutor implements RexExecutor {
 
     RexCall call = (RexCall) rexNode;
 
+    if (!RelOptUtil.InputFinder.bits(call).isEmpty()) {
+      return false;
+    }
+
     // cannot reduce interval operation by itself. An example of This will look like
     // *(14 INT : 86400000 INTERVAL) with a return type of INTERVAL. This rexCall
     // can be a parameter of some date time expression (e.g. time_add(time, interval))
@@ -145,6 +150,17 @@ public class ImpalaRexExecutor implements RexExecutor {
     // the exact value is needed. Converting to a double causes an inexact
     // value to be created and interferes with the partitioned directory name.
     if (isImplicitCastDecimalToInexact(call)) {
+      return false;
+    }
+
+    // Special hack case, we don't want to reduce a char cast of a string literal.
+    // Calcite treats string literals as CHAR type while Impala treats it as STRING
+    // type. If there is explicit SQL that casts the literal to a CHAR, we don't
+    // want to reduce this because the code later on will not be able to differentiate
+    // between a String literal of type CHAR that should be treated as a string and
+    // a string literal that was cast explicitly as a CHAR that should be treated as
+    // a char.
+    if (isStringLiteralWithExplicitCharCast(call)) {
       return false;
     }
 
@@ -170,11 +186,21 @@ public class ImpalaRexExecutor implements RexExecutor {
   }
 
   private static boolean isLiteralOrCastOfLiteral(RexNode operand) {
-    while ((operand instanceof RexCall) &&
-        ((RexCall) operand).getKind() == SqlKind.CAST) {
+    while ((operand instanceof RexCall) && isCast((RexCall) operand)) {
       operand = ((RexCall) operand).getOperands().get(0);
     }
     return (operand instanceof RexLiteral);
+  }
+
+  private static boolean isCast(RexCall rexCall) {
+    return rexCall.getKind() == SqlKind.CAST ||
+        rexCall.getOperator().getName().equals("EXPLICIT_CAST");
+  }
+
+  private static boolean isStringLiteralWithExplicitCharCast(RexCall call) {
+    return call.getOperator().getName().equals("EXPLICIT_CAST") &&
+        call.getOperands().get(0) instanceof RexLiteral &&
+        call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.VARCHAR;
   }
 
   private static boolean isIntervalConst(RexNode operand) {
