@@ -135,6 +135,11 @@ public class ImpalaCoreRules {
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(AggregateProjectPullUpConstantsRule.Config.class).toRule();
 
+  public static FilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
+      FilterProjectTransposeRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(FilterProjectTransposeRule.Config.class).toRule();
+
   public static FilterSetOpTransposeRule FILTER_SET_OP_TRANSPOSE =
       FilterSetOpTransposeRule.Config.DEFAULT
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
@@ -160,11 +165,20 @@ public class ImpalaCoreRules {
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(ProjectToSemiJoinRule.ProjectToSemiJoinRuleConfig.class).toRule();
 
+  public static ValuesReduceRule FILTER_VALUES_MERGE =
+      ValuesReduceRule.Config.FILTER
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(ValuesReduceRule.Config.class).toRule();
+
   public static FilterMergeRule FILTER_MERGE =
       FilterMergeRule.Config.DEFAULT
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(FilterMergeRule.Config.class).toRule();
 
+  public static ProjectMergeRule PROJECT_MERGE =
+      ProjectMergeRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(ProjectMergeRule.Config.class).toRule();
 
   public static JoinToMultiJoinRule JOIN_TO_MULTI_JOIN =
       JoinToMultiJoinRule.Config.DEFAULT
@@ -202,18 +216,6 @@ public class ImpalaCoreRules {
               -> ImpalaLoptOptimizeJoinRule.swapInputs(mq, mj, left, right, cond,
                   rexB, adjust))
           .toRule();
-
-  public static ImpalaFilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
-      new ImpalaFilterProjectTransposeRule(
-          FilterProjectTransposeRule.Config.DEFAULT
-              .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
-              .as(FilterProjectTransposeRule.Config.class));
-
-  public static ImpalaProjectMergeRule PROJECT_MERGE =
-      new ImpalaProjectMergeRule(
-          ProjectMergeRule.Config.DEFAULT
-              .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
-              .as(ProjectMergeRule.Config.class));
 
   // If the straight join hint is seen, we exclude applying the JOIN_TO_MULTI_JOIN
   // rule which will ensure no join optimization is done on the join.
