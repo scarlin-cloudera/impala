@@ -56,9 +56,14 @@ public class ImpalaAdjustScaleFunction extends SqlFunction {
             ScalarType.MAX_PRECISION)
         : decimalType.decimalPrecision();
 
-    Integer scale = opBinding.getOperandCount() > 1
-        ? opBinding.getOperandLiteralValue(1, Integer.class)
-        : 0;
+    int scale = 0;
+    if (opBinding.getOperandCount() > 1) {
+      Integer literal = opBinding.getOperandLiteralValue(1, Integer.class);
+      if (literal == null) {
+        throw new RuntimeException("Invalid Truncate Unit for scale");
+      }
+      scale = literal;
+    }
 
     Type newDecimalType = ScalarType.createDecimalType(precision, scale);
 
