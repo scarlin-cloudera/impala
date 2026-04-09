@@ -2419,9 +2419,7 @@ BIGINT
 # IMPALA-XXXXX: need better error
 select dayofyear(trunc('2014-11-11', string_col)) from functional.alltypestiny limit 1;
 ---- CATCH
-Invalid Truncate Unit: 0
----- CALCITE_PLANNER_CATCH
-row_regex:.*Cannot.*
+Invalid Truncate Unit
 ====
 ---- QUERY
 select regexp_match_count(tmp.str, tmp.`pattern`) from (values
