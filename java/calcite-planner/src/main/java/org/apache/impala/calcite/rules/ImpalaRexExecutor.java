@@ -18,7 +18,6 @@
 package org.apache.impala.calcite.rules;
 
 import com.google.common.base.Preconditions;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -126,10 +125,6 @@ public class ImpalaRexExecutor implements RexExecutor {
 
     RexCall call = (RexCall) rexNode;
 
-    if (!RelOptUtil.InputFinder.bits(call).isEmpty()) {
-      return false;
-    }
-
     // cannot reduce interval operation by itself. An example of This will look like
     // *(14 INT : 86400000 INTERVAL) with a return type of INTERVAL. This rexCall
     // can be a parameter of some date time expression (e.g. time_add(time, interval))
@@ -185,6 +180,12 @@ public class ImpalaRexExecutor implements RexExecutor {
     return true;
   }
 
+  private static boolean isStringLiteralWithExplicitCharCast(RexCall call) {
+    return call.getOperator().getName().equals("EXPLICIT_CAST") &&
+        call.getOperands().get(0) instanceof RexLiteral &&
+        call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.VARCHAR;
+  }
+
   private static boolean isLiteralOrCastOfLiteral(RexNode operand) {
     while ((operand instanceof RexCall) && isCast((RexCall) operand)) {
       operand = ((RexCall) operand).getOperands().get(0);
@@ -195,12 +196,6 @@ public class ImpalaRexExecutor implements RexExecutor {
   private static boolean isCast(RexCall rexCall) {
     return rexCall.getKind() == SqlKind.CAST ||
         rexCall.getOperator().getName().equals("EXPLICIT_CAST");
-  }
-
-  private static boolean isStringLiteralWithExplicitCharCast(RexCall call) {
-    return call.getOperator().getName().equals("EXPLICIT_CAST") &&
-        call.getOperands().get(0) instanceof RexLiteral &&
-        call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.VARCHAR;
   }
 
   private static boolean isIntervalConst(RexNode operand) {
