@@ -72,10 +72,10 @@ public class ImpalaRexBuilder extends RexBuilder {
         BigDecimal bd0 = (BigDecimal) o;
         type = ImpalaTypeConverter.getLiteralDataType(bd0, type);
       }
-    }
 
-    if (SqlTypeUtil.inCharFamily(typeName)) {
-      type = ImpalaTypeConverter.getRelDataType(Type.STRING, false);
+      if (SqlTypeUtil.inCharFamily(typeName)) {
+        type = ImpalaTypeConverter.getRelDataType(Type.STRING, false);
+      }
     }
 
     return super.makeLiteral(o, type, typeName);
