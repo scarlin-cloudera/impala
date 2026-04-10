@@ -445,6 +445,18 @@ public class ImpalaTypeConverter {
     Type impalaType1 = createImpalaType(type1);
     Type impalaType2 = createImpalaType(type2);
 
+    // XXX: placing in hack for
+    // select coalesce('2012-01-01', cast('2012-02-02' as timestamp), cast('2012-02-02' as timestamp)),
+    //  coalesce('2012-01-01', cast('2012-02-02' as date), cast('2012-02-02' as timestamp));
+    // maybe there is a typecompatibility that works properly, but the string literal is seen as
+    // char(10) and Impala reports this as incompatible with TIMESTAMP
+    if (type1.getSqlTypeName() == SqlTypeName.CHAR && SqlTypeUtil.isDatetime(type2)) {
+      impalaType1 = Type.STRING;
+    }
+    if (type2.getSqlTypeName() == SqlTypeName.CHAR && SqlTypeUtil.isDatetime(type1)) {
+      impalaType2 = Type.STRING;
+    }
+
     Type retType = ScalarType.getAssignmentCompatibleType(impalaType1, impalaType2,
         typeCompatibility);
 
