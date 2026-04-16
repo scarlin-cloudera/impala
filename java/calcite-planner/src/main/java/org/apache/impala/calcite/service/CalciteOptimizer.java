@@ -238,7 +238,7 @@ public class CalciteOptimizer implements CompilerStep {
 
     HepProgramBuilder builder = new HepProgramBuilder();
     // has to be in a separate program or else there is an infinite loop
-    builder.addRuleInstance(ImpalaCoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
+//    builder.addRuleInstance(ImpalaCoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
     builder.addRuleInstance(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE);
 
     // XXX: add comment about project
