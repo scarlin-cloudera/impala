@@ -153,8 +153,8 @@ public class CoerceOperandShuttle extends RexShuttle {
           call);
     }
 
-    RelDataType retType =
-        getReturnType(rexBuilder, castedOperandsCall, fn.getReturnType());
+    RelDataType retType = castedOperandsCall.getType();
+//        getReturnType(rexBuilder, castedOperandsCall, fn.getReturnType());
 
     // This code does not handle changes in the return type when the Calcite
     // function is not a decimal but the function resolves to a function that
@@ -187,7 +187,8 @@ public class CoerceOperandShuttle extends RexShuttle {
           over);
     }
 
-    RelDataType retType = getReturnType(rexBuilder, castedOver, fn.getReturnType());
+    RelDataType retType = castedOver.getType();
+//    RelDataType retType = getReturnType(rexBuilder, castedOver, fn.getReturnType());
 
     List<RexNode> newOperands = getCastedArgTypes(fn, castedOver.getOperands(), retType,
         factory, rexBuilder, castedOver.getAggOperator());
