@@ -368,6 +368,8 @@ public class CoerceOperandShuttle extends RexShuttle {
       Type toImpalaType = tmpType.isWildcardDecimal() && commonDecOperandType != null
           ? commonDecOperandType
           : tmpType;
+      //XXX: note on 4/17: maybe if it's a decimal and doesn't have a common type, we should
+      // use the from type
       RelDataType toType = isCaseFunction(fn)
           ? retType
           : getCastedToType(argTypes.get(i), toImpalaType, factory,
