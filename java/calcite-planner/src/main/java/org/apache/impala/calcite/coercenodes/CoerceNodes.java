@@ -303,7 +303,31 @@ public class CoerceNodes{
   private static RelNode processUnionNode(RelNode relNode, List<RelNode> inputs,
       RexBuilder rexBuilder, boolean isInputChanged) {
     final LogicalUnion union = (LogicalUnion) relNode;
-    return isInputChanged ? LogicalUnion.create(inputs, union.all) : relNode;
+
+    // no work to be done if no input changed and there's only one input.
+    if (!isInputChanged && inputs.size() == 1) {
+      return relNode;
+    }
+
+    // Calculate the common row types for all the columns.
+    List<RelDataType> commonRowType = getCompatibleRowType(relNode, inputs, rexBuilder);
+
+    // Check to see if the union rowtype is different from the common row type calculated.
+    // The boolean inputsChanged is used to determine if we need to recreate the Union
+    // node, so if any column type is different, we set the value to true.
+    boolean inputsChanged = isInputChanged ||
+        haveTypesChanged(commonRowType, union.getRowType().getFieldList());
+
+    List<RelNode> changedRelNodes = new ArrayList<>();
+    for (RelNode input : inputs) {
+      // getChangedInput returns the same RelNode if the RelNode has not changed.
+      RelNode changedRelNode = getChangedUnionInput(input, commonRowType, rexBuilder);
+      boolean inputChanged = !changedRelNode.equals(input);
+      changedRelNodes.add(inputChanged ? changedRelNode : input);
+      inputsChanged |= inputChanged;
+    }
+
+    return inputsChanged ? LogicalUnion.create(changedRelNodes, union.all) : relNode;
   }
 
   /**
