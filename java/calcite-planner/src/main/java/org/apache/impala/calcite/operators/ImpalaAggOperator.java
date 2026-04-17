@@ -94,6 +94,11 @@ public class ImpalaAggOperator extends SqlAggFunction {
     return id_;
   }
 
+  @Override
+  public boolean allowsNullTreatment() {
+    return getName().equals("LAST_VALUE") || getName().equals("FIRST_VALUE");
+  }
+
   public FeDb getDb() {
     return db_;
   }
