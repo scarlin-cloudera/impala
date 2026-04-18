@@ -106,8 +106,12 @@ public class ImpalaTypeCoercionImpl extends TypeCoercionImpl {
 
   @Override
   public boolean binaryComparisonCoercion(SqlCallBinding binding) {
-    return binding.getOperandCount() > 1 &&
-        needsCasting(binding.getOperandType(0), binding.getOperandType(1));
+    if (binding.getOperandCount() == 2 &&
+        SqlTypeUtil.isDecimal(binding.getOperandType(0)) &&
+        SqlTypeUtil.isDecimal(binding.getOperandType(1))) {
+      return false;
+    }
+    return super.binaryComparisonCoercion(binding);
   }
 
   @Override
