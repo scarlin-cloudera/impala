@@ -27,6 +27,8 @@ import org.apache.impala.calcite.type.ImpalaTypeConverter;
 
 import java.math.BigDecimal;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Factory for row expressions.
  *
@@ -48,6 +50,7 @@ import java.math.BigDecimal;
  *
  */
 public class ImpalaRexBuilder extends RexBuilder {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaRexBuilder.class.getName());
 
   private boolean postAnalysis_ = false;
 

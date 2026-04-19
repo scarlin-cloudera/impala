@@ -183,6 +183,7 @@ public class ImpalaRexExecutor implements RexExecutor {
 
   private static boolean isStringLiteralWithExplicitCharCast(RexCall call) {
     return call.getOperator().getName().equals("EXPLICIT_CAST") &&
+        call.getType().getSqlTypeName() == SqlTypeName.CHAR &&
         call.getOperands().get(0) instanceof RexLiteral &&
         call.getOperands().get(0).getType().getSqlTypeName() == SqlTypeName.VARCHAR;
   }

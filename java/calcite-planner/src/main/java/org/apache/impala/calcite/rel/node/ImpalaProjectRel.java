@@ -81,9 +81,7 @@ public class ImpalaProjectRel extends Project
     }
 
     // see comment in isCoercedProjectForValues method
-    //XXX: maybe we can remove this
-//    boolean isCoercedProjectForValues = isCoercedProjectForValues(context);
-    boolean isCoercedProjectForValues = false;
+    boolean isCoercedProjectForValues = isCoercedProjectForValues(context);
 
     NodeWithExprs inputWithExprs = getChildPlanNode(context, isCoercedProjectForValues);
 
