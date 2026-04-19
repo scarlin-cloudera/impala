@@ -149,7 +149,6 @@ public class CalciteRelNodeConverter implements CompilerStep {
 
     LogUtil.logDebug(decorrelatedPlan, "Plan after subquery decorrelation phase");
 
-    rexBuilder_.setPostAnalysis();
     return decorrelatedPlan;
   }
 
