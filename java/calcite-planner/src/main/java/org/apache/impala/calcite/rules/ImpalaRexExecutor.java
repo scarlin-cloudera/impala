@@ -156,9 +156,11 @@ public class ImpalaRexExecutor implements RexExecutor {
     // between a String literal of type CHAR that should be treated as a string and
     // a string literal that was cast explicitly as a CHAR that should be treated as
     // a char.
+    /*
     if (isStringLiteralWithExplicitCharCast(call)) {
       return false;
     }
+    */
 
     return true;
   }
