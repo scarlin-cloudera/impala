@@ -36,7 +36,6 @@ public class ImpalaTypeFactoryImpl extends SqlTypeFactoryImpl {
     super(new ImpalaTypeSystemImpl());
   }
 
-/*
   @Override
   public RelDataType leastRestrictive(
       List<RelDataType> types,
@@ -48,5 +47,4 @@ public class ImpalaTypeFactoryImpl extends SqlTypeFactoryImpl {
     }
     return ImpalaTypeConverter.getCompatibleType(types, this);
   }
-  */
 }
