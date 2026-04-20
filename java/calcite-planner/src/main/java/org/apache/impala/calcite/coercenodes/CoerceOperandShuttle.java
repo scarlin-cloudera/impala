@@ -346,7 +346,7 @@ public class CoerceOperandShuttle extends RexShuttle {
     // boolean, so they don't need casting.
     boolean isCaseFunction = isCaseFunction(fn);
     boolean castedOperand = false;
-    Type commonDecOperandType = getCommonDecimalType(op, argTypes, factory);
+    Type commonDecOperandType = getCommonDecimalTypeToUse(op, argTypes, retType, factory);
 
     Preconditions.checkState(argTypes.size() == 0 || fn.getNumArgs() > 0);
     for (int i = 0; i < argTypes.size(); ++i) {
@@ -368,8 +368,6 @@ public class CoerceOperandShuttle extends RexShuttle {
       Type toImpalaType = tmpType.isWildcardDecimal() && commonDecOperandType != null
           ? commonDecOperandType
           : tmpType;
-      //XXX: note on 4/17: maybe if it's a decimal and doesn't have a common type, we should
-      // use the from type
       RelDataType toType = isCaseFunction(fn)
           ? retType
           : getCastedToType(argTypes.get(i), toImpalaType, factory,
@@ -387,21 +385,16 @@ public class CoerceOperandShuttle extends RexShuttle {
     return castedOperand ? newOperands : operands;
   }
 
-  public static Type getCommonDecimalType(SqlOperator op, List<RelDataType> argTypes,
-      RelDataTypeFactory factory) {
-    RelDataType commonDecRelDataType = getCommonDecimalRelDataType(op, argTypes, factory);
-    return commonDecRelDataType != null
-        ? ImpalaTypeConverter.createImpalaType(commonDecRelDataType)
-        : null;
-  }
-
-  public static RelDataType getCommonDecimalRelDataType(SqlOperator op,
-      List<RelDataType> argTypes, RelDataTypeFactory factory) {
-
+  public static Type getCommonDecimalTypeToUse(SqlOperator op, List<RelDataType> argTypes,
+      RelDataType retType, RelDataTypeFactory factory) {
     SqlKind kind = op.getKind();
     if (kind.belongsTo(SqlKind.BINARY_ARITHMETIC) ||
         kind.belongsTo(SqlKind.BINARY_COMPARISON)) {
       return null;
+    }
+
+    if (SqlTypeUtil.isDecimal(retType)) {
+      return ImpalaTypeConverter.createImpalaType(retType);
     }
 
     List<RelDataType> decimalOperands = new ArrayList<>();
@@ -418,7 +411,7 @@ public class CoerceOperandShuttle extends RexShuttle {
     if (dType == null) {
       throw new RuntimeException("could not find compatible decimal type");
     }
-    return dType;
+    return ImpalaTypeConverter.createImpalaType(dType);
   }
 
   /**
