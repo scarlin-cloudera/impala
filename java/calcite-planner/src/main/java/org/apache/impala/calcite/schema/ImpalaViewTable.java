@@ -42,6 +42,7 @@ public class ImpalaViewTable extends ViewTable {
 
   private final String viewSql_;
 
+  // The SqlNode tree that has been analyzed and validated.
   private SqlNode validatedNode_;
 
   public ImpalaViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
@@ -59,6 +60,18 @@ public class ImpalaViewTable extends ViewTable {
     validatedNode_ = validatedNode;
   }
 
+  /**
+   * The default implementation of toRel immediately calls ViewTable.expandView()
+   * which expands the view into a RelNode tree. However, some of the configuration
+   * variables specific to Impala are not configurable in the parent class. This
+   * overridden method calls the Impala version of convertQuery to get the RelRoot
+   * of the view tree.
+   *
+   * There is a little bit of work to do to clean up the RelNode after the view
+   * has been expanded, including handling recursive views. Unfortunately, the
+   * parent ViewTable.expandView() contains these portions and the method is private.
+   * So some code had to be copied from ViewTable.expandView() to handle this.
+   */
   @Override
   public RelNode toRel(
       RelOptTable.ToRelContext context,
@@ -69,7 +82,7 @@ public class ImpalaViewTable extends ViewTable {
 
     try {
       final RelRoot root = relNodeConverter.convertQuery(validatedNode_);
-      // Code extracted from ViewTable.expandView().
+      // Start code extracted from ViewTable.expandView().
       final RelNode rel =
           RelOptUtil.createCastRel(root.rel, relOptTable.getRowType(), true);
       // Expand any views
@@ -86,6 +99,7 @@ public class ImpalaViewTable extends ViewTable {
             }
           });
       return root.withRel(rel2).rel;
+      // End code extracted from ViewTable.expandView().
     } catch (Exception e) {
       throw new RuntimeException("Error analyzing view " + viewSql_ + ": " + e);
     }

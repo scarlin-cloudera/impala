@@ -31,8 +31,15 @@ public class ImpalaMQContext implements Context {
   // Input columns from a parent RelNode passed through the RelMetadataQuery framework.
   private ImmutableBitSet inputRefs_ = ImmutableBitSet.of();
 
+  /**
+   * The RelNodeConverter needed for view expansion.
+   */
   public final CalciteRelNodeConverter relNodeConverter_;
 
+  /**
+   * The RelNodeConverter is only needed for view expansion. It is not needed at
+   * optimization time.
+   */
   public ImpalaMQContext() {
     this(null);
   }

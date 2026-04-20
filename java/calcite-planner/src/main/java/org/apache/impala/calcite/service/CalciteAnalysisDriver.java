@@ -266,6 +266,14 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
     }
   }
 
+  /**
+   * validateView() takes a parsed SqlNode for view SQL and returns the validated SqlNode.
+   *
+   * The logic here is mostly straightforward, but there is an oddity for views. If the
+   * view contains an "alias issue" (see the ViewAliasCorrector class for details), an
+   * exception will be thrown. The code here checks to see if that issue exists and
+   * retries validating the view with the validator in an alias correction mode.
+   */
   private SqlNode validateView(ImpalaSqlValidatorImpl validator, SqlNode parsedSqlNode,
       CalciteQueryParser queryParser) throws ParseException, ImpalaException {
     try {
@@ -273,7 +281,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       parsedSqlNode = validator.validate(parsedSqlNode);
       return parsedSqlNode;
     } catch (Exception e) {
-      validator.restartValidatingView();
+      validator.restartValidationInAliasCorrectionMode();
       if (validator.foundAliasIssueInView()) {
         parsedSqlNode = queryParser.parse();
         parsedSqlNode = validator.validate(parsedSqlNode);

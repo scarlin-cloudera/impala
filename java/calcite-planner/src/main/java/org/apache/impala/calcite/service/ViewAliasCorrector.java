@@ -37,8 +37,8 @@ import java.util.Set;
  * ViewAliasCorrector fixes an issue that the Calcite compiler has with the way Impala
  * creates the view syntax in a specific situation. Specifically...
  *
- * For the following view: 
- * create view functional.sample_view (abc) as 
+ * For the following view:
+ * create view functional.sample_view (abc) as
  * select sum(bigint_col) from functional.alltypestiny
  *
  * The view syntax created in the database on a "show view" displays:
@@ -58,7 +58,7 @@ import java.util.Set;
  * which allows the SqlNode to be changed.
  */
 public class ViewAliasCorrector {
-  
+
   // The NOOP phase: If the current validation is not for a view, there is nothing to
   // correct for, so the validator should have its current phase as NOOP.
   public static CurrentPhase NOOP = new NoopPhase();
@@ -86,8 +86,6 @@ public class ViewAliasCorrector {
     public void validateFinished() {
       validationFinished_ = true;
     }
-
-    abstract public boolean hasAliasIssue();
 
     abstract public void processSelectImpl(SqlSelect select);
 
@@ -122,11 +120,6 @@ public class ViewAliasCorrector {
       return expr;
     }
 
-    @Override
-    public boolean hasAliasIssue() {
-      throw new RuntimeException("Should not call hasAliasIssue for this phase.");
-    }
-
     public Set<Integer> getItemsWithAliasIssue() {
       // Should not be called until validation is complete.
       Preconditions.checkState(validationFinished_);
@@ -144,7 +137,7 @@ public class ViewAliasCorrector {
       }
 
       for (int i = 0; i < topLevelSqlNodes_.size(); ++i) {
-        // compare the aliases of the first and second level to see if they match. 
+        // compare the aliases of the first and second level to see if they match.
         if (itemHasAliasIssue(topLevelSqlNodes_.get(i), secondLevelSqlNodes_.get(i))) {
           itemsWithAliasIssue.add(i);
         }
@@ -166,7 +159,7 @@ public class ViewAliasCorrector {
    */
   public static class ViewAttemptAliasCorrection extends CurrentPhase {
     private final Set<Integer> itemsWithAliasIssue_;
-    
+
     private int secondLevelSelectItemCounter_ = 0;
 
     private int aliasCounter_ = 0;
@@ -196,7 +189,7 @@ public class ViewAliasCorrector {
         // position number of the field in the second level select. The resulting
         // selectItem will be: "EXPR$<i> AS <alias name defined in top level view>"
         SqlIdentifier newIdentifier = identifier.setName(1, "EXPR$" + i);
-        SqlNode asNode = 
+        SqlNode asNode =
             SqlStdOperatorTable.AS.createCall(
                 newIdentifier.getParserPosition(),
                 newIdentifier,
@@ -212,7 +205,7 @@ public class ViewAliasCorrector {
       if (selectStackCounter_ != 2) {
         return returnNode;
       }
-      
+
       if (itemsWithAliasIssue_.contains(secondLevelSelectItemCounter_)) {
         String alias = "EXPR$" + secondLevelSelectItemCounter_;
         returnNode = SqlStdOperatorTable.AS.createCall(
@@ -220,12 +213,11 @@ public class ViewAliasCorrector {
             sqlNode,
             new SqlIdentifier(alias, SqlParserPos.ZERO));
       }
-      
+
       secondLevelSelectItemCounter_++;
       return returnNode;
     }
 
-    @Override
     public boolean hasAliasIssue() {
       return !itemsWithAliasIssue_.isEmpty();
     }
@@ -238,11 +230,6 @@ public class ViewAliasCorrector {
     @Override
     public SqlNode processSelectItem(SqlNode sqlNode) {
       return sqlNode;
-    }
-
-    @Override
-    public boolean hasAliasIssue() {
-      throw new RuntimeException("Should not call hasAliasIssue for this phase.");
     }
   }
 }

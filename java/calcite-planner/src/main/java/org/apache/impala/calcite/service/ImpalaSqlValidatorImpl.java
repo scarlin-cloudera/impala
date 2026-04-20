@@ -199,7 +199,7 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     return super.expandSelectExpr(expr, scope, select, expansions);
   }
 
-  public void restartValidatingView() {
+  public void restartValidationInAliasCorrectionMode() {
     Preconditions.checkState(
         viewAliasCorrector_ instanceof ViewAliasCorrector.ViewGatherAliases);
     viewAliasCorrector_.validateFinished();
@@ -230,6 +230,10 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
    * Returns true if the corrector has found a problem with a view.
    */
   public boolean foundAliasIssueInView() {
-    return viewAliasCorrector_.hasAliasIssue();
+    Preconditions.checkState(
+        viewAliasCorrector_ instanceof ViewAliasCorrector.ViewAttemptAliasCorrection);
+    ViewAliasCorrector.ViewAttemptAliasCorrection c =
+        (ViewAliasCorrector.ViewAttemptAliasCorrection) viewAliasCorrector_;
+    return c.hasAliasIssue();
   }
 }
