@@ -40,11 +40,13 @@ public class ImpalaTypeFactoryImpl extends SqlTypeFactoryImpl {
   public RelDataType leastRestrictive(
       List<RelDataType> types,
       SqlTypeMappingRule mappingRule) {
+      /*
     for (RelDataType type : types) {
       if (type.getSqlTypeName().equals(SqlTypeName.ROW)) {
         return super.leastRestrictive(types, mappingRule);
       }
     }
+    */
     return ImpalaTypeConverter.getCompatibleType(types, this);
   }
 }
