@@ -44,7 +44,8 @@ public class CastExpr extends Expr {
   private final TypeDef targetTypeDef_;
 
   // True if this is a "pre-analyzed" implicit cast.
-  private final boolean isImplicit_;
+  // XXX: fix this
+  protected boolean isImplicit_;
 
   // True if this cast does not change the type.
   private boolean noOp_ = false;
@@ -301,6 +302,9 @@ public class CastExpr extends Expr {
 
   public boolean isImplicit() { return isImplicit_; }
 
+  @Override
+  public boolean shouldRemoveImplicitCast() { return isImplicit_; }
+
   public TypeCompatibility getCompatibility() { return compatibility_; }
 
   @Override
@@ -469,7 +473,7 @@ public class CastExpr extends Expr {
 
   @Override
   public int hashCode() {
-    if (isImplicit()) {
+    if (shouldRemoveImplicitCast()) {
       return children_.get(0).hashCode();
     }
     return Objects.hash(super.localHash(), type_, children_);

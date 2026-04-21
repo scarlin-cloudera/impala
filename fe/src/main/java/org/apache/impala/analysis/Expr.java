@@ -1198,7 +1198,7 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
    * override this method and apply the substitution to such exprs as well.
    */
   protected Expr substituteImpl(ExprSubstitutionMap smap, Analyzer analyzer) {
-    if (isImplicitCast()) return getChild(0).substituteImpl(smap, analyzer);
+    if (shouldRemoveImplicitCast()) return getChild(0).substituteImpl(smap, analyzer);
     if (smap != null) {
       Expr substExpr = smap.get(this);
       if (substExpr != null) return substExpr.clone();
@@ -1675,7 +1675,7 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
    */
   public boolean isImplicitCast() { return false; }
 
-  public boolean allowsImplicitConversion() { return isImplicitCast(); }
+  public boolean shouldRemoveImplicitCast() { return false; }
 
   @Override
   public String toString() {
