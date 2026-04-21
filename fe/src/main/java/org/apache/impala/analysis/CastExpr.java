@@ -265,7 +265,7 @@ public class CastExpr extends Expr {
     if (castFormat_ != null && !castFormat_.isEmpty()) {
       formatClause = " FORMAT '" + getCastFormatWithEscapedSingleQuotes() + "'";
     }
-    return "CAST(" + getChild(0).toSql(options) + " AS " + targetTypeDef_.toString()
+    return "CAST(" + getChild(0).toSql(options) + " AS " + getTargetCastString()
         + formatClause + ")";
   }
 
@@ -491,5 +491,9 @@ public class CastExpr extends Expr {
   @Override
   public boolean recordChildrenInWorkloadManagement() {
     return true;
+  }
+
+  public String getTargetCastString() {
+    return targetTypeDef_.toString(); 
   }
 }

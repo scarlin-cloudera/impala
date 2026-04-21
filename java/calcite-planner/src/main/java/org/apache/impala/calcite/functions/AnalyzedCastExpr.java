@@ -65,6 +65,11 @@ public class AnalyzedCastExpr extends CastExpr {
     return super.isImplicitCast();
   }
 
+  @Override
+  public String getTargetCastString() {
+    return type_.toSql();
+  }  
+
   private static String getFormat(List<Expr> paramsList) {
     return paramsList.size() == 1
         ? null
