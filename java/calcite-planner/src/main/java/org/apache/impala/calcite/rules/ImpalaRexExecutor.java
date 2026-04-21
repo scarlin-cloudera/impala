@@ -93,7 +93,8 @@ public class ImpalaRexExecutor implements RexExecutor {
     analyzer_ = analyzer;
     queryCtx_ = queryCtx;
     reducer_ = reducer;
-    shouldCast_ = shouldCast;
+    //XXX: temporary, let's try this and see if we can get rid of shouldCast
+    shouldCast_ = true;
   }
 
   /**
