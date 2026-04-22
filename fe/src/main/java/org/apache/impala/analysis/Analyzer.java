@@ -3171,16 +3171,17 @@ public class Analyzer {
    */
   private Expr substituteNullSlots(Expr p) {
     // Construct predicate with all SlotRefs substituted by NullLiterals.
-    List<SlotRef> slotRefs = new ArrayList<>();
-    p.collect(Predicates.instanceOf(SlotRef.class), slotRefs);
+    List<Expr> wrappedSlotRefs = new ArrayList<>();
+    p.collect(Expr.IS_SLOT_REF_OR_IMPLICIT_CAST_OF, wrappedSlotRefs);
 
     // Map for substituting SlotRefs with NullLiterals.
     ExprSubstitutionMap nullSmap = new ExprSubstitutionMap();
-    for (SlotRef slotRef: slotRefs) {
-        // Preserve the original SlotRef type to ensure all substituted
-        // subexpressions in the predicate have the same return type and
-        // function signature as in the original predicate.
-        nullSmap.put(slotRef.clone(), NullLiteral.create(slotRef.getType()));
+    for (Expr wrappedSlotRef: wrappedSlotRefs) {
+      SlotRef slotRef = wrappedSlotRef.unwrapSlotRef(true);
+      // Preserve the original SlotRef type to ensure all substituted
+      // subexpressions in the predicate have the same return type and
+      // function signature as in the original predicate.
+      nullSmap.put(slotRef.clone(), NullLiteral.create(wrappedSlotRef.getType()));
     }
     return p.substitute(nullSmap, this, false);
   }

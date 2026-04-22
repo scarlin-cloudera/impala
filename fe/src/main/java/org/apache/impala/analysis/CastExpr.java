@@ -302,9 +302,6 @@ public class CastExpr extends Expr {
 
   public boolean isImplicit() { return isImplicit_; }
 
-  @Override
-  public boolean shouldRemoveImplicitCast() { return isImplicit_; }
-
   public TypeCompatibility getCompatibility() { return compatibility_; }
 
   @Override
@@ -473,7 +470,7 @@ public class CastExpr extends Expr {
 
   @Override
   public int hashCode() {
-    if (shouldRemoveImplicitCast()) {
+    if (isImplicit()) {
       return children_.get(0).hashCode();
     }
     return Objects.hash(super.localHash(), type_, children_);
