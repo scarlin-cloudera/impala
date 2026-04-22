@@ -33,8 +33,7 @@ import java.util.List;
 public class AnalyzedCastExpr extends CastExpr {
 
   public AnalyzedCastExpr(Type targetType, List<Expr> paramList, boolean isImplicit) {
-    super(targetType, paramList.get(0).clone(), getFormat(paramList));
-    isImplicit_ = isImplicit;
+    super(targetType, paramList.get(0).clone(), getFormat(paramList), isImplicit);
   }
 
   public AnalyzedCastExpr(AnalyzedCastExpr other) {
@@ -48,21 +47,6 @@ public class AnalyzedCastExpr extends CastExpr {
 
   @Override
   protected void analyzeImpl(Analyzer analyzer) throws AnalysisException {
-  }
-
-  @Override
-  public boolean shouldRemoveImplicitCast() {
-    return false;
-  }
-
-  @Override
-  public boolean isImplicit() {
-    return super.isImplicit();
-  }
-
-  @Override
-  public boolean isImplicitCast() {
-    return super.isImplicitCast();
   }
 
   @Override

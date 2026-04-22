@@ -66,12 +66,17 @@ public class CastExpr extends Expr {
    */
   public CastExpr(
       Type targetType, Expr e, String format, TypeCompatibility compatibility) {
+    this(targetType, e, format, compatibility, true);
+  }
+
+  public CastExpr(Type targetType, Expr e, String format, TypeCompatibility compatibility,
+      boolean isImplicit) {
     super();
     Preconditions.checkState(targetType.isValid());
     Preconditions.checkNotNull(e);
     type_ = targetType;
     targetTypeDef_ = null;
-    isImplicit_ = true;
+    isImplicit_ = isImplicit;
     castFormat_ = format;
     compatibility_ = compatibility;
     // replace existing implicit casts
@@ -97,6 +102,10 @@ public class CastExpr extends Expr {
 
   public CastExpr(Type targetType, Expr e, String format) {
     this(targetType, e, format, TypeCompatibility.DEFAULT);
+  }
+
+  public CastExpr(Type targetType, Expr e, String format, boolean isImplicit) {
+    this(targetType, e, format, TypeCompatibility.DEFAULT, isImplicit);
   }
 
   public CastExpr(Type targetType, Expr e) {
