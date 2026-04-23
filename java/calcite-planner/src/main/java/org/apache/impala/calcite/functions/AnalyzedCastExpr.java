@@ -50,6 +50,10 @@ public class AnalyzedCastExpr extends CastExpr {
   }
 
   @Override
+  public boolean shouldRemoveImplicitCast() {
+    return false;
+  }
+
   public String getTargetCastString() {
     return type_.toSql();
   }  

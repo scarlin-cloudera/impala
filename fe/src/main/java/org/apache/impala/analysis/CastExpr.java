@@ -311,6 +311,9 @@ public class CastExpr extends Expr {
 
   public boolean isImplicit() { return isImplicit_; }
 
+  @Override
+  public boolean shouldRemoveImplicitCast() { return isImplicit_; }
+
   public TypeCompatibility getCompatibility() { return compatibility_; }
 
   @Override
