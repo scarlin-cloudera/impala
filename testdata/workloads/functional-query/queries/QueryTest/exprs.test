@@ -2052,8 +2052,7 @@ select * from (select 'abc' as x, '*' as y, 'def' as z from functional.alltypest
 where regexp_replace(x, y, z) = 'cde'
 ---- RESULTS
 ---- CATCH
-AnalysisException: Error evaluating "regexp_replace('abc', '*', 'def') = 'cde'"
-CAUSED BY: InternalException: Could not compile regexp pattern: *
+InternalException: Could not compile regexp pattern: *
 Error: no argument for repetition operator: *
 ====
 ---- QUERY
