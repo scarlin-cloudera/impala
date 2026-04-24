@@ -305,9 +305,11 @@ public class CastExpr extends Expr {
 
   @Override
   protected void analyzeImpl(Analyzer analyzer) throws AnalysisException {
-    Preconditions.checkState(!isImplicit_);
-    targetTypeDef_.analyze(analyzer);
-    type_ = targetTypeDef_.getType();
+//    Preconditions.checkState(!isImplicit_);
+    if (targetTypeDef_ != null) {
+      targetTypeDef_.analyze(analyzer);
+      type_ = targetTypeDef_.getType();
+    }
     analyze();
   }
 
@@ -469,9 +471,11 @@ public class CastExpr extends Expr {
 
   @Override
   public int hashCode() {
+  /*
     if (isImplicit()) {
       return children_.get(0).hashCode();
     }
+    */
     return Objects.hash(super.localHash(), type_, children_);
   }
 

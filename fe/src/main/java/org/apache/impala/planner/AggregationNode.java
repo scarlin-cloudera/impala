@@ -770,6 +770,19 @@ public class AggregationNode extends PlanNode implements SpillableOperator {
               "murmur_hash", Lists.newArrayList(groupingExprs.get(i).clone()));
           thenExpr.analyzeNoThrow(analyzer);
           thenExpr = thenExpr.substitute(aggInfo.getIntermediateSmap(), analyzer, true);
+          // XXX: TODO The 3rd portion of the case statement with grouping sets is weird.
+          // Look at realbad2.txt to remember. 
+          // The follow query causes a crash:
+          // select tinyint_col, string_col, count(*)
+          // from functional_parquet.alltypesagg
+          // group by rollup(1,2);
+          // intermediatetuplesmap on the third aggregateinfo only has a tinyint null literal,
+          // not a string null literal. And then it only gets replaces in one part of the
+          // case condition.  resetting the analysis after substitution and then reanalyzing
+          // should fix this.
+          thenExpr.resetAnalysisStateWrapper();
+          thenExpr.analyzeNoThrow(analyzer);
+
         }
         caseWhenClauses.add(new CaseWhenClause(whenExpr, thenExpr));
       }

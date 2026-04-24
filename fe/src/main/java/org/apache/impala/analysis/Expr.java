@@ -1198,21 +1198,35 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
    * override this method and apply the substitution to such exprs as well.
    */
   protected Expr substituteImpl(ExprSubstitutionMap smap, Analyzer analyzer) {
-    if (isImplicitCast()) return getChild(0).substituteImpl(smap, analyzer);
+//    if (isImplicitCast()) return getChild(0).substituteImpl(smap, analyzer);
     if (smap != null) {
       Expr substExpr = smap.get(this);
       if (substExpr != null) return substExpr.clone();
     }
     substituteImplOnChildren(smap, analyzer);
-    resetAnalysisState();
+    boolean resetState = false;
+    for (Expr child : children_) {
+      if (!child.isAnalyzed()) {
+        resetAnalysisState();
+        break;
+      }
+    }
     return this;
   }
 
   protected final void substituteImplOnChildren(ExprSubstitutionMap smap,
       Analyzer analyzer) {
     for (int i = 0; i < children_.size(); ++i) {
-      children_.set(i, children_.get(i).substituteImpl(smap, analyzer));
+      Expr child = children_.get(i);
+      Expr substitutedChild = children_.get(i).substituteImpl(smap, analyzer);
+      if (child != substitutedChild) {
+        if (child.getType() != substitutedChild.getType()) {
+          resetAnalysisState();
+        }
+        children_.set(i, substitutedChild);
+      }
     }
+    isConstant_ = isConstantImpl();
   }
 
   /**
@@ -1232,6 +1246,7 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
    */
   protected void resetAnalysisState() { isAnalyzed_ = false; }
 
+  public void resetAnalysisStateWrapper() { isAnalyzed_ = false; }
   /**
    * Resets the internal analysis state of this expr tree. Removes implicit casts.
    */

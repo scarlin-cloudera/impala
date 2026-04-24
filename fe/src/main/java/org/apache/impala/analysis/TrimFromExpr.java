@@ -130,8 +130,6 @@ public class TrimFromExpr extends FunctionCallExpr {
           + "with the TRIM builtin.");
     }
 
-    super.analyzeImpl(analyzer);
-
     if (slotRef_ != null) {
       try {
         slotRef_.analyze(analyzer);
@@ -150,6 +148,9 @@ public class TrimFromExpr extends FunctionCallExpr {
         super.children_.add(slotRef_);
       }
     }
+
+    super.analyzeImpl(analyzer);
+
   }
 
   @Override

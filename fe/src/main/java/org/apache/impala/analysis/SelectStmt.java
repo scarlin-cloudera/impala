@@ -1239,7 +1239,7 @@ public class SelectStmt extends QueryStmt {
         LOG.trace("desctbl: " + analyzer_.getDescTbl().debugString());
         LOG.trace("resultexprs: " + Expr.debugString(resultExprs_));
       }
-      resultExprs_ = Expr.substituteList(resultExprs_, combinedSmap, analyzer_, false);
+      resultExprs_ = Expr.substituteList(resultExprs_, combinedSmap, analyzer_, true);
       if (LOG.isTraceEnabled()) {
         LOG.trace("post-agg selectListExprs: " + Expr.debugString(resultExprs_));
       }
