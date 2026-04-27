@@ -1205,22 +1205,11 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
     }
     substituteImplOnChildren(smap, analyzer);
     boolean resetState = false;
-    if (smap != null) {
-      for (Expr exprLhs : smap.getLhs()) {
-        if (!exprLhs.isAnalyzed()) {
-          resetState = true;
-        }
-        Expr exprRhs = smap.get(exprLhs);
-        if (!exprRhs.isAnalyzed()) {
-          resetState = true;
-        }
-        if (exprLhs.getType() != exprRhs.getType()) {
-          resetState = true;
-        }
+    for (Expr child : children_) {
+      if (!child.isAnalyzed()) {
+        resetAnalysisState();
+        break;
       }
-    }
-    if (resetState) {
-      resetAnalysisState();
     }
     return this;
   }
@@ -1228,7 +1217,14 @@ abstract public class Expr extends TreeNode<Expr> implements ParseNode, Cloneabl
   protected final void substituteImplOnChildren(ExprSubstitutionMap smap,
       Analyzer analyzer) {
     for (int i = 0; i < children_.size(); ++i) {
-      children_.set(i, children_.get(i).substituteImpl(smap, analyzer));
+      Expr child = children_.get(i);
+      Expr substitutedChild = children_.get(i).substituteImpl(smap, analyzer);
+      if (child != substitutedChild) {
+        if (child.getType() != substitutedChild.getType()) {
+          resetAnalysisState();
+        }
+        children_.set(i, substitutedChild);
+      }
     }
     isConstant_ = isConstantImpl();
   }
