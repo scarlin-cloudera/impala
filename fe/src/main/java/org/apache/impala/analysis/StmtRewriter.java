@@ -1489,7 +1489,10 @@ public class StmtRewriter {
       ExprSubstitutionMap smap = new ExprSubstitutionMap();
       smap.put(subquery, newSubquery);
       expr.reset();
-      return expr.substitute(smap, analyzer, false);
+      Expr rewrittenExpr = expr.substitute(smap, analyzer, false);
+      expr.analyze(analyzer);
+      rewrittenExpr.analyze(analyzer);
+      return rewrittenExpr;
     }
 
     /**
