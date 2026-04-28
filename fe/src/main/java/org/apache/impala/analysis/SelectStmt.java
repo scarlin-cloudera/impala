@@ -587,46 +587,38 @@ public class SelectStmt extends QueryStmt {
         throws AnalysisException {
       // Analyze the resultExpr before generating a label to ensure enforcement
       // of expr child and depth limits (toColumn() label may call toSql()).
-      Expr itemExpr = item.getExpr();
-      List<Expr> dummyList = new ArrayList<>();
-      itemExpr.analyze(analyzer_);
-      dummyList.add(itemExpr);
-      List<Expr> dummyList2 =
-          Expr.substituteList(dummyList, new ExprSubstitutionMap(), analyzer_, true);
-      itemExpr = dummyList2.get(0);
-
-      itemExpr = itemExpr.substitute(new ExprSubstitutionMap(), analyzer_, true);
+      item.getExpr().analyze(analyzer_);
       // Check for scalar subquery types which are not supported
       List<Subquery> subqueryExprs = new ArrayList<>();
-      itemExpr.collect(Subquery.class, subqueryExprs);
+      item.getExpr().collect(Subquery.class, subqueryExprs);
       for (Subquery s : subqueryExprs) {
         Preconditions.checkState(s.getStatement() instanceof SelectStmt);
         if (!s.returnsScalarColumn()) {
           throw new AnalysisException("A non-scalar subquery is not supported in "
-              + "the expression: " + itemExpr.toSql());
+              + "the expression: " + item.getExpr().toSql());
         }
         if (s.getStatement().isRuntimeScalar()) {
           throw new AnalysisException(
               "A subquery which may return more than one row is not supported in "
-              + "the expression: " + itemExpr.toSql());
+              + "the expression: " + item.getExpr().toSql());
         }
         if (!((SelectStmt)s.getStatement()).returnsAtMostOneRow()) {
           throw new AnalysisException("Only subqueries that are guaranteed to return "
-              + "a single row are supported: " + itemExpr.toSql());
+              + "a single row are supported: " + item.getExpr().toSql());
         }
       }
-      resultExprs_.add(itemExpr);
+      resultExprs_.add(item.getExpr());
       String label = item.toColumnLabel(selectListPos, analyzer_.useHiveColLabels());
       SlotRef aliasRef = new SlotRef(label);
       Expr existingAliasExpr = existingAliasExprs.get(label);
-      if (existingAliasExpr != null && !existingAliasExpr.equals(itemExpr)) {
+      if (existingAliasExpr != null && !existingAliasExpr.equals(item.getExpr())) {
         // If we have already seen this alias, it refers to more than one column and
         // therefore is ambiguous.
         ambiguousAliasList_.add(aliasRef);
       } else {
-        existingAliasExprs.put(label, itemExpr);
+        existingAliasExprs.put(label, item.getExpr());
       }
-      aliasSmap_.put(aliasRef, itemExpr.clone());
+      aliasSmap_.put(aliasRef, item.getExpr().clone());
       colLabels_.add(label);
     }
 
