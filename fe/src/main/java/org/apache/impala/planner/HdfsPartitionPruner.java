@@ -265,11 +265,7 @@ public class HdfsPartitionPruner {
         return false;
       }
       BinaryPredicate bp = (BinaryPredicate)expr;
-      // Use "allowsImplicitConversion()" instead of "isImplicit()" so Calcite can
-      // return false if there is an implicit cast.
-      if (bp.getChild(0).allowsImplicitConversion()) {
-        return false;
-      }
+      if (bp.getChild(0).isImplicitCast()) return false;
       SlotRef slot = bp.getBoundSlot();
       if (slot == null) return false;
       Expr bindingExpr = bp.getSlotBinding(slot.getSlotId());
