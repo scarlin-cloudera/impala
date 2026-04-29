@@ -271,7 +271,7 @@ public class RexCallConverter {
       throw new AnalysisException("Invalid type cast " +
           "from " + paramsOperand.getType() + " to " + impalaRetType);
     }
-    return new AnalyzedCastExpr(impalaRetType, params);
+    return new AnalyzedCastExpr(impalaRetType, params, call.getOperator().getKind().equals(SqlKind.CAST));
   }
 
   private static Expr createDecodeExpr(Function fn, List<Expr> params,

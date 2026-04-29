@@ -60,17 +60,22 @@ public class CastExpr extends Expr {
   // Stores the compatibility level with which the cast was defined.
   private final TypeCompatibility compatibility_;
 
+  public CastExpr(
+      Type targetType, Expr e, String format, TypeCompatibility compatibility) {
+    this(targetType, e, format, compatibility, true);
+  }
   /**
    * C'tor for "pre-analyzed" implicit casts.
    */
   public CastExpr(
-      Type targetType, Expr e, String format, TypeCompatibility compatibility) {
+      Type targetType, Expr e, String format, TypeCompatibility compatibility, 
+      boolean isImplicit) {
     super();
     Preconditions.checkState(targetType.isValid());
     Preconditions.checkNotNull(e);
     type_ = targetType;
     targetTypeDef_ = null;
-    isImplicit_ = true;
+    isImplicit_ = isImplicit;
     castFormat_ = format;
     compatibility_ = compatibility;
     // replace existing implicit casts
@@ -264,7 +269,10 @@ public class CastExpr extends Expr {
     if (castFormat_ != null && !castFormat_.isEmpty()) {
       formatClause = " FORMAT '" + getCastFormatWithEscapedSingleQuotes() + "'";
     }
-    return "CAST(" + getChild(0).toSql(options) + " AS " + targetTypeDef_.toString()
+    String typeString = targetTypeDef_ != null
+        ? targetTypeDef_.toString()
+        : type_.toSql();
+    return "CAST(" + getChild(0).toSql(options) + " AS " + typeString
         + formatClause + ")";
   }
 
