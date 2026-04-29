@@ -65,12 +65,17 @@ public class CastExpr extends Expr {
    */
   public CastExpr(
       Type targetType, Expr e, String format, TypeCompatibility compatibility) {
+    this(targetType, e, format, compatibility, true);
+  }
+
+  public CastExpr(Type targetType, Expr e, String format, TypeCompatibility compatibility,
+      boolean isImplicit) {
     super();
     Preconditions.checkState(targetType.isValid());
     Preconditions.checkNotNull(e);
     type_ = targetType;
     targetTypeDef_ = null;
-    isImplicit_ = true;
+    isImplicit_ = isImplicit;
     castFormat_ = format;
     compatibility_ = compatibility;
     // replace existing implicit casts
@@ -260,7 +265,10 @@ public class CastExpr extends Expr {
     if (castFormat_ != null && !castFormat_.isEmpty()) {
       formatClause = " FORMAT '" + getCastFormatWithEscapedSingleQuotes() + "'";
     }
-    return "CAST(" + getChild(0).toSql(options) + " AS " + targetTypeDef_.toString()
+    String typeString = targetTypeDef_ != null
+        ? targetTypeDef_.toString()
+        : type_.toSql();
+    return "CAST(" + getChild(0).toSql(options) + " AS " + typeString
         + formatClause + ")";
   }
 
@@ -455,6 +463,27 @@ public class CastExpr extends Expr {
     return isImplicit();
   }
 
+  /**
+   * shouldRemoveImplicitCast is overridden by the Calcite planner which pre-analyzes
+   * the expressions and needs to prevent the removal of the implicit cast.
+   */
+  protected boolean shouldRemoveImplicitCast() {
+    return isImplicit();
+  }
+
+  /**
+   * substituteImpl removes the cast if it is implicit. The Calcite planner overrides
+   * the shouldRemoveImplicitCast() method because Calcite pre-analyzes all functions
+   * and has already determined that the implicit cast is needed.
+   */
+  @Override
+  protected Expr substituteImpl(ExprSubstitutionMap smap, Analyzer analyzer) {
+    if (shouldRemoveImplicitCast()) {
+      return getChild(0).substituteImpl(smap, analyzer);
+    }
+    return super.substituteImpl(smap, analyzer);
+  }
+
   @Override
   protected boolean localEquals(Expr that) {
     if (!super.localEquals(that)) return false;
@@ -465,7 +494,7 @@ public class CastExpr extends Expr {
 
   @Override
   public int hashCode() {
-    if (isImplicit()) {
+    if (shouldRemoveImplicitCast()) {
       return children_.get(0).hashCode();
     }
     return Objects.hash(super.localHash(), type_, children_);
