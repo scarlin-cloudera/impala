@@ -109,15 +109,4 @@ public interface ImpalaPlanRel extends RelNode {
         return false;
     }
   }
-
-  public static boolean canPassThroughHint(RelNode relNode) {
-    switch (getRelNodeType(relNode)) {
-      case FILTER:
-      case PROJECT:
-      case JOIN:
-        return true;
-      default:
-        return false;
-    }
-  }
 }

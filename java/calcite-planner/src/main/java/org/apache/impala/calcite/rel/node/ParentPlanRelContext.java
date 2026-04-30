@@ -45,21 +45,16 @@ public class ParentPlanRelContext {
 
   public ImpalaAggRel parentAggregate_;
 
-  public final boolean applyShuffleHint_;
-  public final boolean applyBroadcastHint_;
-
   /**
    * Constructor meant for root node.
    */
-  private ParentPlanRelContext(PlannerContext plannerContext, boolean applyShuffleHint, boolean applyBroadcastHint) {
+  private ParentPlanRelContext(PlannerContext plannerContext) {
     this.ctx_ = plannerContext;
     this.filterCondition_ = null;
     this.inputRefs_ = null;
     this.parentType_ = null;
     this.parentRowType_ = null;
     this.parentAggregate_ = null;
-    this.applyShuffleHint_ = applyShuffleHint;
-    this.applyBroadcastHint_ = applyBroadcastHint;
   }
 
   private ParentPlanRelContext(Builder builder) {
@@ -69,8 +64,6 @@ public class ParentPlanRelContext {
     this.parentType_ = builder.parentType_;
     this.parentRowType_ = builder.parentRowType_;
     this.parentAggregate_ = builder.parentAggregate_;
-    this.applyShuffleHint_ = builder.applyShuffleHint_;
-    this.applyBroadcastHint_ = builder.applyBroadcastHint_;
   }
 
   public static class Builder {
@@ -80,8 +73,6 @@ public class ParentPlanRelContext {
     private ImpalaPlanRel.RelNodeType parentType_;
     private RelDataType  parentRowType_;
     private ImpalaAggRel parentAggregate_;
-    private boolean applyShuffleHint_;
-    private boolean applyBroadcastHint_;
 
     /**
      * Should only be called from root level.
@@ -98,8 +89,6 @@ public class ParentPlanRelContext {
       this.parentAggregate_ = ImpalaPlanRel.canPassThroughParentAggregate(planRel)
           ? planRelContext.parentAggregate_
           : null;
-      this.applyShuffleHint_ = planRelContext.applyShuffleHint_;
-      this.applyBroadcastHint_ = planRelContext.applyBroadcastHint_;
     }
 
     public void setFilterCondition(RexNode filterCondition) {
@@ -122,21 +111,12 @@ public class ParentPlanRelContext {
       this.parentAggregate_ = parentAggregate;
     }
 
-    public void setApplyShuffleHint(boolean applyShuffleHint) {
-      this.applyShuffleHint_ = applyShuffleHint;
-    }
-
-    public void setApplyBroadcastHint(boolean applyBroadcastHint) {
-      this.applyBroadcastHint_ = applyBroadcastHint;
-    }
-
     public ParentPlanRelContext build() {
       return new ParentPlanRelContext(this);
     }
   }
 
-  public static ParentPlanRelContext createRootContext(PlannerContext context,
-      boolean applyShuffleHint, boolean applyBroadcastHint) {
-    return new ParentPlanRelContext(context, applyShuffleHint, applyBroadcastHint);
+  public static ParentPlanRelContext createRootContext(PlannerContext context) {
+    return new ParentPlanRelContext(context);
   }
 }

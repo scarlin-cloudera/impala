@@ -17,8 +17,6 @@
 
 package org.apache.impala.calcite.service;
 
-import org.apache.calcite.rel.hint.Hintable;
-import org.apache.calcite.rel.hint.RelHint;
 import org.apache.impala.calcite.rel.node.NodeWithExprs;
 import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.util.SimplifiedAnalyzer;
@@ -54,20 +52,8 @@ public class CalcitePhysPlanCreator implements CompilerStep {
    * returns the root plan node along with its output expressions.
    */
   public NodeWithExprs create(ImpalaPlanRel optimizedPlan) throws ImpalaException {
-    boolean applyShuffleHint = false;
-    boolean applyBroadcastHint = false;
-    if (((Hintable)optimizedPlan).getHints().size() > 0) {
-      for (RelHint hint : ((Hintable)optimizedPlan).getHints()) {
-        if (hint.hintName.toLowerCase().equals("shuffle")) {
-          applyShuffleHint = true;
-        }
-        if (hint.hintName.toLowerCase().equals("broadcast")) {
-          applyBroadcastHint = true;
-        }
-      }
-    }
     ParentPlanRelContext rootContext =
-        ParentPlanRelContext.createRootContext(plannerContext_, applyShuffleHint, applyBroadcastHint);
+        ParentPlanRelContext.createRootContext(plannerContext_);
     NodeWithExprs rootNodeWithExprs = optimizedPlan.getPlanNode(rootContext);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Printing PlanNode tree...");

@@ -630,7 +630,6 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
 {
     SqlNode e;
     final List<Object> list = new ArrayList<Object>();
-    List<SqlNode> hints = new ArrayList<SqlNode>();
 }
 {
     // Lookhead to distinguish between "TABLE emp" (which will be
@@ -643,7 +642,7 @@ SqlNode ExprOrJoinOrOrderedQuery(ExprContext exprContext) :
         { return e; }
     |
         e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
-        ( e = JoinTable(e, hints) )*
+        ( e = JoinTable(e) )*
         { list.add(e); }
         ( AddSetOpQuery(list, exprContext) )*
         { return SqlParserUtil.toTree(list); }
@@ -1244,11 +1243,11 @@ void AddHint(List<SqlNode> hints) :
 }
 {
     (
-      <STRAIGHT_JOIN> | SimpleIdentifierFromAllQuotesOrNonQuotes()
+      <IDENTIFIER>  | <STRAIGHT_JOIN>
     )
     {
     hint = getToken(0).image;
-    hintName = new SqlIdentifier(hint.toLowerCase(), getPos());
+    hintName = new SqlIdentifier(hint, getPos());
     hintOptions = SqlNodeList.EMPTY;
     optionFormat = SqlHint.HintOptionFormat.EMPTY;
     hints.add(
@@ -1309,7 +1308,7 @@ SqlSelect SqlSelect() :
     AddSelectItem(selectList)
     ( <COMMA> AddSelectItem(selectList) )*
     (
-        <FROM> fromClause = FromClause(hints)
+        <FROM> fromClause = FromClause()
         ( where = Where() | { where = null; } )
         ( groupBy = GroupBy() | { groupBy = null; } )
         ( having = Having() | { having = null; } )
@@ -1923,7 +1922,7 @@ SqlLiteral Natural() :
     { return SqlLiteral.createBoolean(false, getPos()); }
 }
 
-SqlLiteral JoinType(List<SqlNode> hints) :
+SqlLiteral JoinType() :
 {
     JoinType joinType;
 }
@@ -1946,16 +1945,6 @@ SqlLiteral JoinType(List<SqlNode> hints) :
     |
         <CROSS> <JOIN> { joinType = JoinType.CROSS; }
     )
-    (
-    (
-      <HINT_BEG> AddHint(hints) ( <COMMA> AddHint(hints) )* <COMMENT_END>
-    )
-    |
-    (
-      <LBRACKET> AddHint(hints) ( <COMMA> AddHint(hints) )* <RBRACKET>
-    )
-    )?
-
     {
         return joinType.symbol(getPos());
     }
@@ -1968,13 +1957,13 @@ SqlLiteral JoinType(List<SqlNode> hints) :
  * PostgreSQL. The parser allows SELECT without FROM, but the validator fails
  * if conformance is, say, STRICT_2003.
  */
-SqlNode FromClause(List<SqlNode> hints) :
+SqlNode FromClause() :
 {
     SqlNode e, e2;
     SqlLiteral joinType;
 }
 {
-    e = Join(hints)
+    e = Join()
     (
         // Comma joins should only occur at top-level in the FROM clause.
         // Valid:
@@ -1984,7 +1973,7 @@ SqlNode FromClause(List<SqlNode> hints) :
         //  * FROM a CROSS JOIN (b, c)
         LOOKAHEAD(1)
         <COMMA> { joinType = JoinType.COMMA.symbol(getPos()); }
-        e2 = Join(hints) {
+        e2 = Join() {
             e = new SqlJoin(joinType.getParserPosition(),
                 e,
                 SqlLiteral.createBoolean(false, joinType.getParserPosition()),
@@ -1997,7 +1986,7 @@ SqlNode FromClause(List<SqlNode> hints) :
     { return e; }
 }
 
-SqlNode Join(List<SqlNode> hints) :
+SqlNode Join() :
 {
     SqlNode e;
 }
@@ -2005,7 +1994,7 @@ SqlNode Join(List<SqlNode> hints) :
     e = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
         LOOKAHEAD(2)
-        e = JoinTable(e, hints)
+        e = JoinTable(e)
     )*
     {
         return e;
@@ -2013,11 +2002,10 @@ SqlNode Join(List<SqlNode> hints) :
 }
 
 /** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
-SqlNode JoinTable(SqlNode e, List<SqlNode> hints) :
+SqlNode JoinTable(SqlNode e) :
 {
     SqlNode e2, condition;
-    final SqlLiteral joinType, on, using;
-    SqlLiteral natural;
+    final SqlLiteral natural, joinType, on, using;
     SqlNodeList list;
 }
 {
@@ -2035,7 +2023,7 @@ SqlNode JoinTable(SqlNode e, List<SqlNode> hints) :
     // even though that is not valid SQL; the validator will catch it.
     LOOKAHEAD(3)
     natural = Natural()
-    joinType = JoinType(hints)
+    joinType = JoinType()
     e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
         <ON> { on = JoinConditionType.ON.symbol(getPos()); }
@@ -2063,8 +2051,8 @@ SqlNode JoinTable(SqlNode e, List<SqlNode> hints) :
         {
             return new SqlJoin(joinType.getParserPosition(),
                 e,
-                SqlLiteral.createBoolean(false, joinType.getParserPosition()),
-                JoinType.COMMA.symbol(joinType.getParserPosition()),
+                natural,
+                joinType,
                 e2,
                 JoinConditionType.NONE.symbol(joinType.getParserPosition()),
                 null);
@@ -2556,15 +2544,9 @@ SqlNode RowConstructor() :
 SqlNode Where() :
 {
     SqlNode condition;
-    final List<SqlNode> hints = new ArrayList<SqlNode>();
 }
 {
-    <WHERE>
-    (
-      <HINT_BEG> AddHint(hints) ( <COMMA> AddHint(hints) )* <COMMENT_END>
-    )?
-
-    condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+    <WHERE> condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
         return condition;
     }
 }
