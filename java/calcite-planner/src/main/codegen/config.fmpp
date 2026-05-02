@@ -387,6 +387,7 @@ parser: {
     "VALUE"
     "VERSION"
     "VIEW"
+    "WIDTH_BUCKET"
     "WEEK"
     "WEEKS"
     "WORK"
