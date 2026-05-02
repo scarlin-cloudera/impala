@@ -8245,6 +8245,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < CURRENT_TIME: "CURRENT_TIME" >
 |   < CURRENT_TIMESTAMP: "CURRENT_TIMESTAMP" >
 |   < CURRENT_TRANSFORM_GROUP_FOR_TYPE: "CURRENT_TRANSFORM_GROUP_FOR_TYPE" >
+|   < CURRENT_USER: "CURRENT_USER" >
 |   < CURSOR: "CURSOR" >
 |   < CURSOR_NAME: "CURSOR_NAME" >
 |   < CYCLE: "CYCLE" >
@@ -8566,6 +8567,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < QUARTER: "QUARTER" >
 |   < QUARTERS: "QUARTERS" >
 |   < RANGE: "RANGE" >
+|   < RANK: "RANK" >
 |   < READ: "READ" >
 |   < READS: "READS" >
 |   < REAL: "REAL" >
@@ -8590,6 +8592,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < RESPECT: "RESPECT" >
 |   < RESTART: "RESTART" >
 |   < RESTRICT: "RESTRICT" >
+|   < RESULT: "RESULT" >
 |   < RETURN: "RETURN" >
 |   < RETURNED_CARDINALITY: "RETURNED_CARDINALITY" >
 |   < RETURNED_LENGTH: "RETURNED_LENGTH" >
@@ -8641,6 +8644,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SERVER: "SERVER" >
 |   < SERVER_NAME: "SERVER_NAME" >
 |   < SESSION: "SESSION" >
+|   < SESSION_USER: "SESSION_USER" >
 |   < SET: "SET" > { afterTableName(); }
 |   < SETS: "SETS" >
 |   < SET_MINUS: "MINUS">
@@ -8652,6 +8656,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SMALLINT: "SMALLINT" >
 |   < SOME: "SOME" >
 |   < SOURCE: "SOURCE" >
+|   < SPACE: "SPACE" >
 |   < SPECIFIC: "SPECIFIC" >
 |   < SPECIFIC_NAME: "SPECIFIC_NAME" >
 |   < SPECIFICTYPE: "SPECIFICTYPE" >
@@ -8791,6 +8796,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UPPER: "UPPER" >
 |   < UPSERT: "UPSERT" >
 |   < USAGE: "USAGE" >
+|   < USER: "USER" >
 |   < USER_DEFINED_TYPE_CATALOG: "USER_DEFINED_TYPE_CATALOG" >
 |   < USER_DEFINED_TYPE_CODE: "USER_DEFINED_TYPE_CODE" >
 |   < USER_DEFINED_TYPE_NAME: "USER_DEFINED_TYPE_NAME" >
@@ -8817,6 +8823,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >
 |   < WHERE: "WHERE" >
+|   < WIDTH_BUCKET: "WIDTH_BUCKET" >
 |   < WINDOW: "WINDOW" >
 |   < WITH: "WITH" >
 |   < WITHIN: "WITHIN" >
