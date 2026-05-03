@@ -382,7 +382,7 @@ public class CoerceOperandShuttle extends RexShuttle {
     try {
       RelDataType dType = ImpalaTypeConverter.getCompatibleType(decimalOperands, factory);
       Preconditions.checkNotNull(dType);
-      return dType;
+      return ImpalaTypeConverter.createImpalaType(dType);
     } catch (Exception e) {
       throw new RuntimeException("Cannot resolve DECIMAL types. You need to wrap the arguments in a CAST.");
     }
