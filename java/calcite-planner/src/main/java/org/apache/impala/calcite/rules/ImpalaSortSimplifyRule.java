@@ -52,7 +52,11 @@ public class ImpalaSortSimplifyRule extends RelOptRule {
     }
     RelOptCluster cluster = sort.getCluster();
     RexBuilder rexBuilder = cluster.getRexBuilder();
-    RexExecutor executor = simplifier_.getRexExecutor();
+    // Use an Impala executor that will not create a cast around
+    // the result. Only a RexLiteral is allowed in the limit and
+    // offset clauses.
+    RexExecutor executor = new ImpalaRexExecutor(
+        (ImpalaRexExecutor) simplifier_.getRexExecutor(), false);
 
     boolean changed = false;
     RexNode newFetch = sort.fetch;
