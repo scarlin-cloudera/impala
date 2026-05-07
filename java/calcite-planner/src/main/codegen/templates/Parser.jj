@@ -2921,6 +2921,9 @@ SqlSnapshot Snapshot(SqlNode tableRef) :
     // We extend to support column reference, use Expression
     // to simplify the parsing code.
     e = Expression(ExprContext.ACCEPT_NON_QUERY) {
+      if (true) {
+        throw new ParseException("for system_version as of not supported");
+      }
         return new SqlSnapshot(s.end(this), tableRef, e);
     }
 }

@@ -331,7 +331,7 @@ public class HdfsScanNode extends ScanNode {
 
   // Slot that is used to record the Parquet metadata for the count(*) aggregation if
   // this scan node has the count(*) optimization enabled.
-  protected SlotDescriptor countStarSlot_ = null;
+  public SlotDescriptor countStarSlot_ = null;
 
   // Sampled file descriptors if table sampling is used. Grouped by partition id.
   // Initialized in checkSamplingAndCountStar();

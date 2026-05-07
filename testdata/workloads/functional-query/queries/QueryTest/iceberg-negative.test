@@ -412,6 +412,8 @@ PARTITIONED BY SPEC (TRUNCATE(10, i))
 STORED AS ICEBERG;
 ---- CATCH
 Syntax error in line
+---- CALCITE_PLANNER_CATCH
+ParseException
 ====
 ---- QUERY
 # PARTITIONED BY SPEC and PARTITIONED BY is not allowed in same statement.
@@ -421,6 +423,8 @@ PARTITIONED BY (p INT)
 STORED AS ICEBERG;
 ---- CATCH
 Syntax error in line
+---- CALCITE_PLANNER_CATCH
+ParseException
 ====
 ---- QUERY
 CREATE TABLE iceberg_wrong_fileformat (i int)
@@ -442,6 +446,8 @@ PARTITIONED BY SPEC (wrong(i))
 STORED AS ICEBERG;
 ---- CATCH
 Unsupported Iceberg partition type: WRONG
+---- CALCITE_PLANNER_CATCH
+ParseException
 ====
 ---- QUERY
 CREATE TABLE iceberg_wrong_parquet_row_group_size1 ( i int)
@@ -650,14 +656,14 @@ SELECT * FROM non_iceberg_table FOR SYSTEM_TIME AS OF now();
 ---- CATCH
 AS OF clause is only supported for Iceberg tables.
 ---- CALCITE_PLANNER_CATCH
-Table 'non_iceberg_table' is not a temporal table
+non_iceberg_table is not an Iceberg table.
 ====
 ---- QUERY
 SELECT * FROM non_iceberg_table FOR SYSTEM_VERSION AS OF 42;
 ---- CATCH
 AS OF clause is only supported for Iceberg tables.
 ---- CALCITE_PLANNER_CATCH
-The system time period specification expects Timestamp type but is 'TINYINT
+non_iceberg_table is not an Iceberg table.
 ====
 ---- QUERY
 CREATE TABLE iceberg_alter_part ( i int, d DATE, s STRUCT<f1:BIGINT,f2:BIGINT>)
@@ -772,7 +778,7 @@ SELECT ICEBERG__DATA__SEQUENCE__NUMBER FROM functional_parquet.alltypes;
 ---- CATCH
 AnalysisException: Could not resolve column/field reference: 'iceberg__data__sequence__number'
 ---- CALCITE_PLANNER_CATCH
-Column 'ICEBERG__DATA__SEQUENCE__NUMBER' not found in any table
+Could not resolve column/field reference: 'iceberg__data__sequence__number'
 ====
 ---- QUERY
 update functional_parquet.iceberg_int_partitioned set k = 1, k = 2;

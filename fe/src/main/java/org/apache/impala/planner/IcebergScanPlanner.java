@@ -152,6 +152,7 @@ public class IcebergScanPlanner {
   private Set<Long> equalityDeleteSequenceNumbers_ = new HashSet<>();
 
   private final long snapshotId_;
+  private final boolean allAggsDistinct_;
 
   private final InMemoryMetricsReporter metricsReporter_ = new InMemoryMetricsReporter();
 
@@ -159,7 +160,8 @@ public class IcebergScanPlanner {
   private final Set<String> columnsWithPushDownHint_ = new HashSet<>();
 
   public IcebergScanPlanner(Analyzer analyzer, PlannerContext ctx,
-      TableRef iceTblRef, List<Expr> conjuncts, MultiAggregateInfo aggInfo)
+      TableRef iceTblRef, List<Expr> conjuncts, MultiAggregateInfo aggInfo,
+      boolean allAggsDistinct)
       throws ImpalaException {
     Preconditions.checkState(iceTblRef.getTable() instanceof FeIcebergTable ||
         iceTblRef.getTable() instanceof IcebergMetadataTable);
@@ -168,6 +170,7 @@ public class IcebergScanPlanner {
     tblRef_ = iceTblRef;
     conjuncts_ = conjuncts;
     aggInfo_ = aggInfo;
+    allAggsDistinct_ = allAggsDistinct;
 
     initPushDownHint();
     extractIcebergConjuncts();
@@ -330,8 +333,7 @@ public class IcebergScanPlanner {
 
   private boolean IsPartitionKeyScan() {
     if (tblRef_.optimizeCountStarForIcebergV2()) return false;
-    boolean allAggsDistinct = aggInfo_ != null && aggInfo_.hasAllDistinctAgg();
-    if (!allAggsDistinct) return false;
+    if (!allAggsDistinct_) return false;
     TupleDescriptor tDesc = tblRef_.getDesc();
     if (!tDesc.hasMaterializedSlots()) return true;
 

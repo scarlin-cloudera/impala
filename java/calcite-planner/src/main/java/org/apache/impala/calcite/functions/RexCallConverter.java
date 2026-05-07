@@ -39,6 +39,8 @@ import org.apache.impala.analysis.CompoundPredicate;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.FunctionCallExpr;
 import org.apache.impala.analysis.IsNullPredicate;
+import org.apache.impala.analysis.LikePredicate;
+import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.TimestampArithmeticExpr;
 import org.apache.impala.calcite.operators.ImpalaInOperator;
@@ -85,6 +87,7 @@ public class RexCallConverter {
     switch (rexCall.getOperator().getKind()) {
       case OR:
       case AND:
+      case NOT:
         return createCompoundExpr(rexCall, params);
       case CAST:
         return createCastExpr(rexCall, params, analyzer);
@@ -179,6 +182,8 @@ public class RexCallConverter {
         return CompoundPredicate.createDisjunctivePredicate(params);
       case AND:
         return CompoundPredicate.createConjunctivePredicate(params);
+      case NOT:
+        return params.get(0).negate();
     }
     Preconditions.checkState(false, "Unknown type: " + rexCall.getOperator().getKind());
     return null;
@@ -226,7 +231,10 @@ public class RexCallConverter {
     Type impalaRetType = ImpalaTypeConverter.createImpalaType(fn.getReturnType(),
         rexCall.getType().getPrecision(), rexCall.getType().getScale());
 
-    return new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
+    //XXX: make this more generic
+    return funcName.equals("like")
+        ? new LikePredicate(LikePredicate.Operator.LIKE, params.get(0), params.get(1))
+        : new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
   }
 
   /**
@@ -259,6 +267,7 @@ public class RexCallConverter {
       return new NumericLiteral(value, impalaRetType);
     }
 
+
     // Small hack: Most cast expressions have "isImplicit" set to true. If this
     // is the case, then it blocks "analyze" from working through the cast. We
     // need to analyze the expression before creating the cast around it.
@@ -274,8 +283,13 @@ public class RexCallConverter {
 
     // The last parameter is only true if it is an implicit cast. An explicit
     // cast will have a "kind" of SqlKind.OTHER and the name "explicit_cast".
-    return new AnalyzedCastExpr(impalaRetType, params,
+    CastExpr castExpr = new AnalyzedCastExpr(impalaRetType, params,
         call.getOperator().getKind().equals(SqlKind.CAST));
+
+    // XXX: change value from 64 * 1024, what should this be?
+    return paramsOperand instanceof LiteralExpr
+        ? LiteralExpr.createBounded(castExpr, analyzer.getQueryCtx(), 64 * 1024, true)
+        : castExpr;
   }
 
   private static Expr createDecodeExpr(Function fn, List<Expr> params,

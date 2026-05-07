@@ -26,11 +26,14 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.BaseTableRef;
+import org.apache.impala.analysis.BinaryPredicate;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.ExprSubstitutionMap;
+import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.Path;
 import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
+import org.apache.impala.analysis.TableRef;
 import org.apache.impala.analysis.TupleDescriptor;
 import org.apache.impala.calcite.rel.phys.ImpalaHdfsScanNode;
 import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
@@ -40,9 +43,13 @@ import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeFsTable;
+import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.common.IcebergPredicateConverter;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
+import org.apache.impala.planner.HdfsScanNode;
+import org.apache.impala.planner.IcebergScanPlanner;
 import org.apache.impala.planner.PlanNode;
 import org.apache.impala.planner.PlanNodeId;
 import org.apache.impala.planner.ScanNode;
@@ -51,8 +58,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 /**
  * ImpalaHdfsScanRel. Calcite RelNode which maps to an Impala TableScan node.
@@ -60,6 +70,7 @@ import java.util.Optional;
 public class ImpalaHdfsScanRel extends TableScan
     implements ImpalaPlanRel {
 
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaHdfsScanRel.class.getName());
   public ImpalaHdfsScanRel(TableScan scan) {
     super(scan.getCluster(), scan.getTraitSet(), scan.getHints(), scan.getTable());
   }
@@ -94,10 +105,13 @@ public class ImpalaHdfsScanRel extends TableScan
 
     // Under special conditions, a count star optimization can be applied, which
     // needs a special slot descriptor and slot ref.
-    SlotDescriptor countStarDesc =
-        canUseCountStarOptimization(table, context, filterConjuncts)
-            ? ScanNode.createCountStarOptimizationDesc(tupleDesc, analyzer)
-            : null;
+    SlotDescriptor countStarDesc = null;
+    if (canUseCountStarOptimization(table, context, filterConjuncts, baseTblRef, analyzer)) {
+      for (SlotDescriptor s : tupleDesc.getSlots()) {
+        s.setIsMaterialized(false);
+      }
+      countStarDesc = ScanNode.createCountStarOptimizationDesc(tupleDesc, analyzer);
+    }
 
     Expr countStarOptimizationExpr = countStarDesc != null
         ? new SlotRef(countStarDesc)
@@ -118,6 +132,21 @@ public class ImpalaHdfsScanRel extends TableScan
         physicalNode =
             SingleNodePlanner.createOptimizedPartitionUnionNode(nodeId, impalaPartitions,
             tupleDesc, analyzer);
+      } else if (table.isIcebergTable()) {
+        LOG.info("SJC: THIS IS AN ICEBERG TABLE");
+        // XXX: should change internals of iceberg to handle immutable
+        List<Expr> copiedConjuncts = new ArrayList<>(filterConjuncts);
+        boolean isDistinctOnly = context.parentAggregate_ != null &&
+            context.parentAggregate_.hasDistinctOnly() ;
+        IcebergScanPlanner icebergPlanner = new IcebergScanPlanner(analyzer, context.ctx_,
+            baseTblRef, copiedConjuncts, null, isDistinctOnly);
+        physicalNode = icebergPlanner.createIcebergScanPlan();
+        if (physicalNode instanceof HdfsScanNode) {
+          if (countStarDesc != null) {
+            Preconditions.checkState(physicalNode.getConjuncts().size() == 0);
+          }
+          ((HdfsScanNode)physicalNode).countStarSlot_ = countStarDesc;
+        }
       } else {
         physicalNode = new ImpalaHdfsScanNode(nodeId, tupleDesc, impalaPartitions,
             baseTblRef, null, partitionConjuncts, filterConjuncts, countStarDesc,
@@ -188,7 +217,9 @@ public class ImpalaHdfsScanRel extends TableScan
    */
   private void produceSlotDescriptorsForTable(BaseTableRef baseTblRef,
       ParentPlanRelContext context) throws ImpalaException {
-    for (String fieldName : getInputRefFieldNames(context)) {
+    Map<Integer, String> inputRefMap = getInputRefMap(context);
+    for (Integer i : inputRefMap.keySet()) {
+      String fieldName = inputRefMap.get(i);
       SlotRef slotref =
           new SlotRef(Path.createRawPath(baseTblRef.getUniqueAlias(), fieldName));
       slotref.analyze(context.ctx_.getRootAnalyzer());
@@ -197,7 +228,8 @@ public class ImpalaHdfsScanRel extends TableScan
         throw new UnsupportedFeatureException(String.format(fieldName + " "
             + "is a complex type (array/map) column. "
             + "This is not currently supported."));
-      } else {
+      }
+      if (isMaterializedInputRef(context, i)) {
         slotDesc.setIsMaterialized(true);
       }
     }
@@ -231,40 +263,102 @@ public class ImpalaHdfsScanRel extends TableScan
    * Returns true if we can use the count star optimization. The re
    */
   private boolean canUseCountStarOptimization(CalciteTable table,
-      ParentPlanRelContext context, List<Expr> filterConjuncts) {
+      ParentPlanRelContext context, List<Expr> filterConjuncts,
+      TableRef tableRef, Analyzer analyzer) {
     // The count(*) will exist in the parent aggregate if it can be used.
     if (context.parentAggregate_ == null ||
         !context.parentAggregate_.hasCountStarOnly()) {
       return false;
     }
 
-    if (!table.canApplyCountStarOptimization(getInputRefFieldNames(context))) {
+    // Maybe this one works for all
+    /*
+    if (context.inputRefs_ == null || !context.inputRefs_.isEmpty()) {
+      return false;
+    }
+    */
+
+
+    // XXX: not sure I like this. Also, what if num <= 0 (see SelectStmt line 1572)?
+    if (context.parentAggregate_.hasCountStarOnly()) {
+      if (table.getFeFsTable() instanceof FeIcebergTable) {
+        FeIcebergTable iceTable = (FeIcebergTable) table.getFeFsTable();
+        try {
+          if (table.isIcebergTable() && FeIcebergTable.Utils.hasDeleteFiles(iceTable, null)) {
+            if (filterConjuncts.size() == 0) {
+              tableRef.setOptimizeCountStarForIcebergV2(true);
+            }
+          }
+        } catch (Exception e) {
+           throw new RuntimeException(e);
+        }
+      }
+    }
+
+    if (!table.canApplyCountStarOptimization()) {
+      return false;
+    }
+
+    if (!(table.isOnlyClusteredCols(getInputRefFieldNames(context)))) {
       return false;
     }
 
     // Can only use the optimization if there are no filters applied on this scan.
     if (filterConjuncts.size() > 0) {
-      return false;
+      if (!table.isIcebergTable()) {
+        return false;
+      } else {
+        for (Expr conjunct : filterConjuncts) {
+          if (!canConvertIcebergPredicate((FeIcebergTable) table.getFeFsTable(), conjunct, analyzer)) {
+            return false;
+          }
+        }
+      }
     }
     return true;
   }
 
-  private List<String> getInputRefFieldNames(ParentPlanRelContext context) {
+  private Collection<String> getInputRefFieldNames(ParentPlanRelContext context) {
+    return getInputRefMap(context).values();
+  }
+
+  private Map<Integer, String> getInputRefMap(ParentPlanRelContext context) {
     // If the parent context didn't pass in input refs, we will select all the
     // columns from the table.
+    Map<Integer, String> inputRefMap = new LinkedHashMap<>();
     if (context.inputRefs_ == null) {
-      return getRowType().getFieldNames();
+      //XXX: perhaps a stream function
+      for (int i = 0; i < getRowType().getFieldNames().size(); ++i) {
+        inputRefMap.put(i, getRowType().getFieldNames().get(i));
+      }
+      return inputRefMap;
     }
 
     List<String> inputRefFieldNames = new ArrayList<>();
     for (Integer i : context.inputRefs_) {
-      inputRefFieldNames.add(getRowType().getFieldNames().get(i));
+      inputRefMap.put(i, getRowType().getFieldNames().get(i));
     }
-    return inputRefFieldNames;
+    return inputRefMap;
+  }
+
+  private boolean isMaterializedInputRef(ParentPlanRelContext context, int i) {
+    if (context.inputMaterializedRefs_ == null) {
+      return true;
+    }
+    return context.inputMaterializedRefs_.get(i);
   }
 
   @Override
   public RelNodeType relNodeType() {
     return RelNodeType.HDFSSCAN;
+  }
+
+  private static boolean canConvertIcebergPredicate(FeIcebergTable table, Expr expr,
+      Analyzer analyzer) {
+    IcebergPredicateConverter converter =
+        new IcebergPredicateConverter(table.getIcebergSchema(), analyzer);
+    IcebergPredicateConverter.ConverterResult result = converter.convert(expr);
+
+    return !(result.isFailed() || result.isPartiallyConverted());
   }
 }

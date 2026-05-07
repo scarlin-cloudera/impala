@@ -17,6 +17,7 @@
 
 package org.apache.impala.calcite.service;
 
+import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.StmtMetadataLoader.StmtTableCache;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.common.ImpalaException;
@@ -52,6 +53,10 @@ public class UnsupportedChecker {
       Pattern.compile(".*\\bfor\\ssystem_version\\sas\\sof\\b.*",
       Pattern.CASE_INSENSITIVE);
 
+  private static Pattern FOR_SYSTEM_TIME_AS_OF =
+      Pattern.compile(".*\\bfor\\ssystem_time\\sas\\sof\\b.*",
+      Pattern.CASE_INSENSITIVE);
+
   private static Pattern INPUT_FILE_NAME = Pattern.compile(".*\\binput__file__name\\b.*",
       Pattern.CASE_INSENSITIVE);
 
@@ -73,6 +78,9 @@ public class UnsupportedChecker {
   private static Pattern UNKNOWN_IDENTIFIER_ROW__ID =
       Pattern.compile(".*\\bUnknown identifier 'ROW__ID'.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern UNKNOWN_IDENTIFIER_ICEBERG__DATA__SEQUENCE__NUMBER =
+      Pattern.compile(".*\\bColumn 'ICEBERG__DATA__SEQUENCE__NUMBER' not found in any table.*", Pattern.CASE_INSENSITIVE);
+
   public static void throwUnsupportedIfKnownException(Exception e)
       throws ImpalaException {
     if (e.getMessage().equals("Unnest function found")) {
@@ -90,6 +98,9 @@ public class UnsupportedChecker {
     }
     if (FOR_SYSTEM_VERSION_AS_OF.matcher(s).matches()) {
       throw new UnsupportedFeatureException("'for system_version as of' not supported.");
+    }
+    if (FOR_SYSTEM_TIME_AS_OF.matcher(s).matches()) {
+      throw new UnsupportedFeatureException("'for system_time as of' not supported.");
     }
     if (INPUT_FILE_NAME.matcher(s).matches() || FILE_POSITION.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Virtual columns not supported.");
@@ -156,6 +167,11 @@ public class UnsupportedChecker {
     m = UNKNOWN_IDENTIFIER_ROW__ID.matcher(s);
     if (m.matches()) {
       throw new UnsupportedFeatureException("RowId column is not supported.");
+    }
+
+    m = UNKNOWN_IDENTIFIER_ICEBERG__DATA__SEQUENCE__NUMBER.matcher(s);
+    if (m.matches()) {
+      throw new UnsupportedFeatureException("Iceberg data sequence number column is not supported.");
     }
   }
 }

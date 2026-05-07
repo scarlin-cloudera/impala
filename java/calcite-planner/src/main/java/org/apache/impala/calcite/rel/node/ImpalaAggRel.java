@@ -165,6 +165,7 @@ public class ImpalaAggRel extends Aggregate
     builder.setFilterCondition(null);
     builder.setParentAggregate(this);
     builder.setInputRefs(ImmutableBitSet.of(RelOptUtil.getAllFields(this)));
+    builder.setInputMaterializedRefs(ImmutableBitSet.of(RelOptUtil.getAllFields(this)));
     return relInput.getPlanNode(builder.build());
   }
 
@@ -307,6 +308,9 @@ public class ImpalaAggRel extends Aggregate
       if (aggCall.getArgList().size() > 0) {
         return false;
       }
+    }
+    if (getGroupCount() > 0) {
+      return false;
     }
     return true;
   }

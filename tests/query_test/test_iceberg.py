@@ -580,6 +580,7 @@ class TestIcebergTable(IcebergTestSuite):
       # Interpreting Budapest time in Tokyo time points to the past.
       self.expect_num_snapshots_from(impalad_client, tbl_name, now_budapest, 4)
 
+  @SkipIf.is_calcite_planner
   def test_time_travel(self, unique_database):
     tbl_name = unique_database + ".time_travel"
 
@@ -1702,6 +1703,7 @@ class TestIcebergV2Table(IcebergTestSuite):
         })
 
   @SkipIf.hardcoded_uris
+  @SkipIf.is_calcite_planner
   def test_metadata_tables(self, vector, unique_database):
     # Remove 'batch_size' option so we can set it at .test file.
     # Revisit this if 'batch_size' dimension size increase.
@@ -2334,6 +2336,7 @@ class TestIcebergV3Table(IcebergTestSuite):
     self.load_table(unique_database, "iceberg_v3_default_value")
     self.run_test_case('QueryTest/iceberg-v3-negative', vector, unique_database)
 
+  @SkipIf.is_calcite_planner
   def test_v3_row_lineage(self, vector, unique_database):
     self.load_table(unique_database, "iceberg_v3_row_lineage")
     self.load_table(unique_database, "iceberg_v3_row_lineage_orc", format="orc")

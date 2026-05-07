@@ -574,6 +574,9 @@ bigint
 ---- RUNTIME_PROFILE
 aggregation(SUM, NumRowGroups): 0
 aggregation(SUM, NumFileMetadataRead): 1
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+aggregation(SUM, NumRowGroups): 0
+aggregation(SUM, NumFileMetadataRead): 0
 ====
 ---- QUERY
 # Regression test for IMPALA-14154.

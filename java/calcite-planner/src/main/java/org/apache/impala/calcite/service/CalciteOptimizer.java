@@ -40,6 +40,9 @@ import org.apache.impala.calcite.operators.ImpalaRexBuilder;
 import org.apache.impala.calcite.operators.ImpalaRexSimplify;
 import org.apache.impala.calcite.rel.node.ConvertToImpalaRelRules;
 import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
+import org.apache.impala.calcite.rules.CountStarIcebergRule;
+import org.apache.impala.calcite.rules.CountStarProjectIcebergRule;
+import org.apache.impala.calcite.rules.IcebergCountStarOptimizer;
 import org.apache.impala.calcite.rules.ImpalaCoreRules;
 import org.apache.impala.calcite.rules.ImpalaFilterSimplifyRule;
 import org.apache.impala.calcite.rules.ImpalaProjectSimplifyRule;
@@ -294,11 +297,13 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
         ImpalaCoreRules.REWRITE_REX_OVER,
-        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE
+        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE,
+        CountStarProjectIcebergRule.INSTANCE
         ));
 
 
-    return runProgram(retRelNode, builder.build(), simplifier);
+    RelNode retNode = runProgram(retRelNode, builder.build(), simplifier);
+    return retNode.accept(new IcebergCountStarOptimizer());
   }
 
   private ImpalaPlanRel runImpalaConvertProgram(RelNode plan,

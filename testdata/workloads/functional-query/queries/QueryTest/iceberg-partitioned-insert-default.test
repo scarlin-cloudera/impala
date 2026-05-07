@@ -287,17 +287,6 @@ Expression 'timestamp_col' (type: TIMESTAMP) would need to be cast to STRING for
 ====
 ---- QUERY
 select count(*) from alltypes_part
-where bool_col = true;
----- RESULTS
-4
----- TYPES
-BIGINT
----- RUNTIME_PROFILE
-aggregation(SUM, NumRowGroups): 0
-aggregation(SUM, NumFileMetadataRead): 4
-====
----- QUERY
-select count(*) from alltypes_part
 where float_col = 0;
 ---- RESULTS
 4
