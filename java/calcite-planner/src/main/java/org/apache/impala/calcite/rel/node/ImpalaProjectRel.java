@@ -32,6 +32,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.calcite.rel.util.CreateExprVisitor;
@@ -143,7 +144,18 @@ public class ImpalaProjectRel extends Project
       // a "cast(inputref)" may change the row type for the underlying Values RelNode.
       builder.setParentRowType(getRowType());
     }
-    builder.setInputRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
+    if (context.inputRefs_ == null) {
+      builder.setInputRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
+      builder.setInputMaterializedRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
+    } else {
+      ImmutableBitSet.Builder projectBuilder = ImmutableBitSet.builder();
+      for (Integer i : context.inputRefs_) {
+        projectBuilder.addAll(RelOptUtil.InputFinder.bits(getProjects().get(i)));
+      }
+      ImmutableBitSet b = projectBuilder.build();
+      builder.setInputRefs(b);
+      builder.setInputMaterializedRefs(b);
+    }
     return relInput.getPlanNode(builder.build());
   }
 

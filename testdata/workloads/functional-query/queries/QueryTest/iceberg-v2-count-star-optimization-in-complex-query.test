@@ -81,6 +81,7 @@ join diff_count using (id);
 BIGINT,BIGINT
 ---- RUNTIME_PROFILE:
   |  output exprs: count(*) - count(*) + CAST(3 AS BIGINT), count(*)
+---- CALCITE_PLANNER_RUNTIME_PROFILE:
 ====
 ---- QUERY
 -- Let's have modifications in the reference table as well.
@@ -132,4 +133,5 @@ join diff_count using (id);
 BIGINT,BIGINT
 ---- RUNTIME_PROFILE:
   |  output exprs: count(*) + CAST(1 AS BIGINT) - count(*) + CAST(3 AS BIGINT), count(*)
+---- CALCITE_PLANNER_RUNTIME_PROFILE:
 ====

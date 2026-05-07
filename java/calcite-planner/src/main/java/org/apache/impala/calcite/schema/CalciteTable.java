@@ -51,7 +51,9 @@ import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
 import org.apache.impala.analysis.TableRef;
 import org.apache.impala.analysis.TupleDescriptor;
+import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
 import org.apache.impala.calcite.rel.util.ImpalaBaseTableRef;
+import org.apache.impala.calcite.rel.util.PrunedPartitionHelper;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
@@ -59,17 +61,12 @@ import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeFsTable;
+import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.HdfsFileFormat;
 import org.apache.impala.catalog.HdfsTable;
 import org.apache.impala.catalog.IcebergTable;
-import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
-import org.apache.impala.calcite.rel.util.ImpalaBaseTableRef;
-import org.apache.impala.calcite.rel.util.PrunedPartitionHelper;
-import org.apache.impala.calcite.type.ImpalaTypeConverter;
-import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
-import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.Pair;
@@ -372,7 +369,7 @@ public class CalciteTable extends RelOptAbstractTable
    * Returns true if the conditions on the table meet the requirements
    * needed to apply the count star optimization.
    */
-  public boolean canApplyCountStarOptimization(List<String> fieldNames) {
+  public boolean canApplyCountStarOptimization() {
     Set<HdfsFileFormat> fileFormats = table_.getFileFormats();
     if (fileFormats.size() != 1) {
       return false;
@@ -385,15 +382,31 @@ public class CalciteTable extends RelOptAbstractTable
     if (AcidUtils.isFullAcidTable(table_.getMetaStoreTable().getParameters())) {
       return false;
     }
-    return isOnlyClusteredCols(fieldNames);
+
+    try {
+      if (table_ instanceof FeIcebergTable) {
+        FeIcebergTable iceTable = (FeIcebergTable) table_;
+        if (FeIcebergTable.Utils.hasDeleteFiles(iceTable, null)) { 
+          return false;
+        }
+      }
+    } catch (Exception e) {
+      return false;
+    }
+
+    return true;
   }
 
-  public boolean isOnlyClusteredCols(List<String> fieldNames) {
-    for (int i = 0; i < fieldNames.size(); i++) {
-      if (!table_.isClusteringColumn(table_.getColumn(fieldNames.get(i)))) {
+  public boolean isOnlyClusteredCols(Collection<String> fieldNames) {
+    for (String fieldName : fieldNames) {
+      if (!table_.isClusteringColumn(table_.getColumn(fieldName))) {
         return false;
       }
     }
     return true;
+  }
+
+  public boolean isIcebergTable() {
+    return table_ instanceof FeIcebergTable;
   }
 }

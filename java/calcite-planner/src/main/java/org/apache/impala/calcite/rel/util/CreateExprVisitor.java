@@ -102,7 +102,11 @@ public class CreateExprVisitor extends RexVisitorImpl<Expr> {
 
   @Override
   public Expr visitLiteral(RexLiteral rexLiteral) {
-    return RexLiteralConverter.getExpr(rexLiteral);
+    try {
+      return RexLiteralConverter.getExpr(rexLiteral, analyzer_);
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

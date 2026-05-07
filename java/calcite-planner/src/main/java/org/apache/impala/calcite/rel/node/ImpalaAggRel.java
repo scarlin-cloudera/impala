@@ -165,6 +165,7 @@ public class ImpalaAggRel extends Aggregate
     builder.setFilterCondition(null);
     builder.setParentAggregate(this);
     builder.setInputRefs(ImmutableBitSet.of(RelOptUtil.getAllFields(this)));
+    builder.setInputMaterializedRefs(ImmutableBitSet.of(RelOptUtil.getAllFields(this)));
     return relInput.getPlanNode(builder.build());
   }
 

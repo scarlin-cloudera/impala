@@ -17,6 +17,7 @@
 
 package org.apache.impala.calcite.service;
 
+import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.StmtMetadataLoader.StmtTableCache;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.common.ImpalaException;

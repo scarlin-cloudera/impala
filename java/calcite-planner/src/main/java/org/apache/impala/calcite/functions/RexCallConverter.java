@@ -39,6 +39,8 @@ import org.apache.impala.analysis.CompoundPredicate;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.FunctionCallExpr;
 import org.apache.impala.analysis.IsNullPredicate;
+import org.apache.impala.analysis.LikePredicate;
+import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.TimestampArithmeticExpr;
 import org.apache.impala.calcite.operators.ImpalaInOperator;
@@ -226,7 +228,10 @@ public class RexCallConverter {
     Type impalaRetType = ImpalaTypeConverter.createImpalaType(fn.getReturnType(),
         rexCall.getType().getPrecision(), rexCall.getType().getScale());
 
-    return new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
+    //XXX: make this more generic
+    return funcName.equals("like")
+        ? new LikePredicate(LikePredicate.Operator.LIKE, params.get(0), params.get(1))
+        : new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
   }
 
   /**
