@@ -53,6 +53,10 @@ public class UnsupportedChecker {
       Pattern.compile(".*\\bfor\\ssystem_version\\sas\\sof\\b.*",
       Pattern.CASE_INSENSITIVE);
 
+  private static Pattern FOR_SYSTEM_TIME_AS_OF =
+      Pattern.compile(".*\\bfor\\ssystem_time\\sas\\sof\\b.*",
+      Pattern.CASE_INSENSITIVE);
+
   private static Pattern INPUT_FILE_NAME = Pattern.compile(".*\\binput__file__name\\b.*",
       Pattern.CASE_INSENSITIVE);
 
@@ -91,6 +95,9 @@ public class UnsupportedChecker {
     }
     if (FOR_SYSTEM_VERSION_AS_OF.matcher(s).matches()) {
       throw new UnsupportedFeatureException("'for system_version as of' not supported.");
+    }
+    if (FOR_SYSTEM_TIME_AS_OF.matcher(s).matches()) {
+      throw new UnsupportedFeatureException("'for system_time as of' not supported.");
     }
     if (INPUT_FILE_NAME.matcher(s).matches() || FILE_POSITION.matcher(s).matches()) {
       throw new UnsupportedFeatureException("Virtual columns not supported.");

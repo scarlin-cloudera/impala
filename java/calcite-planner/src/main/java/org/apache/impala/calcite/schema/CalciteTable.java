@@ -46,6 +46,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.BaseTableRef;
 import org.apache.impala.analysis.Expr;
+import org.apache.impala.analysis.IcebergPartitionSpec;
 import org.apache.impala.analysis.Path;
 import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
@@ -66,6 +67,7 @@ import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.HdfsFileFormat;
 import org.apache.impala.catalog.HdfsTable;
+import org.apache.impala.catalog.IcebergColumn;
 import org.apache.impala.catalog.IcebergTable;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
@@ -73,7 +75,9 @@ import org.apache.impala.common.Pair;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.planner.HdfsEstimatedMissingTableStats;
 import org.apache.impala.planner.HdfsPartitionPruner;
+import org.apache.impala.thrift.TIcebergPartitionTransformType;
 import org.apache.impala.util.AcidUtils;
+import org.apache.impala.util.IcebergUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -399,8 +403,19 @@ public class CalciteTable extends RelOptAbstractTable
 
   public boolean isOnlyClusteredCols(Collection<String> fieldNames) {
     for (String fieldName : fieldNames) {
-      if (!table_.isClusteringColumn(table_.getColumn(fieldName))) {
-        return false;
+      Column c = table_.getColumn(fieldName);
+      if (c instanceof IcebergColumn) {
+        FeIcebergTable icebergTable = (FeIcebergTable) table_;
+        for (IcebergPartitionSpec spec : icebergTable.getPartitionSpecs()) {
+          if (IcebergUtil.getPartitionTransformType((IcebergColumn)c, spec) !=
+              TIcebergPartitionTransformType.IDENTITY) {
+            return false;
+          }    
+        }  
+      } else {
+        if (!table_.isClusteringColumn(c)) {
+          return false;
+        }
       }
     }
     return true;

@@ -101,10 +101,13 @@ public class ImpalaHdfsScanRel extends TableScan
 
     // Under special conditions, a count star optimization can be applied, which
     // needs a special slot descriptor and slot ref.
-    SlotDescriptor countStarDesc =
-        canUseCountStarOptimization(table, context, filterConjuncts, baseTblRef)
-            ? ScanNode.createCountStarOptimizationDesc(tupleDesc, analyzer)
-            : null;
+    SlotDescriptor countStarDesc = null;
+    if (canUseCountStarOptimization(table, context, filterConjuncts, baseTblRef)) {
+      for (SlotDescriptor s : tupleDesc.getSlots()) {
+        s.setIsMaterialized(false);
+      }
+      countStarDesc = ScanNode.createCountStarOptimizationDesc(tupleDesc, analyzer);
+    }
 
     Expr countStarOptimizationExpr = countStarDesc != null
         ? new SlotRef(countStarDesc)
@@ -259,9 +262,11 @@ public class ImpalaHdfsScanRel extends TableScan
     }
 
     // Maybe this one works for all
+    /*
     if (context.inputRefs_ == null || !context.inputRefs_.isEmpty()) {
       return false;
     }
+    */
 
 
     // XXX: not sure I like this. Also, what if num <= 0 (see SelectStmt line 1572)?
@@ -283,14 +288,7 @@ public class ImpalaHdfsScanRel extends TableScan
     }
 
     if (!(table.isOnlyClusteredCols(getInputRefFieldNames(context)))) {
-      if (table.isIcebergTable()) {
-        if ((context.inputMaterializedRefs_ == null ||
-          !context.inputMaterializedRefs_.isEmpty())) {
-          return false;
-        }
-      } else {
-        return false;
-      }
+      return false;
     }
 
     // Can only use the optimization if there are no filters applied on this scan.

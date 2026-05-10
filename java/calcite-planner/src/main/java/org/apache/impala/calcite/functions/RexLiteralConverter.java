@@ -134,8 +134,12 @@ public class RexLiteralConverter {
 
     String timestamp = rexLiteral.getValueAs(TimestampString.class).toString();
     StringLiteral stringLiteral = new StringLiteral(timestamp, Type.STRING, true);
-    CastExpr castExpr = new AnalyzedCastExpr(Type.TIMESTAMP, stringLiteral, true);
-    return LiteralExpr.createBounded(castExpr, analyzer.getQueryCtx(), 10000, true);
+    stringLiteral.analyze(analyzer);
+    CastExpr castExpr = new AnalyzedCastExpr(Type.TIMESTAMP, ImmutableList.of(stringLiteral), true);
+    castExpr.analyze(analyzer);
+    Expr e = LiteralExpr.createBounded(castExpr, analyzer.getQueryCtx(), 10000, true);
+    e.analyze(analyzer);
+    return e;
   }
 
   private static Expr createCastNanOrInf(Object o, Type t) {
