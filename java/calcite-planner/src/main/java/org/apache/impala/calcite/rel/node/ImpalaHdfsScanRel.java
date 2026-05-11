@@ -26,8 +26,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.BaseTableRef;
+import org.apache.impala.analysis.BinaryPredicate;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.ExprSubstitutionMap;
+import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.Path;
 import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
@@ -43,8 +45,10 @@ import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeFsTable;
 import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.Type;
+import org.apache.impala.common.IcebergPredicateConverter;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
+import org.apache.impala.planner.HdfsScanNode;
 import org.apache.impala.planner.IcebergScanPlanner;
 import org.apache.impala.planner.PlanNode;
 import org.apache.impala.planner.PlanNodeId;
@@ -102,7 +106,7 @@ public class ImpalaHdfsScanRel extends TableScan
     // Under special conditions, a count star optimization can be applied, which
     // needs a special slot descriptor and slot ref.
     SlotDescriptor countStarDesc = null;
-    if (canUseCountStarOptimization(table, context, filterConjuncts, baseTblRef)) {
+    if (canUseCountStarOptimization(table, context, filterConjuncts, baseTblRef, analyzer)) {
       for (SlotDescriptor s : tupleDesc.getSlots()) {
         s.setIsMaterialized(false);
       }
@@ -137,6 +141,12 @@ public class ImpalaHdfsScanRel extends TableScan
         IcebergScanPlanner icebergPlanner = new IcebergScanPlanner(analyzer, context.ctx_,
             baseTblRef, copiedConjuncts, null, isDistinctOnly);
         physicalNode = icebergPlanner.createIcebergScanPlan();
+        if (physicalNode instanceof HdfsScanNode) {
+          if (countStarDesc != null) {
+            Preconditions.checkState(physicalNode.getConjuncts().size() == 0);
+          }
+          ((HdfsScanNode)physicalNode).countStarSlot_ = countStarDesc;
+        }
       } else {
         physicalNode = new ImpalaHdfsScanNode(nodeId, tupleDesc, impalaPartitions,
             baseTblRef, null, partitionConjuncts, filterConjuncts, countStarDesc,
@@ -254,7 +264,7 @@ public class ImpalaHdfsScanRel extends TableScan
    */
   private boolean canUseCountStarOptimization(CalciteTable table,
       ParentPlanRelContext context, List<Expr> filterConjuncts,
-      TableRef tableRef) {
+      TableRef tableRef, Analyzer analyzer) {
     // The count(*) will exist in the parent aggregate if it can be used.
     if (context.parentAggregate_ == null ||
         !context.parentAggregate_.hasCountStarOnly()) {
@@ -275,7 +285,9 @@ public class ImpalaHdfsScanRel extends TableScan
         FeIcebergTable iceTable = (FeIcebergTable) table.getFeFsTable();
         try {
           if (table.isIcebergTable() && FeIcebergTable.Utils.hasDeleteFiles(iceTable, null)) {
-            tableRef.setOptimizeCountStarForIcebergV2(true);
+            if (filterConjuncts.size() == 0) {
+              tableRef.setOptimizeCountStarForIcebergV2(true);
+            }
           }
         } catch (Exception e) {
            throw new RuntimeException(e);
@@ -292,8 +304,16 @@ public class ImpalaHdfsScanRel extends TableScan
     }
 
     // Can only use the optimization if there are no filters applied on this scan.
-    if (filterConjuncts.size() > 0 && !table.isIcebergTable()) {
-      return false;
+    if (filterConjuncts.size() > 0) {
+      if (!table.isIcebergTable()) {
+        return false;
+      } else {
+        for (Expr conjunct : filterConjuncts) {
+          if (!canConvertIcebergPredicate((FeIcebergTable) table.getFeFsTable(), conjunct, analyzer)) {
+            return false;
+          }
+        }
+      }
     }
     return true;
   }
@@ -331,5 +351,14 @@ public class ImpalaHdfsScanRel extends TableScan
   @Override
   public RelNodeType relNodeType() {
     return RelNodeType.HDFSSCAN;
+  }
+
+  private static boolean canConvertIcebergPredicate(FeIcebergTable table, Expr expr,
+      Analyzer analyzer) {
+    IcebergPredicateConverter converter =
+        new IcebergPredicateConverter(table.getIcebergSchema(), analyzer);
+    IcebergPredicateConverter.ConverterResult result = converter.convert(expr);
+
+    return !(result.isFailed() || result.isPartiallyConverted());
   }
 }

@@ -78,6 +78,9 @@ public class UnsupportedChecker {
   private static Pattern UNKNOWN_IDENTIFIER_ROW__ID =
       Pattern.compile(".*\\bUnknown identifier 'ROW__ID'.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern UNKNOWN_IDENTIFIER_ICEBERG__DATA__SEQUENCE__NUMBER =
+      Pattern.compile(".*\\bColumn 'ICEBERG__DATA__SEQUENCE__NUMBER' not found in any table.*", Pattern.CASE_INSENSITIVE);
+
   public static void throwUnsupportedIfKnownException(Exception e)
       throws ImpalaException {
     if (e.getMessage().equals("Unnest function found")) {
@@ -164,6 +167,11 @@ public class UnsupportedChecker {
     m = UNKNOWN_IDENTIFIER_ROW__ID.matcher(s);
     if (m.matches()) {
       throw new UnsupportedFeatureException("RowId column is not supported.");
+    }
+
+    m = UNKNOWN_IDENTIFIER_ICEBERG__DATA__SEQUENCE__NUMBER.matcher(s);
+    if (m.matches()) {
+      throw new UnsupportedFeatureException("Iceberg data sequence number column is not supported.");
     }
   }
 }

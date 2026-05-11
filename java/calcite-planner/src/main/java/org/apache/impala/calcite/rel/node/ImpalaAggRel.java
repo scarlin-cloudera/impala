@@ -309,6 +309,9 @@ public class ImpalaAggRel extends Aggregate
         return false;
       }
     }
+    if (getGroupCount() > 0) {
+      return false;
+    }
     return true;
   }
 
