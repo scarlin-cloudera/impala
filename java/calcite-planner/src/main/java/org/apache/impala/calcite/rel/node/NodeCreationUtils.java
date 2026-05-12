@@ -24,6 +24,7 @@ import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.SetOperationStmt;
 import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
+import org.apache.impala.analysis.TableRef;
 import org.apache.impala.analysis.TupleDescriptor;
 import org.apache.impala.catalog.ColumnStats;
 import org.apache.impala.planner.EmptySetNode;
@@ -38,6 +39,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -73,7 +75,8 @@ public class NodeCreationUtils {
 
     List<Expr> outputExprs = createOutputExprs(tupleDesc.getSlots());
 
-    return new NodeWithExprs(emptySetNode, outputExprs, rowType.getFieldNames());
+    return new NodeWithExprs(emptySetNode, outputExprs, rowType.getFieldNames(),
+        ImmutableList.of());
   }
 
   public static NodeWithExprs createUnionPlanNode(PlanNodeId nodeId,
@@ -97,7 +100,12 @@ public class NodeCreationUtils {
 
     unionNode.init(analyzer);
 
-    return new NodeWithExprs(unionNode, outputExprs, rowType.getFieldNames());
+    //XXX: use some streaming class
+    List<TableRef> tblRefs = new ArrayList<>();
+    for (NodeWithExprs n : childrenPlanNodes) {
+      tblRefs.addAll(n.tblRefs_);
+    }
+    return new NodeWithExprs(unionNode, outputExprs, rowType.getFieldNames(), tblRefs);
   }
 
   public static List<Expr> createOutputExprs(List<SlotDescriptor> slotDescs) {

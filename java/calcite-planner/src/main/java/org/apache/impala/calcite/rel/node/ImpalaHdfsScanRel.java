@@ -56,7 +56,7 @@ import org.apache.impala.planner.ScanNode;
 import org.apache.impala.planner.SingleNodePlanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -156,8 +156,8 @@ public class ImpalaHdfsScanRel extends TableScan
     physicalNode.setOutputSmap(new ExprSubstitutionMap());
     physicalNode.init(analyzer);
 
-    return new NodeWithExprs(physicalNode, outputExprs,
-        getRowType().getFieldNames(), countStarOptimizationExpr);
+    return new NodeWithExprs(physicalNode, outputExprs, getRowType().getFieldNames(),
+        ImmutableList.of(baseTblRef), countStarOptimizationExpr);
   }
 
   /**

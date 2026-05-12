@@ -186,8 +186,8 @@ public class ImpalaAnalyticRel extends Project
 
     List<Expr> outputExprs = getOutputExprs(mapping, projects, simplifiedAnalyzer);
 
-    NodeWithExprs retNode =
-        new NodeWithExprs(planNode, outputExprs, getRowType().getFieldNames());
+    NodeWithExprs retNode = new NodeWithExprs(planNode, outputExprs,
+        getRowType().getFieldNames(), inputNodeWithExprs.tblRefs_);
 
     RexBuilder rexBuilder = getCluster().getRexBuilder();
     return context.filterCondition_ != null
