@@ -293,17 +293,14 @@ public class CalciteOptimizer implements CompilerStep {
 
     HepProgramBuilder builder = new HepProgramBuilder();
 
-    RelNode retRelNode = plan;
+    RelNode retRelNode = plan.accept(new IcebergCountStarOptimizer());
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
         ImpalaCoreRules.REWRITE_REX_OVER,
-        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE,
-        CountStarProjectIcebergRule.INSTANCE
+        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE
         ));
 
-
-    RelNode retNode = runProgram(retRelNode, builder.build(), simplifier);
-    return retNode.accept(new IcebergCountStarOptimizer());
+    return runProgram(retRelNode, builder.build(), simplifier);
   }
 
   private ImpalaPlanRel runImpalaConvertProgram(RelNode plan,

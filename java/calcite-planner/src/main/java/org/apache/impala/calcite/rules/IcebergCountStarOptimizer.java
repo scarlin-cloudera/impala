@@ -58,10 +58,11 @@ public class IcebergCountStarOptimizer extends RelShuttleImpl {
 
   @Override
   public RelNode visit(LogicalAggregate agg) {
-    if (!isAPotentialCountStarAgg(agg)) {
+    
+    TableScan ts = getAggregatedTableScan(agg);
+    if (ts == null) {
       return super.visit(agg);
     }
-    TableScan ts = (TableScan) agg.getInputs().get(0);
 
     RelOptCluster cluster = agg.getCluster();
     RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -72,7 +73,6 @@ public class IcebergCountStarOptimizer extends RelShuttleImpl {
     }
     FeIcebergTable iceTable = (FeIcebergTable) table.getFeFsTable();
 
-    //XXX: move inside test
     //XXX: need to implement if any count(*) is in there
     boolean hasACountStar = hasACountStar(agg);
     if (!hasACountStar(agg)) {
@@ -149,21 +149,12 @@ public class IcebergCountStarOptimizer extends RelShuttleImpl {
     }
   }
 
-  public static boolean test(TableScan scan) {
-    CalciteTable table = (CalciteTable) scan.getTable();
-    LOG.info("SJC: IN TEST, ICEBERG TABLE IS " + table.getName() + ", AND ISICEBERG IS " + table.isIcebergTable());
-    return table.isIcebergTable();
-    /*
-    // We can only push filters into a FilterableTable or
-    // ProjectableFilterableTable.
-    final RelOptTable table = scan.getTable();
-    return table.unwrap(FilterableTable.class) != null
-        || table.unwrap(ProjectableFilterableTable.class) != null;
-        */
-  }
-
   //XXX: in ImpalaAggRel
   private boolean hasCountStarOnly(Aggregate agg) {
+    int size = agg.getGroupSet().size();
+    if (!agg.getGroupSet().isEmpty()) {
+      return false;
+    }
     if (agg.getAggCallList().size() == 0) {
       return false;
     }
@@ -179,6 +170,10 @@ public class IcebergCountStarOptimizer extends RelShuttleImpl {
   }
 
   private boolean hasACountStar(Aggregate agg) {
+    int size = agg.getGroupSet().size();
+    if (!agg.getGroupSet().isEmpty()) {
+      return false;
+    }
     if (agg.getAggCallList().size() == 0) {
       return false;
     }
@@ -191,15 +186,20 @@ public class IcebergCountStarOptimizer extends RelShuttleImpl {
     return false;
   }
 
-  private boolean isAPotentialCountStarAgg(RelNode node) {
-    if (!(node instanceof Aggregate)) {
-      return false;
+  private TableScan getAggregatedTableScan(LogicalAggregate agg) {
+    if (agg.getInputs().get(0) instanceof TableScan) {
+      return (TableScan) agg.getInputs().get(0);
     }
 
-    if (!(node.getInputs().get(0) instanceof TableScan)) {
-      return false;
+    if (!(agg.getInputs().get(0) instanceof LogicalProject)) {
+      return null;
     }
-    return true;
+
+    LogicalProject proj = (LogicalProject) agg.getInputs().get(0);
+
+    return proj.getInputs().get(0) instanceof TableScan
+        ? (TableScan) proj.getInputs().get(0)
+        : null;
   }
 }
 

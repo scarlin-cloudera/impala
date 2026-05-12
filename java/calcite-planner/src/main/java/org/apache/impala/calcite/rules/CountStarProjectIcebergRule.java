@@ -71,11 +71,13 @@ public class CountStarProjectIcebergRule
     RelOptCluster cluster = agg.getCluster();
     RexBuilder rexBuilder = cluster.getRexBuilder();
 
+/*
     if (hasCountStarOnly(agg)) {
       LogicalAggregate newAgg = LogicalAggregate.create(proj.getInputs().get(0), agg.getHints(), agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
       call.transformTo(newAgg);
       return;
     }
+    */
 
     RelNode projInput = proj.getInputs().get(0);
     if (!(projInput instanceof TableScan)) {
