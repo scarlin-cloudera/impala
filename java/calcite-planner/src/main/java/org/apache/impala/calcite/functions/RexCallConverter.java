@@ -287,9 +287,12 @@ public class RexCallConverter {
         call.getOperator().getKind().equals(SqlKind.CAST));
 
     // XXX: change value from 64 * 1024, what should this be?
-    return paramsOperand instanceof LiteralExpr
-        ? LiteralExpr.createBounded(castExpr, analyzer.getQueryCtx(), 64 * 1024, true)
-        : castExpr;
+    if (paramsOperand instanceof LiteralExpr) {
+      Expr retExpr = LiteralExpr.createBounded(castExpr, analyzer.getQueryCtx(), 64 * 1024, true);
+      // retExpr can be null if trying to cast "Inf" to double.
+      return retExpr != null ? retExpr : castExpr;
+    }
+    return castExpr;
   }
 
   private static Expr createDecodeExpr(Function fn, List<Expr> params,
