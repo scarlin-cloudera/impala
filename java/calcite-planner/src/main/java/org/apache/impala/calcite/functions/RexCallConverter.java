@@ -39,6 +39,8 @@ import org.apache.impala.analysis.CompoundPredicate;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.FunctionCallExpr;
 import org.apache.impala.analysis.IsNullPredicate;
+import org.apache.impala.analysis.LikePredicate;
+import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.TimestampArithmeticExpr;
 import org.apache.impala.calcite.operators.ImpalaInOperator;
@@ -85,6 +87,7 @@ public class RexCallConverter {
     switch (rexCall.getOperator().getKind()) {
       case OR:
       case AND:
+      case NOT:
         return createCompoundExpr(rexCall, params);
       case CAST:
         return createCastExpr(rexCall, params, analyzer);
@@ -180,6 +183,8 @@ public class RexCallConverter {
         return CompoundPredicate.createDisjunctivePredicate(params);
       case AND:
         return CompoundPredicate.createConjunctivePredicate(params);
+      case NOT:
+        return params.get(0).negate();
     }
     Preconditions.checkState(false, "Unknown type: " + rexCall.getOperator().getKind());
     return null;
@@ -227,7 +232,10 @@ public class RexCallConverter {
     Type impalaRetType = ImpalaTypeConverter.createImpalaType(fn.getReturnType(),
         rexCall.getType().getPrecision(), rexCall.getType().getScale());
 
-    return new AnalyzedFunctionCallExpr(fn, params, impalaRetType);
+    LikePredicate.Operator likeOp =
+         LikePredicate.Operator.valueOf(funcName.toUpperCase());
+    Preconditions.checkNotNull(likeOp, "Unknown like operator: " + funcName);
+    return new LikePredicate(likeOp, params.get(0), params.get(1));
   }
 
   /**
@@ -272,7 +280,18 @@ public class RexCallConverter {
       throw new AnalysisException("Invalid type cast " +
           "from " + paramsOperand.getType() + " to " + impalaRetType);
     }
-    return new AnalyzedCastExpr(impalaRetType, paramsOperand);
+
+    CastExpr castExpr = new AnalyzedCastExpr(impalaRetType, paramsOperand);
+
+    if (paramsOperand instanceof LiteralExpr) {
+      // remove the cast expression and create the exact literal.
+      Expr retExpr = LiteralExpr.createBounded(castExpr, analyzer.getQueryCtx(),
+          LiteralExpr.MAX_STRING_LITERAL_SIZE, true);
+      // retExpr can be null if trying to cast "Inf" to double. In that case, let the
+      // backend handle the cast rather than trying to fold it here.
+      return retExpr != null ? retExpr : castExpr;
+    }
+    return castExpr;
   }
 
   private static Expr createDecodeExpr(Function fn, List<Expr> params,

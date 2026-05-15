@@ -26,7 +26,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -169,11 +168,15 @@ public class ImpalaJoinRel extends Join
     exprsToRegister.addAll(filterConjuncts);
     exprsToRegister.addAll(otherJoinConjuncts);
     registerConjuncts(getJoinConjunctListToRegister(exprsToRegister), analyzer,
-        joinNode, joinOp);
+        joinNode, joinOp, leftInput.tblRefs_, rightInput.tblRefs_);
 
     joinNode.setOutputSmap(new ExprSubstitutionMap());
 
-    return new NodeWithExprs(joinNode, outputExprs, getRowType().getFieldNames());
+    List<TableRef> tableRefs = ImmutableList.<TableRef> builder()
+        .addAll(leftInput.tblRefs_)
+        .addAll(rightInput.tblRefs_)
+        .build();
+    return new NodeWithExprs(joinNode, outputExprs, getRowType().getFieldNames(), tableRefs);
   }
 
   private NodeWithExprs getChildPlanNode(RelNode relInput,
@@ -512,16 +515,15 @@ public class ImpalaJoinRel extends Join
    * valueTransfersGraph to determine if runtime filters can be created.
    */
   private void registerConjuncts(List<Expr> equiJoinExprs, Analyzer analyzer,
-      PlanNode joinNode, JoinOperator joinOp) throws ImpalaException {
+      PlanNode joinNode, JoinOperator joinOp, List<TableRef> lhsTableRefs,
+      List<TableRef> rhsTableRefs) throws ImpalaException {
     if (equiJoinExprs.size() == 0) {
       return;
     }
 
     if (joinOp == JoinOperator.RIGHT_OUTER_JOIN) {
-      List<TableRef> lhsTableRefs = getTableRefs(joinNode.getChild(0));
       registerOuterJoinedTids(lhsTableRefs, analyzer, joinOp);
     }
-    List<TableRef> rhsTableRefs = getTableRefs(joinNode.getChild(1));
     if (joinOp == JoinOperator.LEFT_OUTER_JOIN) {
       registerOuterJoinedTids(rhsTableRefs, analyzer, joinOp);
     }

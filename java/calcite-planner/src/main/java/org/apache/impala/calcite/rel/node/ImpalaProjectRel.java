@@ -31,7 +31,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.calcite.rel.util.CreateExprVisitor;
@@ -99,7 +98,8 @@ public class ImpalaProjectRel extends Project
     // There is no Impala Plan Node mapped to Project, so we just return the child
     // PlanNode. However, the outputExprs change with the Project.
     return new NodeWithExprs(inputWithExprs.planNode_, outputExprs,
-        getRowType().getFieldNames(), inputWithExprs.countStarOptimization_);
+        getRowType().getFieldNames(), inputWithExprs.tblRefs_,
+        inputWithExprs.countStarOptimization_);
   }
 
   /**
@@ -234,7 +234,7 @@ public class ImpalaProjectRel extends Project
     PlanNodeId nodeId = context.ctx_.getNextNodeId();
     List<NodeWithExprs> nodeWithExprsList = new ArrayList<>();
     nodeWithExprsList.add(new NodeWithExprs(null, outputExprs,
-        getRowType().getFieldNames()));
+        getRowType().getFieldNames(), ImmutableList.of()));
     NodeWithExprs retNode = NodeCreationUtils.createUnionPlanNode(nodeId,
         context.ctx_.getRootAnalyzer(), rowType, nodeWithExprsList, true);
     return NodeCreationUtils.wrapInSelectNodeIfNeeded(context, retNode,

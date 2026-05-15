@@ -31,6 +31,21 @@ import org.apache.impala.analysis.SlotDescriptor;
  */
 public final class ScanNodeHelperImpl implements ScanNodeHelper {
 
+  private final boolean isDistinctOnly_;
+
+  public ScanNodeHelperImpl() {
+    this(null);
+  }
+
+  public ScanNodeHelperImpl(MultiAggregateInfo aggInfo) {
+    isDistinctOnly_ = aggInfo != null && aggInfo.hasAllDistinctAgg();
+  }
+
+  @Override
+  public boolean isDistinctOnly() {
+    return isDistinctOnly_;
+  }
+
   /**
    * Returns the count star optimization descriptor for the given scan node if
    * the count star optimization can be applied.
