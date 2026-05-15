@@ -60,7 +60,6 @@ import org.apache.impala.catalog.FileBlock;
 import org.apache.impala.catalog.FileDescriptor;
 import org.apache.impala.catalog.HdfsCompression;
 import org.apache.impala.catalog.HdfsFileFormat;
-import org.apache.impala.catalog.IcebergFileDescriptor;
 import org.apache.impala.catalog.HdfsStorageDescriptor;
 import org.apache.impala.catalog.PrimitiveType;
 import org.apache.impala.catalog.ScalarType;
@@ -354,7 +353,7 @@ public class HdfsScanNode extends ScanNode {
       List<? extends FeFsPartition> partitions, TableRef hdfsTblRef,
       MultiAggregateInfo aggInfo, List<Expr> partConjuncts, boolean isPartitionKeyScan) {
     this(id, desc, conjuncts, partitions, hdfsTblRef, aggInfo, partConjuncts,
-        isPartitionKeyScan, new ScanNodeHelperImpl());
+        isPartitionKeyScan, new ScanNodeHelperImpl(aggInfo));
   }
 
   /**

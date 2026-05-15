@@ -1316,3 +1316,14 @@ int,int,bigint
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+# query to ensure iceberg tables can be queried by the Calcite planner
+select count(*) from functional_parquet.iceberg_v2_no_deletes
+---- RESULTS
+3
+---- TYPES
+bigint
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
+

@@ -153,7 +153,8 @@ public class ImpalaAggRel extends Aggregate
     }
     simplifiedAnalyzer.clearUnassignedConjuncts();
 
-    return new NodeWithExprs(aggNode, outputExprs, getRowType().getFieldNames());
+    return new NodeWithExprs(aggNode, outputExprs, getRowType().getFieldNames(),
+        inputWithExprs.tblRefs_);
   }
 
   private NodeWithExprs getChildPlanNode(ParentPlanRelContext context
@@ -408,7 +409,7 @@ public class ImpalaAggRel extends Aggregate
     cardinalityCheckNode.init(ctx.getRootAnalyzer());
 
     return new NodeWithExprs(cardinalityCheckNode, outputExprs,
-        getRowType().getFieldNames());
+        getRowType().getFieldNames(), inputNodeWithExprs.tblRefs_);
   }
 
   public Aggregate copy(RelTraitSet relTraitSet, RelNode relNode,

@@ -18,20 +18,14 @@
 package org.apache.impala.calcite.schema;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelDistribution;
-import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Table;
@@ -41,13 +35,10 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql2rel.InitializerContext;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.BaseTableRef;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.Path;
-import org.apache.impala.analysis.SlotDescriptor;
-import org.apache.impala.analysis.SlotRef;
 import org.apache.impala.analysis.TableRef;
 import org.apache.impala.analysis.TupleDescriptor;
 import org.apache.impala.calcite.rel.util.ImpalaBaseTableRef;
@@ -60,9 +51,6 @@ import org.apache.impala.catalog.FeFsTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.HdfsFileFormat;
-import org.apache.impala.catalog.HdfsTable;
-import org.apache.impala.catalog.IcebergTable;
-import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.Pair;
 import org.apache.impala.common.UnsupportedFeatureException;
@@ -283,7 +271,7 @@ public class CalciteTable extends RelOptAbstractTable
    * Returns true if the conditions on the table meet the requirements
    * needed to apply the count star optimization.
    */
-  public boolean canApplyCountStarOptimization(List<String> fieldNames) {
+  public boolean canApplyCountStarOptimization() {
     Set<HdfsFileFormat> fileFormats = table_.getFileFormats();
     if (fileFormats.size() != 1) {
       return false;
@@ -296,12 +284,14 @@ public class CalciteTable extends RelOptAbstractTable
     if (AcidUtils.isFullAcidTable(table_.getMetaStoreTable().getParameters())) {
       return false;
     }
-    return isOnlyClusteredCols(fieldNames);
+
+    return true;
   }
 
-  public boolean isOnlyClusteredCols(List<String> fieldNames) {
-    for (int i = 0; i < fieldNames.size(); i++) {
-      if (!table_.isClusteringColumn(table_.getColumn(fieldNames.get(i)))) {
+  public boolean isOnlyClusteredCols(Collection<String> fieldNames) {
+    for (String fieldName : fieldNames) {
+      Column c = table_.getColumn(fieldName);
+      if (!table_.isClusteringColumn(c)) {
         return false;
       }
     }

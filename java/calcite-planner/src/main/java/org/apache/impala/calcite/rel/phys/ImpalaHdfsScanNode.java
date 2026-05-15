@@ -20,7 +20,6 @@ package org.apache.impala.calcite.rel.phys;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.MultiAggregateInfo;
-import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.TableRef;
 import org.apache.impala.analysis.TupleDescriptor;
 import org.apache.impala.catalog.FeFsPartition;
@@ -38,8 +37,6 @@ public class ImpalaHdfsScanNode extends HdfsScanNode {
 
   private final List<Expr> assignedConjuncts_;
 
-  private final TableRef hdfsTblRef_;
-
   public ImpalaHdfsScanNode(PlanNodeId id, TupleDescriptor tupleDesc,
       List<? extends FeFsPartition> partitions,
       TableRef hdfsTblRef, MultiAggregateInfo aggInfo, List<Expr> partConjuncts,
@@ -48,11 +45,6 @@ public class ImpalaHdfsScanNode extends HdfsScanNode {
     super(id, tupleDesc, assignedConjuncts, partitions, hdfsTblRef, aggInfo,
         partConjuncts, isPartitionScanOnly, helper);
     this.assignedConjuncts_ = assignedConjuncts;
-    this.hdfsTblRef_ = hdfsTblRef;
-  }
-
-  public TableRef getTableRef() {
-    return hdfsTblRef_;
   }
 
   @Override
