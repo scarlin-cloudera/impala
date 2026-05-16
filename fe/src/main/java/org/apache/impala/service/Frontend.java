@@ -338,11 +338,13 @@ public class Frontend {
     // incomplete structures (e.g. THdfsTable without nullPartitionKeyValue) that cannot
     // be serialized.
     protected boolean serializeDescTbl_ = true;
-    // Flag to indicate if the backend has been notified whether or not to create an
-    // OpenTelemetry trace for this query. This variable has three valid states:
-    // null (not yet notified)
-    // true (notified to create a trace),
-    // false (notified to not create a trace).
+    // Whether an OpenTelemetry trace should be created for this query. This variable has
+    // three valid states:
+    // null (decision not yet made, e.g. before parsing or after a failed planner attempt),
+    // true (create a trace),
+    // false (do not create a trace).
+    // The backend is notified once via applyQueryOtelTracingToBackend() after the final
+    // planner succeeds.
     protected Boolean queryTraced_ = null;
 
     // The physical plan, divided by fragment, before conversion to
@@ -2146,6 +2148,8 @@ public class Frontend {
       result.setProfile(FrontendProfile.getCurrent().emitAsThrift());
       result.setProfile_children(FrontendProfile.getCurrent().emitChildrenAsThrift());
       return result;
+    } finally {
+      applyQueryOtelTracingToBackend(planCtx);
     }
   }
 
@@ -2445,6 +2449,11 @@ public class Frontend {
     CompilerFactory compilerFactory;
     String attemptedPlanner = null;
     for (TPlannerType plannerType : plannerTypes) {
+      // reset the queryTraced_ value on each iteration. If a fallback happens, it's
+      // ok to throw away the results since only the final analysis truly matters.
+      // At some point, we may want to include all analysis including the initial
+      // failed attempt, but this should work for now.
+      planCtx.queryTraced_ = null;
       compilerFactory = getCompilerFactory(plannerType);
       try {
         TExecRequest request = getTExecRequest(compilerFactory, planCtx, timeline);
@@ -2462,6 +2471,8 @@ public class Frontend {
     // unsupported SQLs
     if (error != null && onlyCalcite && isUnsupportedCalciteSQL(planCtx, error)) {
       compilerFactory = getCompilerFactory(TPlannerType.ORIGINAL);
+      // reset the queryTraced_ value because of retry.
+      planCtx.queryTraced_ = null;
       TExecRequest request = getTExecRequest(compilerFactory, planCtx, timeline);
       addPlannerToProfile(compilerFactory.getPlannerString(), attemptedPlanner, error);
       return request;
@@ -3312,69 +3323,66 @@ public class Frontend {
    */
   private ParsedStatement parseAndDoOtelTracing(final CompilerFactory compilerFactory,
       final TQueryCtx queryCtx, final PlanCtx planCtx) throws ImpalaException {
-    ParsedStatement parsedStmt;
+    ParsedStatement parsedStmt = null;
 
     // Parse stmt and collect/load metadata to populate a stmt-local table cache
     try {
       parsedStmt = compilerFactory.createParsedStatement(queryCtx);
     } catch (ImpalaException e) {
-      if (planCtx.queryTraced_ == null && BackendConfig.INSTANCE.isOtelTraceEnabled()) {
-        planCtx.queryTraced_ = Boolean.FALSE;
-        updateQueryOtelTracingInBE(queryCtx.getQuery_id(), false);
-      }
       throw e;
+    } finally {
+      planCtx.queryTraced_ = parsedStmt != null && BackendConfig.INSTANCE.isOtelTraceEnabled()
+          ? getQueryOtelTracing(parsedStmt)
+          : Boolean.FALSE;
     }
 
     // Determine whether to enable OpenTelemetry tracing for the query.
-    if (planCtx.queryTraced_ == null) {
-      if (!BackendConfig.INSTANCE.isOtelTraceEnabled()) {
-        planCtx.queryTraced_ = Boolean.FALSE;
-      } else {
-        updateQueryOtelTracing(queryCtx.getQuery_id(), planCtx, parsedStmt);
-      }
-    }
-
     return parsedStmt;
   }
 
   /**
    * Determines if a statement should have an OpenTelemetry trace created for it and
-   * notifies the backend of the decision. Sets <code>planCtx.queryTraced_</code> with the
-   * result of the decision if it has not already been set.
+   * records the decision in <code>planCtx.queryTraced_</code>. The backend is notified
+   * later via {@link #applyQueryOtelTracingToBackend} after the final planner succeeds.
    *
    * No-op if <code>planCtx.queryTraced_</code> is already set which means the first call
    * of this function wins (if it is called multiple times).
    *
-   * @param queryId    {@link TUniqueId} of the statement to check
    * @param planCtx    {@link PlanCtx} of the statement to check
    * @param parsedStmt {@link ParsedStatement} of the statement to check, returned from
    *                    the sql parser
-   * @throws AnalysisException see {@link Frontend#updateQueryOtelTracingInBE}
    */
-  private void updateQueryOtelTracing(final TUniqueId queryId, final PlanCtx planCtx,
-      final ParsedStatement parsedStmt) throws AnalysisException {
-    if (planCtx.queryTraced_ == null) {
-      planCtx.queryTraced_ = Boolean.valueOf(
-          !parsedStmt.isExplain()
-          && !parsedStmt.isValuesStmt()
-          && (
-              parsedStmt.isQueryStmt()
-              || parsedStmt.isAlterTableStmt()
-              || parsedStmt.isComputeStatsStmt()
-              || parsedStmt.isCreateDbStmt()
-              || parsedStmt.isCreateTableAsSelectStmt()
-              || parsedStmt.isCreateTableLikeStmt()
-              || parsedStmt.isCreateTableStmt()
-              || parsedStmt.isCreateViewStmt()
-              || parsedStmt.isDeleteStmt()
-              || parsedStmt.isDropDbStmt()
-              || parsedStmt.isDropTableOrViewStmt()
-              || parsedStmt.isInsertStmt()
-              || parsedStmt.isInvalidateMetadata()
-              || parsedStmt.isUpdateStmt()));
+  private boolean getQueryOtelTracing(final ParsedStatement parsedStmt) {
+    return Boolean.valueOf(
+        !parsedStmt.isExplain()
+        && !parsedStmt.isValuesStmt()
+        && (
+            parsedStmt.isQueryStmt()
+            || parsedStmt.isAlterTableStmt()
+            || parsedStmt.isComputeStatsStmt()
+            || parsedStmt.isCreateDbStmt()
+            || parsedStmt.isCreateTableAsSelectStmt()
+            || parsedStmt.isCreateTableLikeStmt()
+            || parsedStmt.isCreateTableStmt()
+            || parsedStmt.isCreateViewStmt()
+            || parsedStmt.isDeleteStmt()
+            || parsedStmt.isDropDbStmt()
+            || parsedStmt.isDropTableOrViewStmt()
+            || parsedStmt.isInsertStmt()
+            || parsedStmt.isInvalidateMetadata()
+            || parsedStmt.isUpdateStmt()));
+  }
 
-      updateQueryOtelTracingInBE(queryId, planCtx.queryTraced_.booleanValue());
+  /**
+   * Notifies the backend of the final OpenTelemetry tracing decision for this query.
+   * Must be called after planning succeeds with the planner that will execute the query.
+   */
+  private void applyQueryOtelTracingToBackend(PlanCtx planCtx) throws AnalysisException {
+    if (!BackendConfig.INSTANCE.isOtelTraceEnabled() || planCtx.queryTraced_ == null) {
+      return;
     }
+    updateQueryOtelTracingInBE(planCtx.getQueryContext().getQuery_id(),
+        planCtx.queryTraced_.booleanValue());
   }
 
   /**
