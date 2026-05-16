@@ -24,6 +24,7 @@ from time import sleep, time
 import pytest
 
 from impala_thrift_gen.RuntimeProfile.ttypes import TRuntimeProfileFormat
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.impala_cluster import ImpalaCluster
 from tests.common.impala_connection import IMPALA_CONNECTION_EXCEPTION
 from tests.common.impala_test_suite import ImpalaTestSuite
@@ -210,14 +211,24 @@ class TestObservability(ImpalaTestSuite):
     # 06:EXCHANGE                    1           1  UNPARTITIONED
     # F00:EXCHANGE SENDER
     # 00:SCAN HDFS                   3           1  tpch.lineitem a
-    assert result.exec_summary[8]['operator'] == '03:SCAN HDFS', result.runtime_profile
-    assert result.exec_summary[8]['detail'] == 'tpch.lineitem, CANCELLED', \
-        result.runtime_profile
-    assert result.exec_summary[9]['operator'] == '02:SCAN HDFS', result.runtime_profile
-    assert result.exec_summary[9]['detail'] == 'tpch.lineitem, CANCELLED', \
-        result.runtime_profile
-    assert result.exec_summary[12]['operator'] == '00:SCAN HDFS', result.runtime_profile
-    assert result.exec_summary[12]['detail'] == 'tpch.lineitem a', result.runtime_profile
+    if IS_CALCITE_PLANNER:
+      assert result.exec_summary[9]['operator'] == '04:SCAN HDFS', result.runtime_profile
+      assert result.exec_summary[9]['detail'] == 'tpch.lineitem, CANCELLED', \
+          result.runtime_profile
+      assert result.exec_summary[10]['operator'] == '03:SCAN HDFS', result.runtime_profile
+      assert result.exec_summary[10]['detail'] == 'tpch.lineitem, CANCELLED', \
+          result.runtime_profile
+      assert result.exec_summary[14]['operator'] == '00:SCAN HDFS', result.runtime_profile
+      assert result.exec_summary[14]['detail'] == 'tpch.lineitem', result.runtime_profile
+    else:
+      assert result.exec_summary[8]['operator'] == '03:SCAN HDFS', result.runtime_profile
+      assert result.exec_summary[8]['detail'] == 'tpch.lineitem, CANCELLED', \
+          result.runtime_profile
+      assert result.exec_summary[9]['operator'] == '02:SCAN HDFS', result.runtime_profile
+      assert result.exec_summary[9]['detail'] == 'tpch.lineitem, CANCELLED', \
+          result.runtime_profile
+      assert result.exec_summary[12]['operator'] == '00:SCAN HDFS', result.runtime_profile
+      assert result.exec_summary[12]['detail'] == 'tpch.lineitem a', result.runtime_profile
 
     # Test on other node types
     query = """
