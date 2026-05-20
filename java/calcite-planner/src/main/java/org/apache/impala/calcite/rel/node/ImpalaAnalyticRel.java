@@ -202,6 +202,7 @@ public class ImpalaAnalyticRel extends Project
         new ParentPlanRelContext.Builder(context, this);
     builder.setFilterCondition(null);
     builder.setInputRefs(RelOptUtil.InputFinder.bits(projects, null));
+    builder.setInputMaterializedRefs(RelOptUtil.InputFinder.bits(projects, null));
     return relInput.getPlanNode(builder.build());
   }
 

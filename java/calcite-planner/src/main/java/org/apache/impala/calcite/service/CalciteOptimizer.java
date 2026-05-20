@@ -273,7 +273,8 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
         ImpalaCoreRules.REWRITE_REX_OVER,
-        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE
+        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE,
+        ImpalaCoreRules.PROJECT_MERGE
         ));
 
 

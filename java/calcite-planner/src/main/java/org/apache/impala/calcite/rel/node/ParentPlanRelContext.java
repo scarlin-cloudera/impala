@@ -38,6 +38,8 @@ public class ParentPlanRelContext {
   // The input refs used by the parent PlanRel Node
   public final ImmutableBitSet inputRefs_;
 
+  public final ImmutableBitSet inputMaterializedRefs_;
+
   // type of parent RelNode
   public final ImpalaPlanRel.RelNodeType parentType_;
 
@@ -52,6 +54,7 @@ public class ParentPlanRelContext {
     this.ctx_ = plannerContext;
     this.filterCondition_ = null;
     this.inputRefs_ = null;
+    this.inputMaterializedRefs_ = null;
     this.parentType_ = null;
     this.parentRowType_ = null;
     this.parentAggregate_ = null;
@@ -61,6 +64,7 @@ public class ParentPlanRelContext {
     this.ctx_ = builder.context_;
     this.filterCondition_ = builder.filterCondition_;
     this.inputRefs_ = builder.inputRefs_;
+    this.inputMaterializedRefs_ = builder.inputMaterializedRefs_;
     this.parentType_ = builder.parentType_;
     this.parentRowType_ = builder.parentRowType_;
     this.parentAggregate_ = builder.parentAggregate_;
@@ -70,6 +74,7 @@ public class ParentPlanRelContext {
     private PlannerContext context_;
     private RexNode filterCondition_;
     private ImmutableBitSet inputRefs_;
+    private ImmutableBitSet inputMaterializedRefs_;
     private ImpalaPlanRel.RelNodeType parentType_;
     private RelDataType  parentRowType_;
     private ImpalaAggRel parentAggregate_;
@@ -97,6 +102,10 @@ public class ParentPlanRelContext {
 
     public void setInputRefs(ImmutableBitSet inputRefs) {
       this.inputRefs_ = inputRefs;
+    }
+
+    public void setInputMaterializedRefs(ImmutableBitSet inputMaterializedRefs) {
+      this.inputMaterializedRefs_ = inputMaterializedRefs;
     }
 
     public void setParentRowType(RelDataType parentRowType) {
