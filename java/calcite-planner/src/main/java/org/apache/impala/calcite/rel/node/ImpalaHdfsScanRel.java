@@ -53,8 +53,10 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 /**
  * ImpalaHdfsScanRel. Calcite RelNode which maps to an Impala TableScan node.
  */
@@ -93,6 +95,9 @@ public class ImpalaHdfsScanRel extends TableScan
 
     List<Expr> partitionConjuncts = pph.getPartitionedConjuncts();
     List<Expr> filterConjuncts = pph.getNonPartitionedConjuncts();
+
+    setNonMaterializedSlotDescsToFalse(context, outputExprs, filterConjuncts,
+        tupleDesc.getSlots());
 
     PlanNodeId nodeId = context.ctx_.getNextNodeId();
 
@@ -205,6 +210,36 @@ public class ImpalaHdfsScanRel extends TableScan
       scanOutputExprs.set(calcitePosition, new SlotRef(slotDesc));
     }
     return scanOutputExprs;
+  }
+
+  private void setNonMaterializedSlotDescsToFalse(ParentPlanRelContext context,
+      List<Expr> slotExprs, List<Expr> conjuncts, List<SlotDescriptor> allSlotDescs) {
+    Set<SlotDescriptor> materializedSlotDescs = new HashSet<>();
+    if (context.inputMaterializedRefs_ == null) {
+      for (Expr e : slotExprs) {
+        SlotRef slotRef = (SlotRef) e;
+        materializedSlotDescs.add(slotRef.getDesc());
+      }
+      return;
+    }
+
+    for (Integer slot : context.inputMaterializedRefs_) {
+      SlotRef slotRef = (SlotRef) slotExprs.get(slot);
+      materializedSlotDescs.add(slotRef.getDesc());
+    }
+    for (Expr filterConjunct : conjuncts) {
+      List<SlotRef> slotRefs = new ArrayList<>();
+      filterConjunct.collect(SlotRef.class, slotRefs);
+      for (SlotRef s : slotRefs) {
+        materializedSlotDescs.add(s.getDesc());
+      }
+    }
+
+    for (SlotDescriptor sd : allSlotDescs) {
+      if (!materializedSlotDescs.contains(sd)) {
+        sd.setIsMaterialized(false);
+      }
+    }
   }
 
   /**
