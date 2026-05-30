@@ -117,9 +117,11 @@ public class CoerceOperandShuttle extends RexShuttle {
     // it doesn't change the RelDataType when calling super.visitCall() for a cast
     // RexLiteral. To handle this, we visit the RexLiteral directly, which still
     // changes the type to a STRING.
+    /*
     if (isImplicitCharCastOfLiteral(call)) {
       return visitLiteral((RexLiteral) call.getOperands().get(0));
     }
+    */
 
     // recursively call all embedded RexCalls first
     RexCall castedOperandsCall = (RexCall) super.visitCall(call);
