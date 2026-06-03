@@ -140,7 +140,7 @@ public class Planner {
     checkForSmallQueryOptimization(singleNodePlan);
 
     // Join rewrites.
-    invertJoins(singleNodePlan, ctx_.isSingleNodeExec());
+    invertJoins(singleNodePlan, ctx_.isSingleNodeExec(), ctx_);
     singleNodePlan = useNljForSingularRowBuilds(singleNodePlan, ctx_.getRootAnalyzer());
 
     if(ctx_.isMerge()) {
@@ -741,12 +741,12 @@ public class Planner {
    * The 'isLocalPlan' parameter indicates whether the plan tree rooted at 'root'
    * will be executed locally within one machine, i.e., without any data exchanges.
    */
-  public static void invertJoins(PlanNode root, boolean isLocalPlan) {
+  public static void invertJoins(PlanNode root, boolean isLocalPlan, PlannerContext ctx) {
     if (root instanceof SubplanNode) {
-      invertJoins(root.getChild(0), isLocalPlan);
-      invertJoins(root.getChild(1), true);
+      invertJoins(root.getChild(0), isLocalPlan, ctx);
+      invertJoins(root.getChild(1), true, ctx);
     } else {
-      for (PlanNode child: root.getChildren()) invertJoins(child, isLocalPlan);
+      for (PlanNode child: root.getChildren()) invertJoins(child, isLocalPlan, ctx);
     }
 
     if (root instanceof JoinNode) {
@@ -770,7 +770,14 @@ public class Planner {
         // which has no backend support. Invert the join to make it executable.
         joinNode.invertJoin();
       } else if (isInvertedJoinCheaper(joinNode, isLocalPlan)) {
-        joinNode.invertJoin();
+        LOG.info("SJC: INVERTED A JOIN, LEFT SIDE IS ID: " + joinNode.getChild(0).getId() + ", RIGHT SIDE IS ID: " + joinNode.getChild(1).getId());
+        TQueryOptions queryOptions = ctx.getRootAnalyzer().getQueryOptions();
+        if (queryOptions.invert_joins) {
+          joinNode.invertJoin();
+          LOG.info("SJC: INVERTED");
+        } else {
+          LOG.info("SJC: NOT INVERTED");
+        }
       }
       // Re-compute the numNodes and numInstances based on the new input order
       joinNode.recomputeNodes();

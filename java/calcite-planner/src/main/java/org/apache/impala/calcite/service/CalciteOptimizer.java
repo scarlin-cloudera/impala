@@ -113,7 +113,7 @@ public class CalciteOptimizer implements CompilerStep {
 
     // Run rules that swap RelNodes and optimize the expressions within a RelNode
     RelNode preJoinOptimizedPlan = runOptimizeNodesProgram(relBuilder, rexBuilder,
-        coercedNodesPlan, simplifier);
+        coercedNodesPlan, simplifier, false);
     timeline_.markEvent("Created optimized plan pre join");
     LogUtil.logDebug(preJoinOptimizedPlan, "Optimized plan before join rules " +
         "have been applied.");
@@ -126,7 +126,7 @@ public class CalciteOptimizer implements CompilerStep {
     // rerun rules that swap RelNodes and optimize the expressions within a RelNode,
     // since the join optimization may have enabled some more rules that can be applied.
     RelNode postOptimizedJoinPlan =
-        runOptimizeNodesProgram(relBuilder, rexBuilder, optimizedJoinPlan, simplifier);
+        runOptimizeNodesProgram(relBuilder, rexBuilder, optimizedJoinPlan, simplifier, true);
     timeline_.markEvent("Created optimized plan post join");
     LogUtil.logDebug(postOptimizedJoinPlan, "Optimized plan after a second pass of "
         + "rules applied after join optimization.");
@@ -169,7 +169,7 @@ public class CalciteOptimizer implements CompilerStep {
   }
 
   private RelNode runOptimizeNodesProgram(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelNode plan, ImpalaRexSimplify simplifier) throws ImpalaException {
+      RelNode plan, ImpalaRexSimplify simplifier, boolean post) throws ImpalaException {
 
     RelFieldTrimmer trimmer =
         new RelFieldTrimmer(validator_, relBuilder);
@@ -177,7 +177,10 @@ public class CalciteOptimizer implements CompilerStep {
 
     HepProgramBuilder builder = new HepProgramBuilder();
 
-    List<RelOptRule> interRules = ImmutableList.of(
+    List<RelOptRule> interRules;
+
+    if (post) {
+      interRules = ImmutableList.of(
         new ImpalaFilterSimplifyRule(simplifier),
         new ImpalaProjectSimplifyRule(simplifier),
         ImpalaCoreRules.UNION_PULL_UP_CONSTANTS,
@@ -201,6 +204,32 @@ public class CalciteOptimizer implements CompilerStep {
         PruneEmptyRules.JOIN_LEFT_INSTANCE,
         PruneEmptyRules.JOIN_RIGHT_INSTANCE
         );
+    } else {
+      interRules = ImmutableList.of(
+        new ImpalaFilterSimplifyRule(simplifier),
+        new ImpalaProjectSimplifyRule(simplifier),
+        ImpalaCoreRules.UNION_PULL_UP_CONSTANTS,
+        ImpalaCoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS,
+        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE,
+        ImpalaCoreRules.FILTER_SET_OP_TRANSPOSE,
+        ImpalaCoreRules.JOIN_CONDITION_PUSH,
+        ImpalaCoreRules.FILTER_INTO_JOIN,
+        ImpalaCoreRules.FILTER_AGGREGATE_TRANSPOSE,
+        ImpalaCoreRules.UNION_REMOVE,
+//        ImpalaCoreRules.PROJECT_TO_SEMI_JOIN,
+        ImpalaCoreRules.FILTER_VALUES_MERGE,
+        ImpalaCoreRules.FILTER_MERGE,
+        ImpalaCoreRules.PROJECT_MERGE,
+        ImpalaCoreRules.JOIN_PUSH_EXPRESSIONS,
+        PruneEmptyRules.PROJECT_INSTANCE,
+        PruneEmptyRules.AGGREGATE_INSTANCE,
+        PruneEmptyRules.SORT_INSTANCE,
+        PruneEmptyRules.FILTER_INSTANCE,
+        PruneEmptyRules.UNION_INSTANCE,
+        PruneEmptyRules.JOIN_LEFT_INSTANCE,
+        PruneEmptyRules.JOIN_RIGHT_INSTANCE
+        );
+    }
     builder.addMatchOrder(HepMatchOrder.TOP_DOWN);
     builder.addRuleCollection(interRules);
 

@@ -1449,6 +1449,10 @@ Status impala::SetQueryOption(TImpalaQueryOptions::type option, const string& va
         query_options->__set_fallback_planner(planner_type);
         break;
       }
+      case TImpalaQueryOptions::INVERT_JOINS: {
+        query_options->__set_invert_joins(IsTrue(value));
+        break;
+      }
       default:
         string key = to_string(option);
         if (IsRemovedQueryOption(key)) {

@@ -1088,6 +1088,8 @@ enum TImpalaQueryOptions {
   // NONE             : No fallback planner to be used.
   // default is ORIGINAL
   FALLBACK_PLANNER = 200
+
+  INVERT_JOINS = 201
 }
 
 // The summary of a DML statement.
