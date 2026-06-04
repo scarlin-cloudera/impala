@@ -159,6 +159,9 @@ public class ImpalaProjectRel extends Project
   // the columns are either passthrough (just an inputref to the same column
   // number) or a cast of an inputref of the same column number.
   private boolean isCoercedProjectForValues(ParentPlanRelContext context) {
+    if (true) {
+      return false;
+    }
 
     // only care about simple projects if the underlying input is a Values
     if (!(getInput() instanceof Values)) {
