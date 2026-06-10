@@ -155,6 +155,7 @@ public class CalciteOptimizer implements CompilerStep {
 
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
+        ImpalaCoreRules.MINUS_TO_ANTIJOIN,
         ImpalaCoreRules.INTERSECT_TO_DISTINCT,
         ImpalaCoreRules.UNION_TO_DISTINCT,
         ImpalaCoreRules.IMPALA_MINUS_TO_DISTINCT,
