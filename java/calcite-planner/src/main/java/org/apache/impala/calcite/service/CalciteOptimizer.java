@@ -217,6 +217,7 @@ public class CalciteOptimizer implements CompilerStep {
 
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
+        ImpalaCoreRules.MINUS_TO_ANTIJOIN,
         ImpalaCoreRules.INTERSECT_TO_DISTINCT,
         ImpalaCoreRules.UNION_TO_DISTINCT,
         ImpalaCoreRules.IMPALA_MINUS_TO_DISTINCT,
@@ -278,6 +279,7 @@ public class CalciteOptimizer implements CompilerStep {
     interRulesBuilder.add(ImpalaCoreRules.PROJECT_VALUES_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.FILTER_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.PROJECT_MERGE);
+    interRulesBuilder.add(ImpalaCoreRules.UNION_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.JOIN_PUSH_EXPRESSIONS);
     interRulesBuilder.add(PruneEmptyRules.PROJECT_INSTANCE);
     interRulesBuilder.add(PruneEmptyRules.AGGREGATE_INSTANCE);
