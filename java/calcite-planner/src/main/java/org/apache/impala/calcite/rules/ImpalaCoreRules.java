@@ -17,6 +17,7 @@
 
 package org.apache.impala.calcite.rules;
 
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.core.Filter;
@@ -32,7 +33,7 @@ import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
-import org.apache.calcite.rel.rules.IntersectToDistinctRule;
+import org.apache.calcite.rel.rules.IntersectToSemiJoinRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
@@ -71,8 +72,8 @@ public class ImpalaCoreRules {
           .withSimplify(false);
 
   public static final RelBuilderFactory LOGICAL_BUILDER_NO_SIMPLIFY =
-      RelBuilder.proto(Contexts.of(RelFactories.DEFAULT_STRUCT,
-      CONFIG_NO_SIMPLIFY));
+      proto(Contexts.of(RelFactories.DEFAULT_FILTER_FACTORY, RelFactories.DEFAULT_STRUCT,
+          CONFIG_NO_SIMPLIFY));
 
   public static RelOptRule PROJECT_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.PROJECT
@@ -115,10 +116,15 @@ public class ImpalaCoreRules {
           .as(FilterJoinRule.FilterIntoJoinRule.
               FilterIntoJoinRuleConfig.class).toRule();
 
-  public static IntersectToDistinctRule INTERSECT_TO_DISTINCT =
-      IntersectToDistinctRule.Config.DEFAULT
+  public static MinusToAntiJoinRule MINUS_TO_ANTIJOIN =
+      MinusToAntiJoinRule.Config.DEFAULT
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
-           .as(IntersectToDistinctRule.Config.class).toRule();
+           .as(MinusToAntiJoinRule.Config.class).toRule();
+
+  public static IntersectToSemiJoinRule INTERSECT_TO_SEMI_JOIN =
+      IntersectToSemiJoinRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(IntersectToSemiJoinRule.Config.class).toRule();
 
   public static UnionToDistinctRule UNION_TO_DISTINCT =
       UnionToDistinctRule.Config.DEFAULT
@@ -240,4 +246,8 @@ public class ImpalaCoreRules {
           .excludedRules(CoreRules.JOIN_TO_MULTI_JOIN)
          .build())
      .build();
+
+  public static RelBuilderFactory proto(final Context context) {
+    return (cluster, schema) -> new ImpalaRelBuilder(context, cluster, schema);
+  }
 }
