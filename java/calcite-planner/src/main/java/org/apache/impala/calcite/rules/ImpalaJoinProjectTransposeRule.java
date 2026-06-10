@@ -69,7 +69,8 @@ public class ImpalaJoinProjectTransposeRule extends JoinProjectTransposeRule {
     // Skip if it's a semi-join. Semi-joins throw an exception in the parent class due
     // to the fact that only the left side projects its columns, and transposing the
     // project on top has an issue because of that.
-    if (join.getJoinType() == JoinRelType.SEMI) {
+    if (join.getJoinType() == JoinRelType.SEMI
+        || join.getJoinType() == JoinRelType.ANTI) {
       return;
     }
     if (hasLeftChild(call) && !hasJoinChild(call.rel(1))) {
