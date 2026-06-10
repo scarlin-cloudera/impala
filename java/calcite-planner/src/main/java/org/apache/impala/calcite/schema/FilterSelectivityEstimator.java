@@ -24,9 +24,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.metadata.RelColumnOrigin;;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -36,7 +40,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Sarg;
 import org.apache.impala.analysis.Expr;
+import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.rel.util.RexInputRefCollector;
+import org.apache.impala.calcite.schema.CalciteTable;
 import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.ColumnStats;
 
@@ -173,6 +179,8 @@ public class FilterSelectivityEstimator {
   }
 
   private Double computeIsNullSelectivity(RexCall call) {
+    return getNullPercentage(childRel_, call.getOperands().get(0));
+    /*
     if (childRel_ instanceof TableScan
         && call.getOperands().get(0) instanceof RexInputRef) {
       TableScan tableScan = (TableScan) childRel_;
@@ -187,9 +195,113 @@ public class FilterSelectivityEstimator {
       }
     }
     return null;
+    */
+  }
+
+  private Double getNullPercentage(RelNode relNode, RexNode column) {
+    // TODO: We can probably do a better approximation on most RexCalls, but
+    // let's punt this for now.
+    if (!(column instanceof RexInputRef)) {
+      return Expr.DEFAULT_SELECTIVITY;
+    }
+
+    // special case with outer join XXX change message
+    Double outerJoinEstimate = getOuterJoinNullPercentageEstimate(relNode, column);
+    if (outerJoinEstimate != null) {
+      return outerJoinEstimate;
+    }
+    RexInputRef inputRef = (RexInputRef) column;
+    // TODO: What about getColumnOrigins?  WOuld it handle union?  If so, we can
+    // do something better
+    RelColumnOrigin originCol = mq_.getColumnOrigin(childRel_, inputRef.getIndex());
+    if (originCol == null) {
+      return Expr.DEFAULT_SELECTIVITY;
+    }
+    int columnNum = originCol.getOriginColumnOrdinal();
+    CalciteTable table = (CalciteTable) originCol.getOriginTable();
+    return getNumNulls(columnNum, table) / table.getRowCount();
+  }
+
+  private Double getOuterJoinNullPercentageEstimate(RelNode relNode, RexNode column) {
+    if (!(column instanceof RexInputRef)) {
+      return null;
+    }
+    RexInputRef inputRef = (RexInputRef) column;
+    int columnNum = inputRef.getIndex();
+    RelNode realRelNode = (relNode instanceof HepRelVertex)
+      ? ((HepRelVertex)relNode).getCurrentRel()
+      : relNode;
+    switch (ImpalaPlanRel.getRelNodeType(realRelNode)) {
+      case HDFSSCAN:
+        return null;
+      case SORT:
+        return getOuterJoinNullPercentageEstimate(realRelNode.getInput(0), column);
+      case UNION:
+        return null;
+      case AGGREGATE:
+        // TODO: we can go through the Aggregate and get the number of nulls, but for now, just give
+        // default estimate.
+        return null;
+      case FILTER:
+        return getOuterJoinNullPercentageEstimate(realRelNode.getInput(0), column);
+      case PROJECT:
+        RexNode projectCol = ((Project) realRelNode).getProjects().get(columnNum);
+        // TODO: RexCalls should be handled, just returning default for now
+        if (!(projectCol instanceof RexInputRef)) {
+          return 0.02;
+        }
+        return getOuterJoinNullPercentageEstimate(realRelNode.getInput(0), column);
+      case JOIN:
+        // TODO: We can probably get a better percentage on non-inner joins. Assuming
+        // most of the outer joins match up, but that might be a bad assumption.
+        RelNode leftNode = realRelNode.getInput(0);
+        boolean columnOnLeft = (columnNum < leftNode.getRowType().getFieldList().size());
+        if (!columnOnLeft) {
+          columnNum = columnNum - leftNode.getRowType().getFieldList().size();
+          inputRef = childRel_.getCluster().getRexBuilder().makeInputRef(column.getType(), columnNum);
+        }
+        RelNode childRelNode = columnOnLeft ? leftNode : realRelNode.getInput(1);
+        if (((Join)realRelNode).getJoinType() == JoinRelType.INNER) {
+          return getNullPercentage(childRelNode, inputRef);
+        }
+
+        RexBuilder rexBuilder = childRelNode.getCluster().getRexBuilder();
+        if (((Join)realRelNode).getJoinType() == JoinRelType.LEFT) {
+          if (columnOnLeft) {
+            return getNullPercentage(childRelNode, inputRef);
+          }
+          JoinRelationInfo info = new JoinRelationInfo((Join)realRelNode, rexBuilder, mq_, JoinRelType.INNER);
+          Double innerRowCount = info.getRowCount();
+          Double leftRowCount = mq_.getRowCount(realRelNode.getInput(0));
+          if (leftRowCount == 0.0) {
+            return 0.0;
+          }
+          Double percentage = Math.min(innerRowCount/leftRowCount, 1.0);
+          return Math.max(percentage, 0.0);
+        }
+        if (((Join)realRelNode).getJoinType() == JoinRelType.RIGHT) {
+          if (!columnOnLeft) {
+            return getNullPercentage(childRelNode, inputRef);
+          }
+          JoinRelationInfo info = new JoinRelationInfo((Join)realRelNode, rexBuilder, mq_, JoinRelType.INNER);
+          Double innerRowCount = info.getRowCount();
+          Double rightRowCount = mq_.getRowCount(realRelNode.getInput(1));
+          if (rightRowCount == 0.0) {
+            return 0.0;
+          }
+          Double percentage = Math.min(innerRowCount/rightRowCount, 1.0);
+          return Math.max(percentage, 0.0);
+        }
+        return null;
+      case VALUES:
+      default:
+        return null;
+    }
   }
 
   private Double computeIsNotNullSelectivity(RexCall call) {
+    return 1.0 - getNullPercentage(childRel_, call.getOperands().get(0));
+    /*
     if (childRel_ instanceof TableScan
         && call.getOperands().get(0) instanceof RexInputRef) {
       TableScan tableScan = (TableScan) childRel_;
@@ -213,7 +325,8 @@ public class FilterSelectivityEstimator {
     // Also, while this is actually similar to the logic in IsNullPredicate does, it is
     // possible that higher levels (where the child is not just a TableScan or Join) may
     // still be able to deduce the number of nulls.
-    return null;
+    return .98;
+    */
   }
 
   private Double computeSearchSelectivity(RexCall call) {
@@ -314,12 +427,11 @@ public class FilterSelectivityEstimator {
    * @param t
    * @return estimated number of nulls from statistics
    */
-  private long getNumNulls(RexCall call, TableScan t) {
-    Preconditions.checkState(call.getOperands().size() == 1);
-    Preconditions.checkState(call.getOperands().get(0) instanceof RexInputRef);
-    RexInputRef inputRef = (RexInputRef) call.getOperands().get(0);
-    CalciteTable table = (CalciteTable) t.getTable();
-    Column column = table.getColumn(inputRef.getIndex());
+  private long getNumNulls(int index, CalciteTable table) {
+//    Preconditions.checkState(call.getOperands().size() == 1);
+//    Preconditions.checkState(call.getOperands().get(0) instanceof RexInputRef);
+//    RexInputRef inputRef = (RexInputRef) call.getOperands().get(0);
+    Column column = table.getColumn(index);
     return column.getStats() != null
         ? Math.max(column.getStats().getNumNulls(), 0)
         : 0;

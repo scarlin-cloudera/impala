@@ -60,10 +60,18 @@ public class JoinRelationInfo {
 
   private final RelMetadataQuery mq_;
 
+  private final JoinRelType joinRelType_;
+
   public JoinRelationInfo(Join join, RexBuilder rexBuilder, RelMetadataQuery mq) {
+    this(join, rexBuilder, mq, join.getJoinType());
+  }
+
+  public JoinRelationInfo(Join join, RexBuilder rexBuilder, RelMetadataQuery mq,
+      JoinRelType joinRelType) {
     List<RexNode> conjunctions = RelOptUtil.conjunctions(join.getCondition());
     join_ = join;
     mq_ = mq;
+    joinRelType_ = joinRelType;
     ImmutableList.Builder<EqualityConjunction> equalityConjBuilder =
         ImmutableList.builder();
     ImmutableList.Builder<RexNode> nonEqualityConjBuilder = ImmutableList.builder();
@@ -98,12 +106,12 @@ public class JoinRelationInfo {
     EqualityConjunction conj0 = equalityConjunctions_.get(0);
 
     Double ret = conj0.lhsNumRows_ * conj0.rhsNumRows_ / getDistinctRows();
-    if (join_.getJoinType() == JoinRelType.LEFT ||
-        join_.getJoinType() == JoinRelType.FULL) {
+    if (joinRelType_ == JoinRelType.LEFT ||
+        joinRelType_ == JoinRelType.FULL) {
       ret = Math.max(conj0.lhsNumRows_, ret);
     }
-    if (join_.getJoinType() == JoinRelType.RIGHT ||
-        join_.getJoinType() == JoinRelType.FULL) {
+    if (joinRelType_ == JoinRelType.RIGHT ||
+        joinRelType_ == JoinRelType.FULL) {
       ret = Math.max(conj0.rhsNumRows_, ret);
     }
 
