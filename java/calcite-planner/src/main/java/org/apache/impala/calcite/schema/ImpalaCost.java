@@ -23,11 +23,14 @@ import org.apache.calcite.plan.RelOptUtil;
 
 import java.util.Objects;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * ImpalaCost: Cost model for Impala. A good chunk of this is copied from VolcanoCost,
  * but the cost is calculated only using cpu and io.
  */
 public class ImpalaCost implements RelOptCost {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaCost.class.getName());
   //~ Static fields/initializers ---------------------------------------------
 
   static final ImpalaCost INFINITY =
@@ -139,8 +142,13 @@ public class ImpalaCost implements RelOptCost {
     // ordering if the cost is a tie, so if the cost is
     // essentially the same, we'd prefer to use the tiebreaking method
     // rather than this method.
+    if (this != other) {
+      if (Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < .00000001) {
+        LOG.info("SJC: GONNA BE A TIE, EPSILON IS " + Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())));
+      }
+    }
     return (this == other)
-      || Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < .01;
+      || Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < .000001;
   }
 
   @Override public RelOptCost minus(RelOptCost other) {
