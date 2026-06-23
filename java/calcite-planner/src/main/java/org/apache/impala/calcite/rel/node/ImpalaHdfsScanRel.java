@@ -38,11 +38,13 @@ import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeFsTable;
 import org.apache.impala.catalog.FeIcebergTable;
+import org.apache.impala.catalog.FeKuduTable;
 import org.apache.impala.common.IcebergPredicateConverter;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.planner.HdfsScanNode;
 import org.apache.impala.planner.IcebergScanPlanner;
+import org.apache.impala.planner.KuduScanNode;
 import org.apache.impala.planner.PlanNode;
 import org.apache.impala.planner.PlanNodeId;
 import org.apache.impala.planner.ScanNode;
@@ -87,12 +89,17 @@ public class ImpalaHdfsScanRel extends TableScan
         context.filterCondition_, outputExprs, getCluster().getRexBuilder(),
         analyzer);
 
-    PrunedPartitionHelper pph = new PrunedPartitionHelper(table, converter,
-        tupleDesc, getCluster().getRexBuilder(), context.ctx_.getRootAnalyzer());
-    List<? extends FeFsPartition> impalaPartitions = pph.getPrunedPartitions();
-
-    List<Expr> partitionConjuncts = pph.getPartitionedConjuncts();
-    List<Expr> filterConjuncts = pph.getNonPartitionedConjuncts();
+    List<Expr> partitionConjuncts = new ArrayList<>();
+    List<Expr> filterConjuncts = converter.getImpalaConjuncts();
+    List<? extends FeFsPartition> impalaPartitions = new ArrayList<>();
+    if (!(table.getFeTable() instanceof FeKuduTable)) {
+      PrunedPartitionHelper pph = new PrunedPartitionHelper(table, converter,
+          tupleDesc, getCluster().getRexBuilder(), context.ctx_.getRootAnalyzer());
+      impalaPartitions = pph.getPrunedPartitions();
+ 
+      partitionConjuncts = pph.getPartitionedConjuncts();
+      filterConjuncts = pph.getNonPartitionedConjuncts();
+    }
 
     PlanNodeId nodeId = context.ctx_.getNextNodeId();
 
@@ -124,6 +131,9 @@ public class ImpalaHdfsScanRel extends TableScan
         physicalNode =
             SingleNodePlanner.createOptimizedPartitionUnionNode(nodeId, impalaPartitions,
             tupleDesc, analyzer);
+      } else if (table.getFeTable() instanceof FeKuduTable) {
+        List<Expr> allConjuncts = new ArrayList<>(filterConjuncts);
+        physicalNode = new KuduScanNode(nodeId, tupleDesc, allConjuncts, null, baseTblRef);
       } else if (table instanceof CalciteIcebergTable) {
         CalciteIcebergTable iceTable = (CalciteIcebergTable) table;
         // Can't use filterConjuncts because it is in an immutable list and the iceberg
@@ -172,7 +182,6 @@ public class ImpalaHdfsScanRel extends TableScan
   private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs)
       throws ImpalaException {
     CalciteTable calciteTable = (CalciteTable) getTable();
-    FeFsTable table = calciteTable.getFeFsTable();
     // IMPALA-12961: The output expressions are contained in a list which
     // may have holes in it (if the table scan column is not in the output).
     // The width of the list must include all columns, including the acid ones,
@@ -284,7 +293,7 @@ public class ImpalaHdfsScanRel extends TableScan
         return false;
       } else {
         for (Expr conjunct : filterConjuncts) {
-          if (!canConvertIcebergPredicate((FeIcebergTable) table.getFeFsTable(),
+          if (!canConvertIcebergPredicate(((CalciteIcebergTable) table).getFeIcebergTable(),
               conjunct, analyzer)) {
             return false;
           }

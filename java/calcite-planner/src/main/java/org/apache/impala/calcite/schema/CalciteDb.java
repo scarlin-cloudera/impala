@@ -33,6 +33,7 @@ import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.HdfsTable;
+import org.apache.impala.catalog.FeKuduTable;
 import org.apache.impala.catalog.local.LocalFsTable;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
@@ -67,7 +68,7 @@ public class CalciteDb extends AbstractSchema {
         Analyzer analyzer) throws ImpalaException {
       if (tableMap_.containsKey(tableName)) return this;
 
-      if (table instanceof LocalFsTable || table instanceof HdfsTable) {
+      if (table instanceof LocalFsTable || table instanceof HdfsTable || table instanceof FeKuduTable) {
         tableMap_.put(
             tableName.toLowerCase(), new CalciteTable(table, reader_, analyzer));
         return this;
