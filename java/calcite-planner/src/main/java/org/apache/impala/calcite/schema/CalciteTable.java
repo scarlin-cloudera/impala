@@ -48,6 +48,7 @@ import org.apache.impala.calcite.util.SimplifiedAnalyzer;
 import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeFsTable;
+import org.apache.impala.catalog.FeKuduTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.HdfsFileFormat;
@@ -67,7 +68,7 @@ import java.util.Set;
 
 public class CalciteTable extends RelOptAbstractTable
     implements Table, Prepare.PreparingTable {
-  private final FeFsTable table_;
+  private final FeTable table_;
 
   private final Map<Integer, Integer> impalaPositionMap_;
 
@@ -82,20 +83,34 @@ public class CalciteTable extends RelOptAbstractTable
   public CalciteTable(FeTable table, CalciteCatalogReader reader,
       Analyzer analyzer) throws ImpalaException {
     super(reader, table.getName(), buildColumnsForRelDataType(table));
-    this.table_ = (FeFsTable) table;
+    this.table_ = (FeTable) table;
     this.qualifiedTableName_ = table.getTableName().toPath();
-    this.columns_ = table.getColumnsInHiveOrder();
+    this.columns_ = getAllColumns(table);
     this.impalaPositionMap_ = buildPositionMap();
     this.analyzer_ = (SimplifiedAnalyzer) analyzer;
     // TODO: If table_.getNumRows() is unknown (-1), this logic will load all partitions
     // to compute estimation using HdfsEstimatedMissingTableStats. This is potentially
     // expensive and should be avoided in local catalog mode.
-    estimatedMissingStats_ = table_.getNumRows() < 0 ?
+    estimatedMissingStats_ = (table_ instanceof FeFsTable) && table_.getNumRows() < 0 ?
         new HdfsEstimatedMissingTableStats(
-            analyzer.getQueryOptions(), table_, table_.loadAllPartitions(), -1) :
+            analyzer.getQueryOptions(), (FeFsTable) table_,
+            ((FeFsTable) table_).loadAllPartitions(), -1) :
         null;
 
     checkIfTableIsSupported(table);
+  }
+
+  public static List<Column> getAllColumns(FeTable table) {
+    if (!(table instanceof FeKuduTable)) {
+      return table.getColumnsInHiveOrder();
+    }
+    List<Column> columns = new ArrayList<>();
+    for (Column column : table.getColumnsInHiveOrder()) {
+      if (!column.getName().equals("auto_incrementing_id")) {
+        columns.add(column);
+      }
+    }
+    return columns;
   }
 
   public static RelDataType buildColumnsForRelDataType(FeTable table)
@@ -105,7 +120,7 @@ public class CalciteTable extends RelOptAbstractTable
     RelDataTypeFactory.Builder builder = new RelDataTypeFactory.Builder(typeFactory);
 
     // skip clustering columns, save them for the end
-    for (Column column : table.getColumnsInHiveOrder()) {
+    for (Column column : getAllColumns(table)) {
       if (column.getType().isComplexType()) {
         throw new UnsupportedFeatureException(
             "Calcite does not support complex types yet.");
@@ -122,7 +137,7 @@ public class CalciteTable extends RelOptAbstractTable
       throw new UnsupportedFeatureException("Views are not supported yet.");
     }
 
-    if (!(table instanceof FeFsTable)) {
+    if (!(table instanceof FeFsTable) && !(table instanceof FeKuduTable)) {
       String tableType = table.getClass().getSimpleName().replace("Table", "");
       throw new UnsupportedFeatureException(tableType + " tables are not supported yet.");
     }
@@ -154,7 +169,7 @@ public class CalciteTable extends RelOptAbstractTable
     return impalaPair.first;
   }
 
-  public FeFsTable getFeFsTable() { return table_; }
+  public FeTable getFeTable() { return table_; }
 
   @Override
   public List<String> getQualifiedName() {
@@ -251,7 +266,7 @@ public class CalciteTable extends RelOptAbstractTable
     Map<Integer, Integer> impalaPositionMap = new HashMap<>();
     // skip clustering columns, save them for the end
     int i = 0;
-    for (Column column : table_.getColumnsInHiveOrder()) {
+    for (Column column : getAllColumns(table_)) {
       impalaPositionMap.put(column.getPosition(), i);
       i++;
     }
@@ -272,7 +287,10 @@ public class CalciteTable extends RelOptAbstractTable
    * needed to apply the count star optimization.
    */
   public boolean canApplyCountStarOptimization() {
-    Set<HdfsFileFormat> fileFormats = table_.getFileFormats();
+    if (!(table_ instanceof FeFsTable)) {
+      return false;
+    }
+    Set<HdfsFileFormat> fileFormats = ((FeFsTable)table_).getFileFormats();
     if (fileFormats.size() != 1) {
       return false;
     }
