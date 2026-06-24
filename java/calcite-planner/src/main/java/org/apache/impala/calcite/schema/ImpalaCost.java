@@ -140,7 +140,7 @@ public class ImpalaCost implements RelOptCost {
     // essentially the same, we'd prefer to use the tiebreaking method
     // rather than this method.
     return (this == other)
-      || Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < .01;
+      || Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < .0000000001;
   }
 
   @Override public RelOptCost minus(RelOptCost other) {
