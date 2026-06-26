@@ -302,6 +302,8 @@ aggregation(SUM, NumRowGroups): 8
 aggregation(SUM, NumFileMetadataRead): 0
 ====
 ---- QUERY
+# IMPALA-15077: "where bool_col" is not being recognized in count star optimization for
+# both original planner and Calcite planner
 select count(*) from alltypes_part
 where bool_col
 ---- RESULTS
@@ -309,8 +311,6 @@ where bool_col
 ---- TYPES
 BIGINT
 ---- RUNTIME_PROFILE
-# IMPALA-XXXXX: Iceberg should recognized this as a pattern that can be used for count start
-# for count star optimization
 aggregation(SUM, NumRowGroups): 8
 aggregation(SUM, NumFileMetadataRead): 0
 ====
