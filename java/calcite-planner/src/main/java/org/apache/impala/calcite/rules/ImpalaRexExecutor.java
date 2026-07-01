@@ -206,6 +206,9 @@ public class ImpalaRexExecutor implements RexExecutor {
       colVal.binary_val.get(bytes);
 
       String newString = StringUtils.fromUtf8Buffer(ByteBuffer.wrap(bytes), true);
+      if (newString == null) {
+        return builder.makeLiteral(bytes, returnType, true);
+      }
       newString = newString.replace("\\", "\\\\");
       return builder.makeLiteral(newString, returnType, true);
     }

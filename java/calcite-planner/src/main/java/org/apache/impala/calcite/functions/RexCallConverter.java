@@ -42,6 +42,7 @@ import org.apache.impala.analysis.IsNullPredicate;
 import org.apache.impala.analysis.LikePredicate;
 import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.NumericLiteral;
+import org.apache.impala.analysis.StringLiteral;
 import org.apache.impala.analysis.TimestampArithmeticExpr;
 import org.apache.impala.calcite.operators.ImpalaInOperator;
 import org.apache.impala.calcite.rules.ImpalaRexExecutor;
@@ -55,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -107,6 +109,14 @@ public class RexCallConverter {
 
     if (rexCall.getOperator().getName().toLowerCase().equals("explicit_cast")) {
       return createCastExpr(rexCall, params, analyzer);
+    }
+
+    if (rexCall.getOperator().getName().toLowerCase().equals("unhex") &&
+        params.get(0) instanceof StringLiteral) {
+      HexFormat hex = HexFormat.of();
+      String ss = ((StringLiteral)params.get(0)).getStringValue();
+      LOG.info("SJC: SS IS " + ss + " LENGTH IS " + ss.length());
+      return new StringLiteral(hex.parseHex(ss), Type.BINARY);
     }
 
     String funcName = rexCall.getOperator().getName().toLowerCase();
