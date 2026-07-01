@@ -313,6 +313,7 @@ row_regex: 00:SCAN KUDU.*s[ ]+11.00K[ ]+11.00K
 # join in its root, which produces filters for the scan of t1.
 # Limits are added to force this plan, they do not affect results.
 ####################################################
+# IMPALA-XXXXX: Calcite planner produces different cardinality estimate.
 
 set RUNTIME_FILTER_WAIT_TIME_MS=$RUNTIME_FILTER_WAIT_TIME_MS;
 set RUNTIME_FILTER_MODE=GLOBAL;
@@ -325,6 +326,8 @@ with t1 as (select month x, bigint_col y from alltypes limit 7301),
 aggregation(SUM, Files rejected): 22
 ---- RUNTIME_PROFILE: table_format=kudu
 row_regex: 00:SCAN KUDU.*s[ ]+620[ ]+1.82K
+---- CALCITE_PLANNER_RUNTIME_PROFILE: table_format=kudu
+row_regex: 00:SCAN KUDU.*s[ ]+620[ ]+7.30K
 ====
 
 
