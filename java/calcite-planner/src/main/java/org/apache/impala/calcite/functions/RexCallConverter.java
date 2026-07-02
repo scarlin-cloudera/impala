@@ -115,8 +115,7 @@ public class RexCallConverter {
         params.get(0) instanceof StringLiteral) {
       HexFormat hex = HexFormat.of();
       String ss = ((StringLiteral)params.get(0)).getStringValue();
-      LOG.info("SJC: SS IS " + ss + " LENGTH IS " + ss.length());
-      return new StringLiteral(hex.parseHex(ss), Type.BINARY);
+      return new StringLiteral(hex.parseHex(ss), Type.STRING);
     }
 
     String funcName = rexCall.getOperator().getName().toLowerCase();
