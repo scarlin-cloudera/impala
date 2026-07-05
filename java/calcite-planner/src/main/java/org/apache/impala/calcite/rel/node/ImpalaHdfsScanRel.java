@@ -199,6 +199,14 @@ public class ImpalaHdfsScanRel extends TableScan
   private void setNonMaterializedSlotDescsToFalse(ParentPlanRelContext context,
       List<Expr> slotExprs, List<Expr> conjuncts, List<SlotDescriptor> allSlotDescs) {
     Set<SlotDescriptor> materializedSlotDescs = new HashSet<>();
+    if (context.inputMaterializedRefs_ == null) {
+      for (Expr e : slotExprs) {
+        SlotRef slotRef = (SlotRef) e;
+        materializedSlotDescs.add(slotRef.getDesc());
+      }
+      return;
+    }
+
     for (Integer slot : context.inputMaterializedRefs_) {
       SlotRef slotRef = (SlotRef) slotExprs.get(slot);
       materializedSlotDescs.add(slotRef.getDesc());
