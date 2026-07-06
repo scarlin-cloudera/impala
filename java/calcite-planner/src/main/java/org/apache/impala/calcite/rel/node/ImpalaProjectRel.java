@@ -245,6 +245,7 @@ public class ImpalaProjectRel extends Project
       List<RexNode> projects) {
     final RexBuilder builder = getCluster().getRexBuilder();
     return filterCondition.accept(new RexShuttle() {
+    /*
         @Override public RexNode visitCall(RexCall call) {
           RexCall newCondition = (RexCall) super.visitCall(call);
           List<RexNode> operands = new ArrayList<>();
@@ -257,6 +258,10 @@ public class ImpalaProjectRel extends Project
             }
           }
           return builder.makeCall(call.getType(), call.getOperator(), operands);
+        }
+        */
+        @Override public RexNode visitInputRef(RexInputRef inputRef) {
+          return getProjects().get(inputRef.getIndex());
         }});
   }
 
