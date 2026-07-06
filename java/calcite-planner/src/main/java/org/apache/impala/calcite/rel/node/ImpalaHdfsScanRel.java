@@ -20,6 +20,7 @@ package org.apache.impala.calcite.rel.node;
 import com.google.common.base.Preconditions;
 
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.BaseTableRef;
 import org.apache.impala.analysis.Expr;
@@ -56,8 +57,10 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 /**
  * ImpalaHdfsScanRel. Calcite RelNode which maps to an Impala TableScan node.
  */
@@ -85,7 +88,7 @@ public class ImpalaHdfsScanRel extends TableScan
     TupleDescriptor tupleDesc = baseTblRef.getDesc();
 
     // outputExprs will contain all the needed columns from the table
-    List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots());
+    List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots(), context);
 
     Analyzer analyzer = context.ctx_.getRootAnalyzer();
     // break up the filter condition (if given) to ones that can be used for
@@ -100,6 +103,12 @@ public class ImpalaHdfsScanRel extends TableScan
 
     List<Expr> partitionConjuncts = pph.getPartitionedConjuncts();
     List<Expr> filterConjuncts = pph.getNonPartitionedConjuncts();
+
+    // mutator function that sets materialized value to false if the column
+    // is a clustered column that is only used in conjuncts that are in the
+    // partitionedConjuncts only.
+    unmaterializePartitionFilterColumns(partitionConjuncts, filterConjuncts,
+        context.filterOnlyInputRefs_, table);
 
     PlanNodeId nodeId = context.ctx_.getNextNodeId();
 
@@ -180,8 +189,8 @@ public class ImpalaHdfsScanRel extends TableScan
    * If a column isn't projected out by the parent of the scan node, the array
    * location for the column will remain null.
    */
-  private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs)
-      throws ImpalaException {
+  private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs,
+      ParentPlanRelContext context) throws ImpalaException {
     CalciteTable calciteTable = (CalciteTable) getTable();
     FeTable table = calciteTable.getFeTable();
     // IMPALA-12961: The output expressions are contained in a list which
@@ -214,6 +223,17 @@ public class ImpalaHdfsScanRel extends TableScan
       }
 
       scanOutputExprs.set(calcitePosition, new SlotRef(slotDesc));
+
+      // Optimization: If a column is not projected in the plan node output
+      // expressions and it's a clustering column, the partition directories
+      // are removed from the scan and there is no reason to create memory
+      // to handle this column.
+      /*
+      if (context.filterOnlyInputRefs_.get(calcitePosition) &&
+          table.isClusteringColumn(slotDesc.getColumn())) {
+        slotDesc.setIsMaterialized(false);
+      }
+      */
     }
     return scanOutputExprs;
   }
@@ -319,6 +339,42 @@ public class ImpalaHdfsScanRel extends TableScan
     }
     return inputRefFieldNames;
   }
+
+  /**
+   * sets the materialization to false for all columns that are:
+   *   a) partitioned (clustered) columns
+   *   b) used only in a filter (where clause)
+   *   c) are not used in a filter conjunct that contains a non-clustered column.
+   */
+  private void unmaterializePartitionFilterColumns(
+      List<Expr> partitionedConjuncts, List<Expr> nonpartitionedConjuncts,
+      ImmutableBitSet filterOnlyInputRefs, CalciteTable table) {
+    Set<SlotRef> partitionedSlotRefs = new HashSet<>();
+    Set<SlotRef> nonpartitionedSlotRefs = new HashSet<>();
+    // collect all the SlotRefs for the partitioned conjuncts
+    // The SlotRefs in these conjuncts should only be partitioned columns.
+    partitionedConjuncts.stream()
+        .forEach(p -> p.collect(SlotRef.class, partitionedSlotRefs));
+    // collect all the SlotRefs for the nonpartitioned conjuncts
+    nonpartitionedConjuncts.stream()
+        .forEach(p -> p.collect(SlotRef.class, nonpartitionedSlotRefs));
+
+    for (SlotRef partitionedSlotRef : partitionedSlotRefs) {
+      // if the partitioned column is used in a filter clause that contains
+      // a non-partitioned column, it still needs to be materialized.
+      if (nonpartitionedSlotRefs.contains(partitionedSlotRef)) {
+        continue;
+      }
+      Column c = partitionedSlotRef.getDesc().getColumn();
+      Integer calcitePosition = table.getCalcitePosition(c.getPosition());
+      // The filterOnlyInputRefs bitset contains columns that are only used
+      // in the filter and not in the select clause.
+      if (filterOnlyInputRefs.get(calcitePosition)) {
+        partitionedSlotRef.getDesc().setIsMaterialized(false);
+      }
+    }
+  }
+
 
   @Override
   public RelNodeType relNodeType() {
