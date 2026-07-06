@@ -29,8 +29,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.calcite.rel.util.CreateExprVisitor;
@@ -40,6 +43,8 @@ import org.apache.impala.planner.PlanNodeId;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ImpalaProjectRel is the Impala specific RelNode corresponding to
@@ -53,6 +58,7 @@ import java.util.List;
  */
 public class ImpalaProjectRel extends Project
     implements ImpalaPlanRel {
+  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaProjectRel.class.getName());
 
   public ImpalaProjectRel(Project project) {
     super(project.getCluster(), project.getTraitSet(), project.getInput(),
@@ -119,12 +125,25 @@ public class ImpalaProjectRel extends Project
     // Calcite rule. The only exception to this is when a bogus "coerced project"
     // (see comment in isCoercedProjectForValues method) is created after the
     // rule has been applied.
-    Preconditions.checkState(context.filterCondition_ == null,
-        "Failure, Filter RelNode needs to be passed through the Project Rel Node.");
+//    Preconditions.checkState(context.filterCondition_ == null,
+//        "Failure, Filter RelNode needs to be passed through the Project Rel Node.");
     ImpalaPlanRel relInput = (ImpalaPlanRel) getInput(0);
     ParentPlanRelContext.Builder builder =
         new ParentPlanRelContext.Builder(context, this);
+
     builder.setInputRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
+    if (context.filterCondition_ != null) {
+      for (RexNode r : getProjects()) {
+        Preconditions.checkState(r instanceof RexInputRef);
+      }
+      /*
+      Preconditions.checkState(
+          getProjects().stream().anyMatch(c -> !(c instanceof RexInputRef)));
+          */
+      builder.setFilterCondition(
+          replaceFilterInputRefs(context.filterCondition_, getProjects()));
+      builder.setFilterOnlyInputRefs(mapFilterOnlyRefs(context.filterOnlyInputRefs_));
+    }
     return relInput.getPlanNode(builder.build());
   }
 
@@ -221,6 +240,37 @@ public class ImpalaProjectRel extends Project
     return NodeCreationUtils.wrapInSelectNodeIfNeeded(context, retNode,
         getCluster().getRexBuilder());
   }
+
+  private RexNode replaceFilterInputRefs(RexNode filterCondition,
+      List<RexNode> projects) {
+    final RexBuilder builder = getCluster().getRexBuilder();
+    return filterCondition.accept(new RexShuttle() {
+        @Override public RexNode visitCall(RexCall call) {
+          RexCall newCondition = (RexCall) super.visitCall(call);
+          List<RexNode> operands = new ArrayList<>();
+          for (RexNode operand : newCondition.getOperands()) {
+            if (operand instanceof RexInputRef) {
+              RexInputRef inputRef = (RexInputRef) operand;
+              operands.add(getProjects().get(inputRef.getIndex()));
+            } else {
+              operands.add(operand);
+            }
+          }
+          return builder.makeCall(call.getType(), call.getOperator(), operands);
+        }});
+  }
+
+  private ImmutableBitSet mapFilterOnlyRefs(ImmutableBitSet filterOnlyInputRefs) {
+    ImmutableBitSet.Builder mappedRefsBuilder = ImmutableBitSet.builder();
+    for (Integer i : filterOnlyInputRefs) {
+      RexInputRef inputRef = (RexInputRef) getProjects().get(i);
+      mappedRefsBuilder.set(inputRef.getIndex());
+    }
+    return mappedRefsBuilder.build();
+  }
+      /*
+      builder.setFilterOnlyInputRefs(mapFilterOnlyRefs(context.filterOnlyInputRefs_));
+      */
 
   @Override
   public RelNodeType relNodeType() {

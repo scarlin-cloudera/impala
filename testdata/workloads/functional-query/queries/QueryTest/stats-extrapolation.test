@@ -137,8 +137,7 @@ row_regex:.*table: rows=3.65K size=.*
 '     columns: all'
 row_regex:.* extrapolated-rows=904.*
 row_regex:.*mem-estimate=.* mem-reservation=.*
-# IMPALA-14815: need to investigate why this is 8B so we can combine these 2 sections
-'   tuple-ids=0 row-size=8B cardinality=904'
+'   tuple-ids=0 row-size=4B cardinality=904'
 '   in pipelines: 00(GETNEXT)'
 ---- TYPES
 STRING
@@ -220,8 +219,7 @@ row_regex:.*table: rows=3.65K size=.*
 '     columns: all'
 row_regex:.* extrapolated-rows=3.65K .*
 row_regex:.*mem-estimate=.* mem-reservation=.*
-# IMPALA-14815: need to investigate why this is 8B so we can combine these 2 sections
-'   tuple-ids=0 row-size=8B cardinality=3.65K'
+'   tuple-ids=0 row-size=4B cardinality=3.65K'
 '   in pipelines: 00(GETNEXT)'
 ---- TYPES
 STRING
@@ -274,8 +272,7 @@ row_regex:.*table: rows=10.95K size=.*
 '     columns: all'
 row_regex:.* extrapolated-rows=3.65K .*
 row_regex:.*mem-estimate=.* mem-reservation=.*
-# IMPALA-14815: need to investigate why this is 8B so we can combine these 2 sections
-'   tuple-ids=0 row-size=8B cardinality=3.65K'
+'   tuple-ids=0 row-size=4B cardinality=3.65K'
 '   in pipelines: 00(GETNEXT)'
 ---- TYPES
 STRING

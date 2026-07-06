@@ -53,8 +53,10 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 /**
  * ImpalaHdfsScanRel. Calcite RelNode which maps to an Impala TableScan node.
  */
@@ -78,7 +80,7 @@ public class ImpalaHdfsScanRel extends TableScan
     TupleDescriptor tupleDesc = baseTblRef.getDesc();
 
     // outputExprs will contain all the needed columns from the table
-    List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots());
+    List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots(), context);
 
     Analyzer analyzer = context.ctx_.getRootAnalyzer();
     // break up the filter condition (if given) to ones that can be used for
@@ -169,8 +171,8 @@ public class ImpalaHdfsScanRel extends TableScan
    * If a column isn't projected out by the parent of the scan node, the array
    * location for the column will remain null.
    */
-  private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs)
-      throws ImpalaException {
+  private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs,
+      ParentPlanRelContext context) throws ImpalaException {
     CalciteTable calciteTable = (CalciteTable) getTable();
     FeFsTable table = calciteTable.getFeFsTable();
     // IMPALA-12961: The output expressions are contained in a list which
@@ -203,6 +205,10 @@ public class ImpalaHdfsScanRel extends TableScan
       }
 
       scanOutputExprs.set(calcitePosition, new SlotRef(slotDesc));
+      if (context.filterOnlyInputRefs_.get(calcitePosition) &&
+          table.isClusteringColumn(slotDesc.getColumn())) {
+        slotDesc.setIsMaterialized(false);
+      }
     }
     return scanOutputExprs;
   }

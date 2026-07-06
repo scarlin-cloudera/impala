@@ -87,6 +87,13 @@ public class ImpalaFilterRel extends Filter
       ImmutableBitSet inputRefs =
           RelOptUtil.InputFinder.bits(Lists.newArrayList(getCondition()), null);
       builder.setInputRefs(inputRefs.union(context.inputRefs_));
+      ImmutableBitSet.Builder filterOnlyBuilder = ImmutableBitSet.builder();
+      for (Integer field : inputRefs) {
+        if (!context.inputRefs_.get(field)) {
+          filterOnlyBuilder.set(field);
+        }
+      }
+      builder.setFilterOnlyInputRefs(filterOnlyBuilder.build());
     }
     return relInput.getPlanNode(builder.build());
   }

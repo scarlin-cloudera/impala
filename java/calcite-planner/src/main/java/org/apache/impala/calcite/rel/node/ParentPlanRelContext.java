@@ -37,6 +37,8 @@ public class ParentPlanRelContext {
   // The input refs used by the parent PlanRel Node
   public final ImmutableBitSet inputRefs_;
 
+  public final ImmutableBitSet filterOnlyInputRefs_;
+
   public ImpalaAggRel parentAggregate_;
 
   /**
@@ -46,6 +48,7 @@ public class ParentPlanRelContext {
     this.ctx_ = plannerContext;
     this.filterCondition_ = null;
     this.inputRefs_ = null;
+    this.filterOnlyInputRefs_ = ImmutableBitSet.of();
     this.parentAggregate_ = null;
   }
 
@@ -53,6 +56,7 @@ public class ParentPlanRelContext {
     this.ctx_ = builder.context_;
     this.filterCondition_ = builder.filterCondition_;
     this.inputRefs_ = builder.inputRefs_;
+    this.filterOnlyInputRefs_ = builder.filterOnlyInputRefs_;
     this.parentAggregate_ = builder.parentAggregate_;
   }
 
@@ -60,6 +64,7 @@ public class ParentPlanRelContext {
     private PlannerContext context_;
     private RexNode filterCondition_;
     private ImmutableBitSet inputRefs_;
+    private ImmutableBitSet filterOnlyInputRefs_;
     private ImpalaAggRel parentAggregate_;
 
     /**
@@ -67,11 +72,13 @@ public class ParentPlanRelContext {
      */
     public Builder(PlannerContext plannerContext) {
       this.context_ = plannerContext;
+      this.filterOnlyInputRefs_ = ImmutableBitSet.of();
     }
 
     public Builder(ParentPlanRelContext planRelContext, ImpalaPlanRel planRel) {
       this.context_ = planRelContext.ctx_;
       this.filterCondition_ = planRelContext.filterCondition_;
+      this.filterOnlyInputRefs_ = planRelContext.filterOnlyInputRefs_;
       this.parentAggregate_ = ImpalaPlanRel.canPassThroughParentAggregate(planRel)
           ? planRelContext.parentAggregate_
           : null;
@@ -79,10 +86,17 @@ public class ParentPlanRelContext {
 
     public void setFilterCondition(RexNode filterCondition) {
       this.filterCondition_ = filterCondition;
+      if (filterCondition == null) {
+        this.filterOnlyInputRefs_ = ImmutableBitSet.of();
+      }
     }
 
     public void setInputRefs(ImmutableBitSet inputRefs) {
       this.inputRefs_ = inputRefs;
+    }
+
+    public void setFilterOnlyInputRefs(ImmutableBitSet filterOnlyInputRefs) {
+      this.filterOnlyInputRefs_ = filterOnlyInputRefs;
     }
 
     public void setParentAggregate(ImpalaAggRel parentAggregate) {
