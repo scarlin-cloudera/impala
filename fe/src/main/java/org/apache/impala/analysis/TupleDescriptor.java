@@ -38,6 +38,8 @@ import org.apache.impala.thrift.TTupleDescriptor;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A collection of slots that are organized in a CPU-friendly memory layout. A slot is
@@ -77,6 +79,7 @@ import com.google.common.base.Preconditions;
 public class TupleDescriptor {
   // Padding size in bytes for Kudu Slice slots.
   private static final int KUDU_SLICE_PADDING = 4;
+  protected static final Logger LOG = LoggerFactory.getLogger(TupleDescriptor.class.getName());
 
   private final TupleId id_;
   private final String debugName_;  // debug-only
@@ -507,6 +510,7 @@ public class TupleDescriptor {
     ColumnStats stats = slotDesc.getStats();
     if (stats.hasAvgSize()) {
       avgSerializedSize_ += stats.getAvgSerializedSize();
+      LOG.info("SJC: ADDED  " + slotDesc.getLabel() + ", SIZE IS NOW " + avgSerializedSize_); 
       serializedPadSize_ +=
           Math.max(0, stats.getAvgSerializedSize() - stats.getAvgSize());
     } else {
@@ -514,6 +518,7 @@ public class TupleDescriptor {
       // size from stats for them.
       // TODO: for computed slots, try to come up with stats estimates
       avgSerializedSize_ += slotDesc.getMaterializedSlotSize();
+      LOG.info("SJC: ADDED2 " + slotDesc.getLabel() + ", SIZE IS NOW " + avgSerializedSize_); 
     }
     // Add padding for a KUDU string slot.
     if (slotDesc.isKuduSliceSlot()) {

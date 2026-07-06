@@ -126,21 +126,8 @@ public class ImpalaProjectRel extends Project
     ParentPlanRelContext.Builder builder =
         new ParentPlanRelContext.Builder(context, this);
 
-    if (context.inputRefs_ == null) {
-      builder.setInputRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
-      builder.setInputMaterializedRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
-    } else {
-      ImmutableBitSet.Builder projectBuilder = ImmutableBitSet.builder();
-      for (Integer i : context.inputRefs_) {
-        projectBuilder.addAll(RelOptUtil.InputFinder.bits(getProjects().get(i)));
-      }
-      builder.setInputRefs(projectBuilder.build());
-      ImmutableBitSet.Builder projectBuilder2 = ImmutableBitSet.builder();
-      for (Integer i : context.inputRefs_) {
-        projectBuilder2.addAll(RelOptUtil.InputFinder.bits(getProjects().get(i)));
-      }
-      builder.setInputMaterializedRefs(projectBuilder2.build());
-    }
+    builder.setInputRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
+    builder.setInputMaterializedRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
     return relInput.getPlanNode(builder.build());
   }
 

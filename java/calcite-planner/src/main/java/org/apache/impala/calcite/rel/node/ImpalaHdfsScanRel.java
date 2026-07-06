@@ -216,10 +216,6 @@ public class ImpalaHdfsScanRel extends TableScan
       List<Expr> slotExprs, List<Expr> conjuncts, List<SlotDescriptor> allSlotDescs) {
     Set<SlotDescriptor> materializedSlotDescs = new HashSet<>();
     if (context.inputMaterializedRefs_ == null) {
-      for (Expr e : slotExprs) {
-        SlotRef slotRef = (SlotRef) e;
-        materializedSlotDescs.add(slotRef.getDesc());
-      }
       return;
     }
 
