@@ -145,6 +145,9 @@ PLAN-ROOT SINK
    predicates: int_col = 0
    row-size=89B cardinality=31 (from HBO)
 ---- CALCITE_PLANNER_PLAN
+# Calcite does not get stats from HBO because the original
+# query is from a join and an added "id is not null" predicate
+# is added to the hbo stats string predicate.
 PLAN-ROOT SINK
 |
 03:EXCHANGE [UNPARTITIONED]

@@ -208,13 +208,18 @@ class TestHBO(ImpalaTestSuite):
         and l_shipdate < '1995-01-01'
         and l_discount between 0.05 and 0.07
         and l_quantity < 24"""
+    if IS_CALCITE_PLANNER:
+      lineitem_preds += " and l_orderkey IS NOT NULL"
     self.execute_query(
         "select count(*) from tpch_parquet.lineitem where " + lineitem_preds)
-    self.execute_query("select count(*) from tpch_parquet.orders where o_custkey < 1000")
+    order_key_query = "select count(*) from tpch_parquet.orders where o_custkey < 1000"
+    if IS_CALCITE_PLANNER:
+      order_key_query += " and o_orderkey IS NOT NULL"
+    self.execute_query(order_key_query)
     res = self.execute_query("""
         explain select STRAIGHT_JOIN count(l_orderkey)
         from tpch_parquet.lineitem join tpch_parquet.orders
         on l_orderkey = o_orderkey
         where o_custkey < 1000 and """ + lineitem_preds)
     assert "cardinality=37.88K(filtered from 114.16K from HBO)" in '\n'.join(res.data), \
-        '\n'.join(res.data)
+      '\n'.join(res.data)
