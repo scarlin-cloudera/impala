@@ -27,6 +27,7 @@ import org.apache.impala.analysis.ExprSubstitutionMap;
 import org.apache.impala.analysis.Path;
 import org.apache.impala.analysis.SlotDescriptor;
 import org.apache.impala.analysis.SlotRef;
+import org.apache.impala.analysis.TimeTravelSpec;
 import org.apache.impala.analysis.TupleDescriptor;
 import org.apache.impala.calcite.rel.phys.ImpalaHdfsScanNode;
 import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
@@ -38,6 +39,7 @@ import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeFsPartition;
 import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeKuduTable;
+import org.apache.impala.catalog.FeTable;
 import org.apache.impala.common.IcebergPredicateConverter;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
@@ -71,8 +73,12 @@ public class ImpalaHdfsScanRel extends TableScan
 
     CalciteTable table = (CalciteTable) getTable();
 
-    BaseTableRef baseTblRef =
-        table.createBaseTableRef((SimplifiedAnalyzer) context.ctx_.getRootAnalyzer());
+    TimeTravelSpec timeTravelSpec = table instanceof CalciteIcebergTable
+        ? ((CalciteIcebergTable)table).getTimeTravelSpec()
+        : null;
+
+    BaseTableRef baseTblRef = table.createBaseTableRef(
+        (SimplifiedAnalyzer) context.ctx_.getRootAnalyzer(), timeTravelSpec);
 
     produceSlotDescriptorsForTable(baseTblRef, context);
 
@@ -107,8 +113,8 @@ public class ImpalaHdfsScanRel extends TableScan
     boolean isDistinctOnly = context.parentAggregate_ != null
         && context.parentAggregate_.hasDistinctOnly();
 
-    CalcitePlanNodeHelper helper =
-         new CalcitePlanNodeHelper(countStarDesc, isDistinctOnly);
+    CalcitePlanNodeHelper helper = new CalcitePlanNodeHelper(countStarDesc,
+        isDistinctOnly, timeTravelSpec);
 
     PlanNode physicalNode;
     if (SingleNodePlanner.addAcidSlotsIfNeeded(analyzer, baseTblRef,
@@ -344,9 +350,13 @@ public class ImpalaHdfsScanRel extends TableScan
 
     private final SlotDescriptor countStarDesc_;
     private final boolean isDistinctOnly_;
-    CalcitePlanNodeHelper(SlotDescriptor countStarDesc, boolean isDistinctOnly) {
+    private final TimeTravelSpec timeTravelSpec_;
+
+    CalcitePlanNodeHelper(SlotDescriptor countStarDesc, boolean isDistinctOnly,
+        TimeTravelSpec timeTravelSpec) {
       countStarDesc_ = countStarDesc;
       isDistinctOnly_ = isDistinctOnly;
+      timeTravelSpec_ = timeTravelSpec;
     }
 
     @Override
@@ -358,6 +368,11 @@ public class ImpalaHdfsScanRel extends TableScan
     public SlotDescriptor getCountStarOptimizationDescriptor(ScanNode scanNode,
         Analyzer analyzer, List<Expr> conjuncts) {
       return countStarDesc_;
+    }
+
+    @Override
+    public TimeTravelSpec getTimeTravelSpec() {
+      return timeTravelSpec_;
     }
   }
 }

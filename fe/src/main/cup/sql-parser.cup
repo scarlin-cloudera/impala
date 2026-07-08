@@ -382,7 +382,7 @@ nonterminal String ident_or_unreserved;
 // options, column attributes, etc.
 nonterminal String word;
 nonterminal String opt_comma;
-nonterminal StatementBase stmt;
+nonterminal Object stmt;
 // Single select statement.
 nonterminal SelectStmt select_stmt;
 // Single values statement.
@@ -824,6 +824,8 @@ stmt ::=
   {: RESULT = convert; :}
   | kill_query_stmt: kill_query
   {: RESULT = kill_query; :}
+  | opt_asof: opt_asof_phrase
+  {: RESULT = opt_asof_phrase; :}
   ;
 
 load_stmt ::=

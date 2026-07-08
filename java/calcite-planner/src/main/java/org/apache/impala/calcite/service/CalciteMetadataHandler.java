@@ -17,7 +17,6 @@
 
 package org.apache.impala.calcite.service;
 
-import com.google.common.base.Splitter;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -38,15 +37,22 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.StmtMetadataLoader;
 import org.apache.impala.analysis.TableName;
+import org.apache.impala.analysis.TimeTravelSpec;
 import org.apache.impala.calcite.schema.CalciteDb;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
+import org.apache.impala.calcite.validate.ImpalaSnapshotSqlNode;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.IcebergTable;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,6 +101,7 @@ public class CalciteMetadataHandler {
    */
   public static void populateCalciteSchema(CalciteCatalogReader reader,
       FeCatalog catalog, StmtMetadataLoader.StmtTableCache stmtTableCache,
+      Map<TableName, List<TimeTravelSpec>> timeTravelSpecMap,
       Analyzer analyzer) throws ImpalaException {
     List<String> notFoundTables = new ArrayList<>();
     CalciteSchema rootSchema = reader.getRootSchema();
@@ -121,7 +128,20 @@ public class CalciteMetadataHandler {
       // first instance seen in the query.
       CalciteDb.Builder dbBuilder =
           dbSchemas.getOrDefault(tableName.getDb(), new CalciteDb.Builder(reader));
-      dbBuilder.addTable(tableName.getTbl().toLowerCase(), feTable, analyzer);
+      String lowerCaseTableName = tableName.getTbl().toLowerCase();
+      List<TimeTravelSpec> timeTravelSpecs = timeTravelSpecMap.get(tableName);
+      Preconditions.checkNotNull(timeTravelSpecs);
+      for (TimeTravelSpec tts : timeTravelSpecs) {
+        // Actually, this is The normal case. Only Iceberg time travel tables will
+        // have a TimeTravelSpec
+        if (tts == null) {
+          dbBuilder.addTable(lowerCaseTableName, feTable, analyzer);
+        } else {
+          tts.analyze(analyzer);
+          String timeTravelTableKey = lowerCaseTableName + "_" + tts.hashCode();
+          dbBuilder.addTimeTravelTable(timeTravelTableKey, tts, feTable, analyzer);
+        }
+      }
       dbSchemas.put(tableName.getDb().toLowerCase(), dbBuilder);
     }
 
@@ -137,7 +157,7 @@ public class CalciteMetadataHandler {
    */
   public static class TableVisitor extends SqlBasicVisitor<Void> {
     private final String currentDb_;
-    public final Set<TableName> tableNames_ = new HashSet<>();
+    private final Map<TableName, List<TimeTravelSpec>> tableNames_ = new HashMap<>();
 
     // Error condition for now. Complex tables are not yet supported
     // so if we see a table name that has more than 2 parts, this variable
@@ -151,8 +171,16 @@ public class CalciteMetadataHandler {
 
     public ImpalaException exception_ = null;
 
-    private TableVisitor(String currentDb) {
+    public TableVisitor(String currentDb) {
       this.currentDb_ = currentDb.toLowerCase();
+    }
+
+    public Set<TableName> getTableNames() {
+      return ImmutableSet.copyOf(tableNames_.keySet());
+    }
+
+    public Map<TableName, List<TimeTravelSpec>> getTableNameMap() {
+      return tableNames_;
     }
 
     @Override
@@ -164,7 +192,7 @@ public class CalciteMetadataHandler {
       if (call.getKind() == SqlKind.SELECT) {
         SqlSelect select = (SqlSelect) call;
         if (select.getFrom() != null) {
-          tableNames_.addAll(getTableNames(select.getFrom()));
+          visitTableNameNode(select.getFrom());
         }
       }
 
@@ -188,53 +216,60 @@ public class CalciteMetadataHandler {
       return v;
     }
 
-    private List<TableName> getTableNames(SqlNode fromNode) {
-      // Iceberg tables can sometimes be found under the SqlSnapshot node.
-      if (fromNode instanceof SqlSnapshot) {
-        return getTableNames(((SqlSnapshot) fromNode).getTableRef());
+    private void extractTableName(SqlIdentifier identifer,
+        TimeTravelSpec timeTravelSpec) {
+      String tableNameString = identifer.toString();
+      List<String> parts = Splitter.on('.').splitToList(tableNameString);
+      if (parts.size() > 2) {
+        errorTables_.add(tableNameString);
+        return;
+      }
+      TableName tableName = parts.size() == 1
+          ? new TableName(currentDb_.toLowerCase(), parts.get(0).toLowerCase())
+          : new TableName(parts.get(0).toLowerCase(), parts.get(1).toLowerCase());
+
+      // Do not collect this table if 'tableNameToAdd' was already registered via
+      // a SqlWithItem node since in this case 'tableNameToAdd' is not an actual
+      // table.
+      if (parts.size() == 1 && isRegisteredBySqlWithItem(tableName)) {
+        return;
       }
 
-      List<TableName> localTableNames = new ArrayList<>();
+      List<TimeTravelSpec> timeTravelSpecs =
+          tableNames_.getOrDefault(tableName, new ArrayList<>());
+      timeTravelSpecs.add(timeTravelSpec);
+      tableNames_.put(tableName, timeTravelSpecs);
+    }
+
+    private void visitTableNameNode(SqlNode fromNode) {
+      Map<TableName, List<String>> localTableNames = new HashMap<>();
       if (fromNode instanceof SqlIdentifier) {
-        String tableName = fromNode.toString();
-        List<String> parts = Splitter.on('.').splitToList(tableName);
-        if (parts.size() == 1) {
-          TableName tableNameToAdd = new TableName(
-              currentDb_.toLowerCase(), parts.get(0).toLowerCase());
-          // Do not collect this table if 'tableNameToAdd' was already registered via
-          // a SqlWithItem node since in this case 'tableNameToAdd' is not an actual
-          // table.
-          if (!isRegisteredBySqlWithItem(tableNameToAdd)) {
-            localTableNames.add(tableNameToAdd);
-          }
-        } else if (parts.size() == 2) {
-          localTableNames.add(
-              new TableName(parts.get(0).toLowerCase(), parts.get(1).toLowerCase()));
-        } else {
-          exception_ = new UnsupportedFeatureException(
-              "Table " + tableName + " is not supported.");
-          return localTableNames;
-        }
+        extractTableName((SqlIdentifier) fromNode, null);
+      }
+
+      if (fromNode instanceof ImpalaSnapshotSqlNode) {
+        ImpalaSnapshotSqlNode snapshot = (ImpalaSnapshotSqlNode) fromNode;
+        extractTableName(snapshot.tableRefOriginal_, snapshot.timeTravelSpec_);
+        return;
       }
 
       // Join node has the tables in the left and right node.
       if (fromNode instanceof SqlJoin) {
-        localTableNames.addAll(getTableNames(((SqlJoin) fromNode).getLeft()));
-        localTableNames.addAll(getTableNames(((SqlJoin) fromNode).getRight()));
+        visitTableNameNode(((SqlJoin) fromNode).getLeft());
+        visitTableNameNode(((SqlJoin) fromNode).getRight());
       }
 
       // Put references in the schema too
       if (fromNode instanceof SqlBasicCall) {
         SqlBasicCall basicCall = (SqlBasicCall) fromNode;
         if (basicCall.getKind().equals(SqlKind.AS)) {
-          localTableNames.addAll(getTableNames(basicCall.operand(0)));
+          visitTableNameNode(basicCall.operand(0));
         }
         if (basicCall.getKind() == SqlKind.UNNEST) {
            exception_ = new UnsupportedFeatureException(
                "Unnest function is not supported at this time.");
         }
       }
-      return localTableNames;
     }
 
     private boolean isRegisteredBySqlWithItem(TableName tableName) {
@@ -242,17 +277,6 @@ public class CalciteMetadataHandler {
         if (tableNames.contains(tableName)) return true;
       }
       return false;
-    }
-
-    public static Set<TableName> getTableNames(SqlNode sqlNode, String db)
-        throws ImpalaException {
-
-      TableVisitor tableVisitor = new TableVisitor(db);
-      sqlNode.accept(tableVisitor);
-      if (tableVisitor.exception_ != null) {
-        throw tableVisitor.exception_;
-      }
-      return tableVisitor.tableNames_;
     }
   }
 
