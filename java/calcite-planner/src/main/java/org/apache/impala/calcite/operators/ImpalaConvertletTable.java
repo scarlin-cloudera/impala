@@ -121,18 +121,11 @@ public class ImpalaConvertletTable extends ReflectiveConvertletTable {
 
   protected RexNode convertExplicitCast(
       SqlRexContext cx, SqlCall call) {
+    final SqlNode expr = call.operand(0);
     final RexBuilder rexBuilder = cx.getRexBuilder();
     RelDataType returnType =
         cx.getValidator().getValidatedNodeTypeIfKnown(call);
-    List<RexNode> operands;
-    final SqlNode expr = call.operand(0);
-    if (call.operandCount() > 2) {
-      SqlNode formatExpr = call.operand(2);
-      operands = Lists.newArrayList(cx.convertExpression(expr),
-          cx.convertExpression(formatExpr));
-    } else {
-      operands = Lists.newArrayList(cx.convertExpression(expr));
-    }
+    List<RexNode> operands = Lists.newArrayList(cx.convertExpression(expr));
     return rexBuilder.makeCall(returnType, ImpalaCastFunction.INSTANCE, operands);
   }
 
