@@ -140,7 +140,8 @@ public class Planner {
     checkForSmallQueryOptimization(singleNodePlan);
 
     // Join rewrites.
-    invertJoins(singleNodePlan, ctx_.isSingleNodeExec());
+    invertJoins(singleNodePlan, ctx_.isSingleNodeExec(),
+        singleNodePlannerIntf_.allowPlannerToInvertCheaperJoin());
     singleNodePlan = useNljForSingularRowBuilds(singleNodePlan, ctx_.getRootAnalyzer());
 
     if(ctx_.isMerge()) {
@@ -745,12 +746,15 @@ public class Planner {
    * The 'isLocalPlan' parameter indicates whether the plan tree rooted at 'root'
    * will be executed locally within one machine, i.e., without any data exchanges.
    */
-  public static void invertJoins(PlanNode root, boolean isLocalPlan) {
+  public static void invertJoins(PlanNode root, boolean isLocalPlan,
+      boolean invertCheaperJoin) {
     if (root instanceof SubplanNode) {
-      invertJoins(root.getChild(0), isLocalPlan);
-      invertJoins(root.getChild(1), true);
+      invertJoins(root.getChild(0), isLocalPlan, invertCheaperJoin);
+      invertJoins(root.getChild(1), true, invertCheaperJoin);
     } else {
-      for (PlanNode child: root.getChildren()) invertJoins(child, isLocalPlan);
+      for (PlanNode child: root.getChildren()) {
+        invertJoins(child, isLocalPlan, invertCheaperJoin);
+      }
     }
 
     if (root instanceof JoinNode) {
@@ -764,6 +768,8 @@ public class Planner {
         return;
       }
 
+      // IMPALA-15196: Calcite plan should avoid all invert joins in its
+      // optimization phase.
       if (joinNode.getChild(0) instanceof SingularRowSrcNode) {
         // Always place a singular row src on the build side because it
         // only produces a single row.
@@ -773,7 +779,7 @@ public class Planner {
         // The current join is a distributed non-equi right outer or semi join
         // which has no backend support. Invert the join to make it executable.
         joinNode.invertJoin();
-      } else if (isInvertedJoinCheaper(joinNode, isLocalPlan)) {
+      } else if (invertCheaperJoin && isInvertedJoinCheaper(joinNode, isLocalPlan)) {
         joinNode.invertJoin();
       }
       // Re-compute the numNodes and numInstances based on the new input order

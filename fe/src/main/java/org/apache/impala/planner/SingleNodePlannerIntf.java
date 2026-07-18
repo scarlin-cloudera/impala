@@ -54,4 +54,6 @@ public interface SingleNodePlannerIntf {
    * planner does not use Calcite.
    */
   String calcitePlan();
+
+  boolean allowPlannerToInvertCheaperJoin();
 }

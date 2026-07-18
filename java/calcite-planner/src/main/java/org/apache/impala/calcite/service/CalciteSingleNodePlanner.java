@@ -180,4 +180,9 @@ public class CalciteSingleNodePlanner implements SingleNodePlannerIntf {
     }
     return metadata;
   }
+
+  @Override
+  public boolean allowPlannerToInvertCheaperJoin() {
+    return false;
+  }
 }

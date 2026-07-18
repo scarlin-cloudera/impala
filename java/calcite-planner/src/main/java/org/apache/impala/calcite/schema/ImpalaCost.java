@@ -29,6 +29,8 @@ import java.util.Objects;
 public class ImpalaCost implements RelOptCost {
   //~ Static fields/initializers ---------------------------------------------
 
+  public static final double EPSILON = 1.0e-10;
+
   static final ImpalaCost INFINITY =
       new ImpalaCost(
           Double.POSITIVE_INFINITY,
@@ -138,8 +140,8 @@ public class ImpalaCost implements RelOptCost {
     // ordering if the cost is a tie, so if the cost is
     // essentially the same, we'd prefer to use the tiebreaking method
     // rather than this method.
-    return (this == other)
-      || Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < .01;
+    return (this == other) ||
+        Math.abs(1.0 - (this.cpu + this.io) / (other.getCpu() + other.getIo())) < EPSILON;
   }
 
   @Override public RelOptCost minus(RelOptCost other) {
