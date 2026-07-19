@@ -309,10 +309,8 @@ class SkipIfCalcite:
       reason="row filtering not supported yet")
   observability_info_missing = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="some observability test information is missing")
-<<<<<<< HEAD
   spilling_plan_different = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="IMPALA-15123: spilling plan is different, needs investigation.")
-=======
   impala_xxxx1 = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="IMPALA-XXXXX: needs jira")
   hints_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
@@ -327,4 +325,3 @@ class SkipIfCalcite:
       reason="fallback_db_for_functions not supported for Calcite")
   disable_having_ordinal = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="ordinals in having not allowed for Calcite")
->>>>>>> 6699348ca2 (tests)
