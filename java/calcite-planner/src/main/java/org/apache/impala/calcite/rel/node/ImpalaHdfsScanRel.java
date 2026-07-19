@@ -182,7 +182,7 @@ public class ImpalaHdfsScanRel extends TableScan
   private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs,
       ParentPlanRelContext context) throws ImpalaException {
     CalciteTable calciteTable = (CalciteTable) getTable();
-    FeFsTable table = calciteTable.getFeTable();
+    FeTable table = calciteTable.getFeTable();
     // IMPALA-12961: The output expressions are contained in a list which
     // may have holes in it (if the table scan column is not in the output).
     // The width of the list must include all columns, including the acid ones,
