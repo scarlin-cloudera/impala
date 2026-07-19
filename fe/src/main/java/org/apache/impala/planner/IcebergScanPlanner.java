@@ -187,7 +187,7 @@ public class IcebergScanPlanner {
 
     initPushDownHint();
     extractIcebergConjuncts();
-    snapshotId_ = IcebergUtil.getSnapshotId(getIceTable(), helper.getTimeTravelSpec());
+    snapshotId_ = IcebergUtil.getSnapshotId(getIceTable(), tblRef_.getTimeTravelSpec());
   }
 
   private ScanMetricsResult getScanMetrics() {
@@ -237,7 +237,7 @@ public class IcebergScanPlanner {
    */
   private boolean needIcebergForPlanning() {
     return !impalaIcebergPredicateMapping_.isEmpty()
-        || helper_.getTimeTravelSpec() != null;
+        || tblRef_.getTimeTravelSpec() != null;
   }
 
   private void setFileDescriptorsBasedOnFileStore() throws ImpalaException {
@@ -680,7 +680,7 @@ public class IcebergScanPlanner {
     Preconditions.checkState(allEqualityFieldIds_.isEmpty());
     Preconditions.checkState(equalityIdsToDeleteFiles_.isEmpty());
 
-    TimeTravelSpec timeTravelSpec = helper_.getTimeTravelSpec();
+    TimeTravelSpec timeTravelSpec = tblRef_.getTimeTravelSpec();
     IcebergContentFileStore fileStore = getIceTable().getContentFileStore();
 
     // 'metricsReporter_' is filled when the try-with-resources releases the FileScanTask
@@ -896,7 +896,7 @@ public class IcebergScanPlanner {
       return new Pair<>(iceFileDesc, true);
     }
 
-    if (helper_.getTimeTravelSpec() == null) {
+    if (tblRef_.getTimeTravelSpec() == null) {
       // We should always find the data files in the cache when not doing time travel.
       throw new ImpalaRuntimeException(String.format("Cannot find file: %s in" +
           " Iceberg table %s (snapshot id: %d) It's possibly missing from storage." +

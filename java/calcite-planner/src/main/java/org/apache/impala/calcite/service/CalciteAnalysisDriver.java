@@ -114,7 +114,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       // Recall that parsedStmt_.getTablesInQuery(null) only contains TableName's in the
       // given query but not the underlying tables referenced by a regular view.
       CalciteMetadataHandler.populateCalciteSchema(reader_, ctx_.getCatalog(),
-          stmtTableCache_, parsedStmt_.tableNameMap_, analyzer_);
+          stmtTableCache_, analyzer_);
 
       typeFactory_ = ImpalaTypeFactoryImpl.INSTANCE;
       sqlValidator_ = new ImpalaSqlValidatorImpl(
@@ -247,7 +247,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
 
         // Recurse if 'feTable' is also a view. Note that the privilege requests for the
         // tables referenced by 'feTable' will be registered within the recursive call.
-        registerPrivReqsInTables(tableVisitor.getTableNames(),
+        registerPrivReqsInTables(tableNames,
             shouldMaskPrivChecks || childViewCreatedBySuperuser, catalog, validator);
 
         // Set 'maskPrivChecks_' back to false in this case because we do not know if

@@ -19,7 +19,6 @@ package org.apache.impala.analysis;
 
 import java.io.StringReader;
 
-import org.apache.impala.analysis.TimeTravelSpec;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ParseException;
 import org.apache.impala.thrift.TQueryOptions;
@@ -51,29 +50,11 @@ public class Parser {
    */
   public static StatementBase parse(String query, TQueryOptions options)
       throws AnalysisException {
-    Object obj = parseString(query, options);
-    if (!(obj instanceof StatementBase)) {
-      throw new ParseException("Not a valid query: " + query);
-    }
-    return (StatementBase) obj;
-  }
-
-  public static TimeTravelSpec parseTimeTravelSpec(String query)
-      throws AnalysisException {
-    Object obj = parseString(query, new TQueryOptions());
-    if (!(obj instanceof TimeTravelSpec)) {
-      throw new ParseException("Not a valid timestamp for iceberg: " + query);
-    }
-    return (TimeTravelSpec) obj;
-  }
-
-  private static Object parseString(String query, TQueryOptions options)
-      throws AnalysisException {
     SqlScanner input = new SqlScanner(new StringReader(query));
     SqlParser parser = new SqlParser(input);
     parser.setQueryOptions(options);
     try {
-      return parser.parse().value;
+      return (StatementBase) parser.parse().value;
     } catch (AnalysisException e) {
       // Pass along any analysis exceptions as they are. Since AnalysisException
       // is a kind of Exception, we have to special-case it here
