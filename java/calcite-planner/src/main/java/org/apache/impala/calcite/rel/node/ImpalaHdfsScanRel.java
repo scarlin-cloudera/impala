@@ -85,7 +85,7 @@ public class ImpalaHdfsScanRel extends TableScan
     TupleDescriptor tupleDesc = baseTblRef.getDesc();
 
     // outputExprs will contain all the needed columns from the table
-    List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots(), context);
+    List<Expr> outputExprs = createScanOutputExprs(tupleDesc.getSlots());
 
     Analyzer analyzer = context.ctx_.getRootAnalyzer();
     // break up the filter condition (if given) to ones that can be used for
@@ -180,8 +180,8 @@ public class ImpalaHdfsScanRel extends TableScan
    * If a column isn't projected out by the parent of the scan node, the array
    * location for the column will remain null.
    */
-  private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs,
-      ParentPlanRelContext context) throws ImpalaException {
+  private List<Expr> createScanOutputExprs(List<SlotDescriptor> slotDescs)
+      throws ImpalaException {
     CalciteTable calciteTable = (CalciteTable) getTable();
     FeTable table = calciteTable.getFeTable();
     // IMPALA-12961: The output expressions are contained in a list which
@@ -214,15 +214,6 @@ public class ImpalaHdfsScanRel extends TableScan
       }
 
       scanOutputExprs.set(calcitePosition, new SlotRef(slotDesc));
-
-      // Optimization: If a column is not projected in the plan node output
-      // expressions and it's a clustering column, the partition directories
-      // are removed from the scan and there is no reason to create memory
-      // to handle this column.
-      if (context.filterOnlyInputRefs_.get(calcitePosition) &&
-          table.isClusteringColumn(slotDesc.getColumn())) {
-        slotDesc.setIsMaterialized(false);
-      }
     }
     return scanOutputExprs;
   }

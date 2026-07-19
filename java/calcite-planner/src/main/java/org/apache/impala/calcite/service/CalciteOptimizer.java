@@ -284,8 +284,8 @@ public class CalciteOptimizer implements CompilerStep {
    * RewriteRexOverRule: This rule changes analytic expressions similar to
    * the changes made in the "AnalyticExpr.rewrite" method
    *
-   * ProjectMerge: The RelFieldTrimmer adds some extra Projects that need
-   * to be merged.
+   * FILTER_PROJECT_TRANSPOSE: One last transpose is done since the physical
+   * conversion needs the Logical RelNodes ordered in this way.
    */
   private RelNode runPreImpalaConvertProgram(RelNode plan,
       ImpalaRexSimplify simplifier) throws ImpalaException {
@@ -296,7 +296,8 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
         ImpalaCoreRules.REWRITE_REX_OVER,
-        ImpalaCoreRules.PROJECT_MERGE
+        ImpalaCoreRules.PROJECT_MERGE,
+        ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE
         ));
 
     return runProgram(retRelNode, builder.build(), simplifier);
