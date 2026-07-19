@@ -89,7 +89,7 @@ public class CalciteDb extends AbstractSchema {
 
       if (table == null) {
         throw new UnsupportedFeatureException("Table " + feTable.getFullName()
-            + " has unsupported type " + table.getClass().getSimpleName() + ".");
+            + " has unsupported type " + feTable.getClass().getSimpleName() + ".");
       }
       tableMap_.put(tableName.toLowerCase(), table);
       return this;

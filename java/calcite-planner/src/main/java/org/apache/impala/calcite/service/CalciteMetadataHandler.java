@@ -130,16 +130,22 @@ public class CalciteMetadataHandler {
           dbSchemas.getOrDefault(tableName.getDb(), new CalciteDb.Builder(reader));
       String lowerCaseTableName = tableName.getTbl().toLowerCase();
       List<TimeTravelSpec> timeTravelSpecs = timeTravelSpecMap.get(tableName);
-      Preconditions.checkNotNull(timeTravelSpecs);
-      for (TimeTravelSpec tts : timeTravelSpecs) {
-        // Actually, this is The normal case. Only Iceberg time travel tables will
-        // have a TimeTravelSpec
-        if (tts == null) {
-          dbBuilder.addTable(lowerCaseTableName, feTable, analyzer);
-        } else {
-          tts.analyze(analyzer);
-          String timeTravelTableKey = lowerCaseTableName + "_" + tts.hashCode();
-          dbBuilder.addTimeTravelTable(timeTravelTableKey, tts, feTable, analyzer);
+      if (timeTravelSpecs == null) {
+        LOG.info("SJC: GONNA THROW EXCEPTION, TABLE NAME IS " + tableName);
+      }
+      if (timeTravelSpecs == null) {
+        dbBuilder.addTable(lowerCaseTableName, feTable, analyzer);
+      } else {
+        for (TimeTravelSpec tts : timeTravelSpecs) {
+          // Actually, this is The normal case. Only Iceberg time travel tables will
+          // have a TimeTravelSpec
+          if (tts == null) {
+            dbBuilder.addTable(lowerCaseTableName, feTable, analyzer);
+          } else {
+            tts.analyze(analyzer);
+            String timeTravelTableKey = lowerCaseTableName + "_" + tts.hashCode();
+            dbBuilder.addTimeTravelTable(timeTravelTableKey, tts, feTable, analyzer);
+          }
         }
       }
       dbSchemas.put(tableName.getDb().toLowerCase(), dbBuilder);

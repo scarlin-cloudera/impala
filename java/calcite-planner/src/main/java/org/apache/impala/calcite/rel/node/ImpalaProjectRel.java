@@ -126,6 +126,8 @@ public class ImpalaProjectRel extends Project
 
     builder.setInputRefs(RelOptUtil.InputFinder.bits(getProjects(), null));
     if (context.filterCondition_ != null) {
+      builder.setFilterCondition(mapInputRefs(context.filterCondition_, getProjects()));
+
       // Optimization for partitioned scan node columns that are not used in
       // the output expression.
       // If there is a filter condition present, all the projects
@@ -133,19 +135,21 @@ public class ImpalaProjectRel extends Project
       // top of the filter. The Project underneath the filter should only exist by
       // creation of RelFieldTrimmer which trims the fields in between the scan
       // RelNode and the Filter.
-      Preconditions.checkState(
-          getProjects().stream().allMatch(r -> r instanceof RexInputRef));
-      // Map the input refs from the filter to the project. We need to do this for the
-      // following reason:
-      // Take the example "select id + 5 from alltypes where year = 2010".  This will
-      // create Project-Filter-Project-Scan.  The top project will have only the "id + 5"
-      // column. The lower project will have two columns, id and year. The scan node has
-      // the 13 columns in the table, where year is column 12. The lower project has
-      // two input refs, $1 and $12. The filter condition above this will have the
-      // condition "$1 = 2010", because the lower project only has 2 columns. So the
-      // map functions here change $1 to $12.
-      builder.setFilterCondition(mapInputRefs(context.filterCondition_, getProjects()));
-      builder.setFilterOnlyInputRefs(mapFilterOnlyRefs(context.filterOnlyInputRefs_));
+      if (!context.filterOnlyInputRefs_.isEmpty()) {
+        Preconditions.checkState(
+            getProjects().stream().allMatch(r -> r instanceof RexInputRef));
+        // Map the input refs from the filter to the project. We need to do this for the
+        // following reason:
+        // Take the example "select id + 5 from alltypes where year = 2010".  This will
+        // create Project-Filter-Project-Scan.  The top project will have only the "id + 5"
+        // column.The lower project will have two column, id and year.  The scan node has
+        // the 13 columns in the table, where year is column 12. The lower project has
+        // two input refs, $1 and $12. The filter condition above this will have the
+        // condition "$1 = 2010", because the lower project only has 2 columns. So the
+        // map functions here change $1 to $12.
+        builder.setFilterCondition(mapInputRefs(context.filterCondition_, getProjects()));
+        builder.setFilterOnlyInputRefs(mapFilterOnlyRefs(context.filterOnlyInputRefs_));
+      }
     }
     return relInput.getPlanNode(builder.build());
   }
