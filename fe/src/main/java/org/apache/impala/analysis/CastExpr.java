@@ -92,15 +92,15 @@ public class CastExpr extends Expr {
   }
 
   public CastExpr(Type targetType, Expr e, String format) {
-    this(targetType, e, format, TypeCompatibility.DEFAULT);
+    this(targetType, e, format, TypeCompatibility.DEFAULT, true);
   }
 
   public CastExpr(Type targetType, Expr e) {
-    this(targetType, e, null, TypeCompatibility.DEFAULT);
+    this(targetType, e, null, TypeCompatibility.DEFAULT, true);
   }
 
   public CastExpr(Type targetType, Expr e, TypeCompatibility compatibility) {
-    this(targetType, e, null, compatibility);
+    this(targetType, e, null, compatibility, true);
   }
 
   /**
