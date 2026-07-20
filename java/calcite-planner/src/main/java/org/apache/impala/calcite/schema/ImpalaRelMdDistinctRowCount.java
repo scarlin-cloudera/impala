@@ -53,8 +53,13 @@ public class ImpalaRelMdDistinctRowCount extends RelMdDistinctRowCount {
       ImmutableBitSet groupKey, RexNode predicate) {
     double distinctRows = 1.0;
     CalciteTable table = (CalciteTable) scan.getTable();
+    if (table == null) {
+      return super.getDistinctRowCount(scan, mq, groupKey, predicate);
+    }
     double totalRows = table.getRowCount();
-    Preconditions.checkState(totalRows >= 0.0);
+    if (totalRows < 0.0) {
+      return totalRows;
+    }
     for (Integer i : groupKey.asList()) {
       long distinctValues = table.getColumn(i).getStats().getNumDistinctValues();
       // if no distinct values stats, just assume all rows are distinct
