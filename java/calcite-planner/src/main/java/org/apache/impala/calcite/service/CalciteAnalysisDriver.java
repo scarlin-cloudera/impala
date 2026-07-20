@@ -235,6 +235,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
         SqlNode parsedSqlNode = queryParser.parse();
         CalciteMetadataHandler.TableVisitor tableVisitor =
             new CalciteMetadataHandler.TableVisitor(/* currentDb */ "default");
+        parsedSqlNode.accept(tableVisitor);
 
         boolean childViewCreatedBySuperuser =
             !PrivilegeRequestBuilder.isViewCreatedByNonSuperuser(feTable);
