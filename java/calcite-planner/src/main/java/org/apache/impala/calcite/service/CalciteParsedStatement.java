@@ -62,6 +62,11 @@ public class CalciteParsedStatement implements ParsedStatement {
 
     parsedNode_.accept(tableVisitor);
 
+    if (!tableVisitor.errorTables_.isEmpty()) {
+      throw new UnsupportedFeatureException("Table " + tableVisitor.errorTables_.get(0) +
+          " not supported by Calcite planner.");
+    }
+
     tableNames_ = tableVisitor.getTableNames();
 
     tableNameMap_ = tableVisitor.getTableNameMap();
