@@ -44,8 +44,10 @@ import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.validate.ImpalaSnapshotSqlNode;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
+import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.IcebergTable;
+import org.apache.impala.catalog.VirtualColumn;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
@@ -295,6 +297,15 @@ public class CalciteMetadataHandler {
       }
     }
     return false;
+  }
+
+  public static boolean isVirtualColumn(
+      StmtMetadataLoader.StmtTableCache stmtTableCache,
+      String columnName) {
+    String col = columnName.toLowerCase();
+    return stmtTableCache.tables.values().stream()
+        .anyMatch(t -> t.getVirtualColumns().stream()
+            .anyMatch(c -> c.getName().equals(col)));
   }
 
   public static boolean isTableInCache(TQueryCtx queryCtx, Analyzer analyzer,

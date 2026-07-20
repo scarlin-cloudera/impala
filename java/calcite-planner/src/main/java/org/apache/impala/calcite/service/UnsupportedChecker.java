@@ -23,6 +23,8 @@ import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -155,6 +157,11 @@ public class UnsupportedChecker {
       if (stmt.contains("`" + m.group(1) + "`")) {
         throw new UnsupportedFeatureException(
             "Backticks around column " + m.group(1) + " is not supported.");
+      }
+
+      if (CalciteMetadataHandler.isVirtualColumn(stmtTableCache, m.group(1))) {
+        throw new UnsupportedFeatureException(
+            "Virtual Column " + m.group(1) + " not supported.");
       }
     }
 
