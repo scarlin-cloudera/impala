@@ -143,7 +143,7 @@ public class CalciteMetadataHandler {
             dbBuilder.addTable(lowerCaseTableName, feTable, analyzer);
           } else {
             tts.analyze(analyzer);
-            String timeTravelTableKey = lowerCaseTableName + "_" + tts.hashCode();
+            String timeTravelTableKey = lowerCaseTableName + "_tt_" + tts.hashCode();
             dbBuilder.addTimeTravelTable(timeTravelTableKey, tts, feTable, analyzer);
           }
         }

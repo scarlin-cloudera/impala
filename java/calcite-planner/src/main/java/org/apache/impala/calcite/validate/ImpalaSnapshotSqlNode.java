@@ -66,6 +66,7 @@ public class ImpalaSnapshotSqlNode extends SqlSnapshot {
     }
     String newTableName = tableRef.names.get(tableRef.names.size() - 1);
     newTableName += "_tt_" + Integer.toString(t.hashCode());
+    names.add(newTableName);
     return new SqlIdentifier(names, tableRef.getParserPosition());
   }
 
