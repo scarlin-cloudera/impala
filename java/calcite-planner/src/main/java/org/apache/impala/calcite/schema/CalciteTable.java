@@ -223,9 +223,7 @@ public class CalciteTable extends RelOptAbstractTable
     if (table_.getNumRows() >= 0.0) {
       return (double) table_.getNumRows();
     }
-
-    Preconditions.checkNotNull(estimatedMissingStats_);
-    return estimatedMissingStats_.statsNumRows_;
+    return estimatedMissingStats_ != null ? estimatedMissingStats_.statsNumRows_ : -1.0;
   }
 
   public List<Column> getColumns() {
