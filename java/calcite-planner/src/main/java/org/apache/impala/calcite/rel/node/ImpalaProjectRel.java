@@ -136,8 +136,6 @@ public class ImpalaProjectRel extends Project
       // creation of RelFieldTrimmer which trims the fields in between the scan
       // RelNode and the Filter.
       if (!context.filterOnlyInputRefs_.isEmpty()) {
-        Preconditions.checkState(
-            getProjects().stream().allMatch(r -> r instanceof RexInputRef));
         // Map the input refs from the filter to the project. We need to do this for the
         // following reason:
         // Take the example "select id + 5 from alltypes where year = 2010".  This will
