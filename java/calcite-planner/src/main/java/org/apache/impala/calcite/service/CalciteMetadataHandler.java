@@ -122,11 +122,6 @@ public class CalciteMetadataHandler {
         continue;
       }
 
-      if (feTable instanceof IcebergTable) {
-        throw new UnsupportedFeatureException("Iceberg tables not supported " +
-            "with Calcite Planner.");
-      }
-
       // populate the dbschema with its table, creating the dbschema if it's the
       // first instance seen in the query.
       CalciteDb.Builder dbBuilder =

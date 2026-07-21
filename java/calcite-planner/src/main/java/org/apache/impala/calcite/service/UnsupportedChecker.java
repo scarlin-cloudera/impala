@@ -144,7 +144,7 @@ public class UnsupportedChecker {
       if (CalciteMetadataHandler.isTableInCache(queryCtx, analyzer, stmtTableCache,
           queryCtx.session.database, m.group(1))) {
         throw new UnsupportedFeatureException(
-            "Table " + m.group(1) + " is an Iceberg table which is not supported.");
+            "Table " + m.group(1) + " is a table which is not supported.");
       }
     }
 
