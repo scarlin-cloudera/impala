@@ -716,12 +716,16 @@ insert into ice_v2_no_sugar values (1);
 select _row_id from ice_v2_no_sugar;
 ---- CATCH
 Could not resolve column/field reference: '_row_id'
+---- CALCITE_PLANNER_CATCH
+Column '_ROW_ID' not found in any table
 ====
 ---- QUERY
 # _last_updated_sequence_number on V2 table should fail.
 select _last_updated_sequence_number from ice_v2_no_sugar;
 ---- CATCH
 Could not resolve column/field reference: '_last_updated_sequence_number'
+---- CALCITE_PLANNER_CATCH
+Column '_LAST_UPDATED_SEQUENCE_NUMBER' not found in any table
 ====
 ---- QUERY
 # Unqualified _row_id is ambiguous when multiple V3 tables are in scope.

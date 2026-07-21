@@ -38,6 +38,40 @@ Iceberg Plan Metrics for Node 08:
   scanned-delete-manifests: 2
   indexed-delete-files: 2
   positional-delete-files: 2
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# Calcite has the same plan but the node numbers are different
+Iceberg Plan Metrics for Node 05:
+row_regex: total-planning-duration:
+  result-data-files: 1
+  result-delete-files: 0
+  total-data-manifests: 1
+  total-delete-manifests: 0
+  scanned-data-manifests: 1
+  skipped-data-manifests: 0
+row_regex: total-file-size-in-bytes: .+ \(\d+\)
+row_regex: total-delete-file-size-in-bytes: .+ \(\d+\)
+  skipped-data-files: 0
+  skipped-delete-files: 0
+  scanned-delete-manifests: 0
+  skipped-delete-manifests: 0
+  indexed-delete-files: 0
+  equality-delete-files: 0
+  positional-delete-files: 0
+Iceberg Plan Metrics for Node 07:
+  result-delete-files: 1
+  total-delete-manifests: 1
+  scanned-delete-manifests: 1
+  indexed-delete-files: 1
+  positional-delete-files: 1
+Iceberg Plan Metrics for Node 12:
+  result-data-files: 4
+  result-delete-files: 2
+  total-data-manifests: 4
+  total-delete-manifests: 2
+  scanned-data-manifests: 4
+  scanned-delete-manifests: 2
+  indexed-delete-files: 2
+  positional-delete-files: 2
 ====
 ---- QUERY
 # No time travel for one of the tables.
@@ -66,6 +100,36 @@ row_regex: total-delete-file-size-in-bytes: .+ \(\d+\)
   equality-delete-files: 0
   positional-delete-files: 1
 Iceberg Plan Metrics for Node 08:
+  result-data-files: 4
+  result-delete-files: 2
+  total-data-manifests: 4
+  total-delete-manifests: 2
+  scanned-data-manifests: 4
+  scanned-delete-manifests: 2
+  indexed-delete-files: 2
+  positional-delete-files: 2
+---- CALCITE_PLANNER_RUNTIME_PROFILE
+# Calcite has the same plan but the node numbers are different
+Iceberg Plan Metrics for Node 05:
+        Planning done without Iceberg: no Iceberg scan metrics available.
+Iceberg Plan Metrics for Node 07:
+row_regex: total-planning-duration:
+  result-data-files: 1
+  result-delete-files: 1
+  total-data-manifests: 1
+  total-delete-manifests: 1
+  scanned-data-manifests: 1
+  skipped-data-manifests: 0
+row_regex: total-file-size-in-bytes: .+ \(\d+\)
+row_regex: total-delete-file-size-in-bytes: .+ \(\d+\)
+  skipped-data-files: 0
+  skipped-delete-files: 0
+  scanned-delete-manifests: 1
+  skipped-delete-manifests: 0
+  indexed-delete-files: 1
+  equality-delete-files: 0
+  positional-delete-files: 1
+Iceberg Plan Metrics for Node 12:
   result-data-files: 4
   result-delete-files: 2
   total-data-manifests: 4
