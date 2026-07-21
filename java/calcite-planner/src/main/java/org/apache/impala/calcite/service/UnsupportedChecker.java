@@ -77,6 +77,9 @@ public class UnsupportedChecker {
   private static Pattern UNKNOWN_IDENTIFIER_ROW__ID =
       Pattern.compile(".*\\bUnknown identifier 'ROW__ID'.*", Pattern.CASE_INSENSITIVE);
 
+  private static Pattern PIVOT_NOT_SUPPORTED =
+      Pattern.compile(".*ivot not supported\\b.*", Pattern.CASE_INSENSITIVE);
+
   public static void throwUnsupportedIfKnownException(Exception e)
       throws ImpalaException {
     if (e.getMessage().equals("Unnest function found")) {
@@ -101,6 +104,12 @@ public class UnsupportedChecker {
     if (AUTO_INCREMENTING_ID.matcher(s).matches()) {
       throw new UnsupportedFeatureException("auto_incrementing_id not supported.");
     }
+
+    if (PIVOT_NOT_SUPPORTED.matcher(s).matches()) {
+      throw new UnsupportedFeatureException("Pivot and unpivot not supported.");
+    }
+
+
   }
 
   public static void throwUnsupportedIfKnownException(Exception e,
