@@ -41,6 +41,7 @@ from tests.common.file_utils import (
     create_iceberg_table_from_directory,
     create_table_from_parquet,
 )
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.iceberg_test_suite import IcebergTestSuite
 from tests.common.impala_connection import IMPALA_CONNECTION_EXCEPTION
 from tests.common.skip import SkipIf, SkipIfDockerizedCluster, SkipIfFS
@@ -785,7 +786,10 @@ class TestIcebergTable(IcebergTestSuite):
         impalad_client.execute("SELECT i FROM {0}".format(tbl_name))
         assert False  # Exception must be thrown
       except Exception as e:
-        assert "Could not resolve column/field reference: 'i'" in str(e)
+        if IS_CALCITE_PLANNER:
+          assert "Column 'I' not found in any table" in str(e)
+        else:
+          assert "Could not resolve column/field reference: 'i'" in str(e)
 
       # Back at ts_2 the deleted 'I' column is there
       expect_results("SELECT * FROM {0} FOR SYSTEM_TIME AS OF '{1}'".
