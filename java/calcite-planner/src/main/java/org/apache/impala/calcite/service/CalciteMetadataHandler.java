@@ -48,6 +48,7 @@ import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.catalog.IcebergTable;
 import org.apache.impala.catalog.VirtualColumn;
+import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
@@ -144,6 +145,10 @@ public class CalciteMetadataHandler {
           if (tts == null) {
             dbBuilder.addTable(lowerCaseTableName, feTable, analyzer);
           } else {
+            if (!(feTable instanceof FeIcebergTable)) {
+              throw new AnalysisException("Table '" + lowerCaseTableName +
+                  "' is not a temporal table");
+            }
             tts.analyze(analyzer);
             String timeTravelTableKey = lowerCaseTableName + "_tt_" + tts.hashCode();
             dbBuilder.addTimeTravelTable(timeTravelTableKey, tts, feTable, analyzer);
