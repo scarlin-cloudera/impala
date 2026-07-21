@@ -129,6 +129,9 @@ aggregation(SUM, RowsRead): 8
 aggregation(SUM, Files rejected): 24
 ---- RUNTIME_PROFILE: table_format=kudu
 row_regex: 00:SCAN KUDU.*s[ ]+7.30K[ ]+7.30K
+---- CALCITE_PLANNER_RUNTIME_PROFILE: table_format=kudu
+# Calcite planner has an "is not null" clause in it
+row_regex: 00:SCAN KUDU.*s[ ]+7.30K[ ]+730
 ====
 
 
