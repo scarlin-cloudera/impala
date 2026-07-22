@@ -54,67 +54,67 @@ ImpalaProjectRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY
   ImpalaSortRel(sort0=[$9], sort1=[$5], dir0=[ASC], dir1=[ASC], fetch=[100:TINYINT])
     ImpalaProjectRel(I_CATEGORY=[$10], I_BRAND=[$11], CC_NAME=[$12], D_YEAR=[$13], D_MOY=[$14], AVG_MONTHLY_SALES=[$16], SUM_SALES=[$15], PSUM=[$8], NSUM=[$3], EXPR$9=[-($15, $16)])
       ImpalaJoinRel(condition=[AND(=($10, $0), =($11, $1), =($12, $2), =($17, $4))], joinType=[inner])
-        ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+        ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($4))])
           ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], SUM_SALES=[$5], $f5=[-(RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4), 1)])
             ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
               ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                 ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                   ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                      ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                        ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                      ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                           ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                      ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                        ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                      ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                           ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                    ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                      ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                        ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                  ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                     ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                        ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                  ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
         ImpalaJoinRel(condition=[AND(=($5, $0), =($6, $1), =($7, $2), =($12, $4))], joinType=[inner])
-          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($4))])
             ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], SUM_SALES=[$5], $f5=[+(RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4), 1)])
               ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
                 ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                   ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                       ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                          ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                        ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                          ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                          ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                          ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                        ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                        ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                    ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                         ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
-          ImpalaFilterRel(condition=[AND(=($3, 2001), >($6, 0.000000), >(CASE(>($6, 0.000000), /(ABS(-($5, $6)), $6), null:DECIMAL(38, 6)), 0.1:DECIMAL(2, 1)), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
-            ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY=[$4], SUM_SALES=[$5], AVG_MONTHLY_SALES=[AVG(CAST($5):DECIMAL(38, 6)) OVER (PARTITION BY $0, $1, $2, $3)], RN=[RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4)])
+          ImpalaFilterRel(condition=[AND(=($3, 2001), >($6, 0.000000), >(CASE(>($6, 0.000000), /(ABS(-($5, $6)), $6), null:DECIMAL(38, 6)), 0.1:DECIMAL(2, 1)), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($7))])
+            ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY=[$4], SUM_SALES=[$5], AVG_MONTHLY_SALES=[AVG($5) OVER (PARTITION BY $0, $1, $2, $3)], RN=[RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4)])
               ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
                 ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                   ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                       ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                          ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                        ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                          ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                          ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                          ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                        ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                        ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                    ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                         ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
 F00:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=7.31GB mem-reservation=241.38MB thread-reservation=1 runtime-filters-memory=9.00MB
-|  max-parallelism=1 segment-costs=[714250730, 26175892, 714250730, 26175892, 714250730, 26175892, 33888447, 117415868307, 900]
+|  max-parallelism=1 segment-costs=[714250730, 26175892, 714250730, 26175892, 714250730, 26175892, 33888447, 117433032747, 900]
 PLAN-ROOT SINK
 |  output exprs: tpcds_partitioned_parquet_snap.item_1.i_category, tpcds_partitioned_parquet_snap.item_1.i_brand, tpcds_partitioned_parquet_snap.call_center_1.cc_name, tpcds_partitioned_parquet_snap.date_dim_1.d_year, tpcds_partitioned_parquet_snap.date_dim_1.d_moy, avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)), sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), sum(tpcds_partitioned_parquet_snap.catalog_sales_0.cs_sales_price), sum(tpcds_partitioned_parquet_snap.catalog_sales.cs_sales_price)
 |  mem-estimate=4.00MB mem-reservation=4.00MB spill-buffer=2.00MB thread-reservation=0 cost=900
@@ -140,9 +140,9 @@ PLAN-ROOT SINK
 |  |  in pipelines: 19(GETNEXT), 32(OPEN)
 |  |
 |  |--34:SELECT
-|  |  |  predicates: tpcds_partitioned_parquet_snap.date_dim_1.d_year = CAST(2001 AS INT), CASE WHEN avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)) THEN divide(abs(subtract(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)))), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price))) ELSE NULL END > CAST(0.1 AS DECIMAL(2,1)), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)), tpcds_partitioned_parquet_snap.call_center_1.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_category IS NOT NULL
+|  |  |  predicates: tpcds_partitioned_parquet_snap.date_dim_1.d_year = CAST(2001 AS INT), CASE WHEN avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)) THEN divide(abs(subtract(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)))), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price))) ELSE NULL END > CAST(0.1 AS DECIMAL(2,1)), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)), rank() IS NOT NULL, tpcds_partitioned_parquet_snap.call_center_1.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_category IS NOT NULL
 |  |  |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  |  |  tuple-ids=47,42 row-size=120B cardinality=9.23K cost=34328880
+|  |  |  tuple-ids=47,42 row-size=120B cardinality=9.23K cost=40050360
 |  |  |  in pipelines: 32(GETNEXT)
 |  |  |
 |  |  33:ANALYTIC
@@ -258,9 +258,9 @@ PLAN-ROOT SINK
 |  |     in pipelines: 22(GETNEXT)
 |  |
 |  21:SELECT
-|  |  predicates: tpcds_partitioned_parquet_snap.call_center_0.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_category IS NOT NULL
+|  |  predicates: add(rank(), CAST(1 AS BIGINT)) IS NOT NULL, tpcds_partitioned_parquet_snap.call_center_0.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_category IS NOT NULL
 |  |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  |  tuple-ids=28,27 row-size=104B cardinality=572.15K cost=17164440
+|  |  tuple-ids=28,27 row-size=104B cardinality=572.15K cost=22885920
 |  |  in pipelines: 19(GETNEXT)
 |  |
 |  20:ANALYTIC
@@ -362,9 +362,9 @@ PLAN-ROOT SINK
 |     in pipelines: 11(GETNEXT)
 |
 10:SELECT
-|  predicates: tpcds_partitioned_parquet_snap.call_center.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_category IS NOT NULL
+|  predicates: subtract(rank(), CAST(1 AS BIGINT)) IS NOT NULL, tpcds_partitioned_parquet_snap.call_center.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_category IS NOT NULL
 |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  tuple-ids=13,12 row-size=104B cardinality=572.15K cost=17164440
+|  tuple-ids=13,12 row-size=104B cardinality=572.15K cost=22885920
 |  in pipelines: 08(GETNEXT)
 |
 09:ANALYTIC
@@ -471,63 +471,63 @@ ImpalaProjectRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY
   ImpalaSortRel(sort0=[$9], sort1=[$5], dir0=[ASC], dir1=[ASC], fetch=[100:TINYINT])
     ImpalaProjectRel(I_CATEGORY=[$10], I_BRAND=[$11], CC_NAME=[$12], D_YEAR=[$13], D_MOY=[$14], AVG_MONTHLY_SALES=[$16], SUM_SALES=[$15], PSUM=[$8], NSUM=[$3], EXPR$9=[-($15, $16)])
       ImpalaJoinRel(condition=[AND(=($10, $0), =($11, $1), =($12, $2), =($17, $4))], joinType=[inner])
-        ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+        ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($4))])
           ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], SUM_SALES=[$5], $f5=[-(RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4), 1)])
             ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
               ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                 ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                   ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                      ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                        ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                      ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                           ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                      ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                        ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                      ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                           ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                    ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                      ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                        ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                  ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                     ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                        ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                  ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
         ImpalaJoinRel(condition=[AND(=($5, $0), =($6, $1), =($7, $2), =($12, $4))], joinType=[inner])
-          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($4))])
             ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], SUM_SALES=[$5], $f5=[+(RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4), 1)])
               ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
                 ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                   ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                       ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                          ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                        ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                          ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                          ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                          ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                        ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                        ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                    ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                         ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
-          ImpalaFilterRel(condition=[AND(=($3, 2001), >($6, 0.000000), >(CASE(>($6, 0.000000), /(ABS(-($5, $6)), $6), null:DECIMAL(38, 6)), 0.1:DECIMAL(2, 1)), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
-            ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY=[$4], SUM_SALES=[$5], AVG_MONTHLY_SALES=[AVG(CAST($5):DECIMAL(38, 6)) OVER (PARTITION BY $0, $1, $2, $3)], RN=[RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4)])
+          ImpalaFilterRel(condition=[AND(=($3, 2001), >($6, 0.000000), >(CASE(>($6, 0.000000), /(ABS(-($5, $6)), $6), null:DECIMAL(38, 6)), 0.1:DECIMAL(2, 1)), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($7))])
+            ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY=[$4], SUM_SALES=[$5], AVG_MONTHLY_SALES=[AVG($5) OVER (PARTITION BY $0, $1, $2, $3)], RN=[RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4)])
               ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
                 ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                   ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                       ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                          ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                        ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                          ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                          ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                          ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                        ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                        ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                    ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                         ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
 F19:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=5.69MB mem-reservation=4.00MB thread-reservation=1
@@ -575,7 +575,7 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |
 |  F11:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.item_0.i_category,tpcds_partitioned_parquet_snap.item_0.i_brand,tpcds_partitioned_parquet_snap.call_center_0.cc_name)] hosts=10 instances=20 (adjusted from 120)
 |  Per-Instance Resources: mem-estimate=142.47MB mem-reservation=16.00MB thread-reservation=1
-|  max-parallelism=20 segment-costs=[29333266, 150244774] cpu-comparison-result=198 [max(20 (self) vs 198 (sum children))]
+|  max-parallelism=20 segment-costs=[29333266, 155966254] cpu-comparison-result=198 [max(20 (self) vs 198 (sum children))]
 |  35:HASH JOIN [INNER JOIN, BROADCAST]
 |  |  hash-table-id=01
 |  |  hash predicates: add(rank(), 1) = rank(), tpcds_partitioned_parquet_snap.item_0.i_category = tpcds_partitioned_parquet_snap.item_1.i_category, tpcds_partitioned_parquet_snap.call_center_0.cc_name = tpcds_partitioned_parquet_snap.call_center_1.cc_name, tpcds_partitioned_parquet_snap.item_0.i_brand = tpcds_partitioned_parquet_snap.item_1.i_brand
@@ -599,11 +599,11 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |  |
 |  |  F17:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.item_1.i_category,tpcds_partitioned_parquet_snap.item_1.i_brand,tpcds_partitioned_parquet_snap.call_center_1.cc_name)] hosts=10 instances=10 (adjusted from 120)
 |  |  Per-Instance Resources: mem-estimate=116.93MB mem-reservation=32.00MB thread-reservation=1
-|  |  max-parallelism=10 segment-costs=[29333266, 33888447, 40053744] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
+|  |  max-parallelism=10 segment-costs=[29333266, 33888447, 45775224] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
 |  |  34:SELECT
-|  |  |  predicates: tpcds_partitioned_parquet_snap.date_dim_1.d_year = CAST(2001 AS INT), CASE WHEN avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)) THEN divide(abs(subtract(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)))), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price))) ELSE NULL END > CAST(0.1 AS DECIMAL(2,1)), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)), tpcds_partitioned_parquet_snap.call_center_1.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_category IS NOT NULL
+|  |  |  predicates: tpcds_partitioned_parquet_snap.date_dim_1.d_year = CAST(2001 AS INT), CASE WHEN avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)) THEN divide(abs(subtract(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)))), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price))) ELSE NULL END > CAST(0.1 AS DECIMAL(2,1)), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)), rank() IS NOT NULL, tpcds_partitioned_parquet_snap.call_center_1.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_category IS NOT NULL
 |  |  |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  |  |  tuple-ids=47,42 row-size=120B cardinality=9.23K cost=34328880
+|  |  |  tuple-ids=47,42 row-size=120B cardinality=9.23K cost=40050360
 |  |  |  in pipelines: 32(GETNEXT)
 |  |  |
 |  |  33:ANALYTIC
@@ -794,9 +794,9 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |     in pipelines: 22(GETNEXT)
 |  |
 |  21:SELECT
-|  |  predicates: tpcds_partitioned_parquet_snap.call_center_0.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_category IS NOT NULL
+|  |  predicates: add(rank(), CAST(1 AS BIGINT)) IS NOT NULL, tpcds_partitioned_parquet_snap.call_center_0.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_category IS NOT NULL
 |  |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  |  tuple-ids=28,27 row-size=104B cardinality=572.15K cost=17164440
+|  |  tuple-ids=28,27 row-size=104B cardinality=572.15K cost=22885920
 |  |  in pipelines: 19(GETNEXT)
 |  |
 |  20:ANALYTIC
@@ -979,11 +979,11 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |
 F05:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.item.i_category,tpcds_partitioned_parquet_snap.item.i_brand,tpcds_partitioned_parquet_snap.call_center.cc_name)] hosts=10 instances=10 (adjusted from 120)
 Per-Instance Resources: mem-estimate=108.69MB mem-reservation=16.00MB thread-reservation=1
-max-parallelism=10 segment-costs=[29333266, 27300636] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
+max-parallelism=10 segment-costs=[29333266, 33022116] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
 10:SELECT
-|  predicates: tpcds_partitioned_parquet_snap.call_center.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_category IS NOT NULL
+|  predicates: subtract(rank(), CAST(1 AS BIGINT)) IS NOT NULL, tpcds_partitioned_parquet_snap.call_center.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_category IS NOT NULL
 |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  tuple-ids=13,12 row-size=104B cardinality=572.15K cost=17164440
+|  tuple-ids=13,12 row-size=104B cardinality=572.15K cost=22885920
 |  in pipelines: 08(GETNEXT)
 |
 09:ANALYTIC
@@ -1165,63 +1165,63 @@ ImpalaProjectRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY
   ImpalaSortRel(sort0=[$9], sort1=[$5], dir0=[ASC], dir1=[ASC], fetch=[100:TINYINT])
     ImpalaProjectRel(I_CATEGORY=[$10], I_BRAND=[$11], CC_NAME=[$12], D_YEAR=[$13], D_MOY=[$14], AVG_MONTHLY_SALES=[$16], SUM_SALES=[$15], PSUM=[$8], NSUM=[$3], EXPR$9=[-($15, $16)])
       ImpalaJoinRel(condition=[AND(=($10, $0), =($11, $1), =($12, $2), =($17, $4))], joinType=[inner])
-        ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+        ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($4))])
           ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], SUM_SALES=[$5], $f5=[-(RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4), 1)])
             ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
               ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                 ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                   ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                      ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                        ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                      ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                           ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                      ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                        ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                      ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                           ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                    ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                      ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                        ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                  ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                     ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                        ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                  ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
         ImpalaJoinRel(condition=[AND(=($5, $0), =($6, $1), =($7, $2), =($12, $4))], joinType=[inner])
-          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($4))])
             ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], SUM_SALES=[$5], $f5=[+(RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4), 1)])
               ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
                 ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                   ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                       ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                          ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                        ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                          ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                          ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                          ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                        ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                        ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                    ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                         ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
-          ImpalaFilterRel(condition=[AND(=($3, 2001), >($6, 0.000000), >(CASE(>($6, 0.000000), /(ABS(-($5, $6)), $6), null:DECIMAL(38, 6)), 0.1:DECIMAL(2, 1)), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
-            ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY=[$4], SUM_SALES=[$5], AVG_MONTHLY_SALES=[AVG(CAST($5):DECIMAL(38, 6)) OVER (PARTITION BY $0, $1, $2, $3)], RN=[RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4)])
+          ImpalaFilterRel(condition=[AND(=($3, 2001), >($6, 0.000000), >(CASE(>($6, 0.000000), /(ABS(-($5, $6)), $6), null:DECIMAL(38, 6)), 0.1:DECIMAL(2, 1)), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($7))])
+            ImpalaAnalyticRel(I_CATEGORY=[$0], I_BRAND=[$1], CC_NAME=[$2], D_YEAR=[$3], D_MOY=[$4], SUM_SALES=[$5], AVG_MONTHLY_SALES=[AVG($5) OVER (PARTITION BY $0, $1, $2, $3)], RN=[RANK() OVER (PARTITION BY $0, $1, $2 ORDER BY $3, $4)])
               ImpalaAggRel(group=[{0, 1, 2, 3, 4}], SUM_SALES=[SUM($5)])
                 ImpalaProjectRel(I_CATEGORY=[$9], I_BRAND=[$8], CC_NAME=[$11], D_YEAR=[$5], D_MOY=[$6], cs_sales_price=[$2])
                   ImpalaJoinRel(condition=[=($10, $0)], joinType=[inner])
                     ImpalaJoinRel(condition=[=($1, $7)], joinType=[inner])
                       ImpalaJoinRel(condition=[=($3, $4)], joinType=[inner])
-                        ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
-                          ImpalaFilterRel(condition=[AND(IS NOT NULL($14), IS NOT NULL($33), IS NOT NULL($10))])
+                        ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($3), IS NOT NULL($0))])
+                          ImpalaProjectRel(cs_call_center_sk=[$10], cs_item_sk=[$14], cs_sales_price=[$20], cs_sold_date_sk=[$33])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, catalog_sales]])
-                        ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
-                          ImpalaFilterRel(condition=[AND(SEARCH($6, Sarg[2000, 2001, 2002]), OR(SEARCH($6, Sarg[2000, 2001]), =($8, 1)), OR(SEARCH($6, Sarg[2001, 2002]), =($8, 12)), OR(=($6, 2001), SEARCH($8, Sarg[1, 12])), IS NOT NULL($0))])
+                        ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[2000, 2001, 2002]), OR(SEARCH($1, Sarg[2000, 2001]), =($2, 1)), OR(SEARCH($1, Sarg[2001, 2002]), =($2, 12)), OR(=($1, 2001), SEARCH($2, Sarg[1, 12])), IS NOT NULL($0))])
+                          ImpalaProjectRel(d_date_sk=[$0], d_year=[$6], d_moy=[$8])
                             ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, date_dim]])
-                      ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
-                        ImpalaFilterRel(condition=[IS NOT NULL($0)])
-                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
-                    ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                       ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                        ImpalaProjectRel(i_item_sk=[$0], i_brand=[$8], i_category=[$12])
+                          ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, item]])
+                    ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                      ImpalaProjectRel(cc_call_center_sk=[$0], cc_name=[$6])
                         ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, call_center]])
 F19:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
 |  Per-Instance Resources: mem-estimate=5.69MB mem-reservation=4.00MB thread-reservation=1
@@ -1269,7 +1269,7 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |
 |  F11:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.item_0.i_category,tpcds_partitioned_parquet_snap.item_0.i_brand,tpcds_partitioned_parquet_snap.call_center_0.cc_name)] hosts=10 instances=20 (adjusted from 120)
 |  Per-Instance Resources: mem-estimate=142.47MB mem-reservation=16.00MB thread-reservation=1
-|  max-parallelism=20 segment-costs=[29333266, 150244774] cpu-comparison-result=198 [max(20 (self) vs 198 (sum children))]
+|  max-parallelism=20 segment-costs=[29333266, 155966254] cpu-comparison-result=198 [max(20 (self) vs 198 (sum children))]
 |  35:HASH JOIN [INNER JOIN, BROADCAST]
 |  |  hash-table-id=01
 |  |  hash predicates: add(rank(), 1) = rank(), tpcds_partitioned_parquet_snap.item_0.i_category = tpcds_partitioned_parquet_snap.item_1.i_category, tpcds_partitioned_parquet_snap.call_center_0.cc_name = tpcds_partitioned_parquet_snap.call_center_1.cc_name, tpcds_partitioned_parquet_snap.item_0.i_brand = tpcds_partitioned_parquet_snap.item_1.i_brand
@@ -1293,11 +1293,11 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |  |
 |  |  F17:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.item_1.i_category,tpcds_partitioned_parquet_snap.item_1.i_brand,tpcds_partitioned_parquet_snap.call_center_1.cc_name)] hosts=10 instances=10 (adjusted from 120)
 |  |  Per-Instance Resources: mem-estimate=116.93MB mem-reservation=32.00MB thread-reservation=1
-|  |  max-parallelism=10 segment-costs=[29333266, 33888447, 40053744] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
+|  |  max-parallelism=10 segment-costs=[29333266, 33888447, 45775224] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
 |  |  34:SELECT
-|  |  |  predicates: tpcds_partitioned_parquet_snap.date_dim_1.d_year = CAST(2001 AS INT), CASE WHEN avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)) THEN divide(abs(subtract(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)))), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price))) ELSE NULL END > CAST(0.1 AS DECIMAL(2,1)), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)), tpcds_partitioned_parquet_snap.call_center_1.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_category IS NOT NULL
+|  |  |  predicates: tpcds_partitioned_parquet_snap.date_dim_1.d_year = CAST(2001 AS INT), CASE WHEN avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)) THEN divide(abs(subtract(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)))), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price))) ELSE NULL END > CAST(0.1 AS DECIMAL(2,1)), avg(sum(tpcds_partitioned_parquet_snap.catalog_sales_1.cs_sales_price)) > CAST(0 AS DECIMAL(38,6)), rank() IS NOT NULL, tpcds_partitioned_parquet_snap.call_center_1.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_category IS NOT NULL
 |  |  |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  |  |  tuple-ids=47,42 row-size=120B cardinality=9.23K cost=34328880
+|  |  |  tuple-ids=47,42 row-size=120B cardinality=9.23K cost=40050360
 |  |  |  in pipelines: 32(GETNEXT)
 |  |  |
 |  |  33:ANALYTIC
@@ -1488,9 +1488,9 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |     in pipelines: 22(GETNEXT)
 |  |
 |  21:SELECT
-|  |  predicates: tpcds_partitioned_parquet_snap.call_center_0.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_category IS NOT NULL
+|  |  predicates: add(rank(), CAST(1 AS BIGINT)) IS NOT NULL, tpcds_partitioned_parquet_snap.call_center_0.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item_0.i_category IS NOT NULL
 |  |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  |  tuple-ids=28,27 row-size=104B cardinality=572.15K cost=17164440
+|  |  tuple-ids=28,27 row-size=104B cardinality=572.15K cost=22885920
 |  |  in pipelines: 19(GETNEXT)
 |  |
 |  20:ANALYTIC
@@ -1673,11 +1673,11 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |
 F05:PLAN FRAGMENT [HASH(tpcds_partitioned_parquet_snap.item.i_category,tpcds_partitioned_parquet_snap.item.i_brand,tpcds_partitioned_parquet_snap.call_center.cc_name)] hosts=10 instances=10 (adjusted from 120)
 Per-Instance Resources: mem-estimate=108.69MB mem-reservation=16.00MB thread-reservation=1
-max-parallelism=10 segment-costs=[29333266, 27300636] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
+max-parallelism=10 segment-costs=[29333266, 33022116] cpu-comparison-result=99 [max(10 (self) vs 99 (sum children))]
 10:SELECT
-|  predicates: tpcds_partitioned_parquet_snap.call_center.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_category IS NOT NULL
+|  predicates: subtract(rank(), CAST(1 AS BIGINT)) IS NOT NULL, tpcds_partitioned_parquet_snap.call_center.cc_name IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_brand IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_category IS NOT NULL
 |  mem-estimate=0B mem-reservation=0B thread-reservation=0
-|  tuple-ids=13,12 row-size=104B cardinality=572.15K cost=17164440
+|  tuple-ids=13,12 row-size=104B cardinality=572.15K cost=22885920
 |  in pipelines: 08(GETNEXT)
 |
 09:ANALYTIC
