@@ -383,6 +383,10 @@ nonterminal String ident_or_unreserved;
 // options, column attributes, etc.
 nonterminal String word;
 nonterminal String opt_comma;
+// stmt is declared as an Object to allow multiple entry points by the parser. As of
+// this current commit, it is a StatementBase for all queries coming from the API, but
+// it can also be a TimeTravelSpec when used by the Calcite parser for the specific
+// "FOR SYSTEM_<TIME|VERSION> AS OF" phrase.
 nonterminal Object stmt;
 // Single select statement.
 nonterminal SelectStmt select_stmt;
@@ -830,6 +834,8 @@ stmt ::=
   {: RESULT = convert; :}
   | kill_query_stmt: kill_query
   {: RESULT = kill_query; :}
+  // Calcite specific. The parser within Calcite relies on the CUP parser
+  // to handle the "FOR SYSTEM_<TIME|VERSION> AS OF <obj>" syntax.
   | opt_asof: opt_asof_phrase
   {: RESULT = opt_asof_phrase; :}
   ;

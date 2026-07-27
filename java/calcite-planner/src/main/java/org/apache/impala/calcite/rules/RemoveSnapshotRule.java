@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Snapshot;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.impala.calcite.schema.CalciteIcebergTable;
 
 /**
  * RemoveSnapshotRule removes the Snapshot RelNode. This is created by the
@@ -34,12 +36,19 @@ public class RemoveSnapshotRule extends RelOptRule {
       new RemoveSnapshotRule();
 
   private RemoveSnapshotRule() {
-    super(operand(Snapshot.class, any()));
+    super(operand(Snapshot.class, operand(TableScan.class, none())));
   }
 
   @Override
   public void onMatch(RelOptRuleCall call) {
     final Snapshot snapshot = call.rel(0);
+    final TableScan scan = call.rel(1);
+    // Only remove snapshot classes with an underlying CalciteIcebergTable
+    // which are handled in the analysis validation phase.
+    if (!(scan.getTable() instanceof CalciteIcebergTable)) {
+      return;
+    }
+
     final RelNode input = snapshot.getInput();
     call.transformTo(input);
   }

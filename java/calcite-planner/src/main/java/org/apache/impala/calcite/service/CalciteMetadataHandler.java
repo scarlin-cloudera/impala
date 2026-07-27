@@ -43,6 +43,7 @@ import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.validate.ImpalaSnapshotSqlNode;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
+import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;

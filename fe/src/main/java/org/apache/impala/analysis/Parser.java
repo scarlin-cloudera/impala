@@ -62,7 +62,8 @@ public class Parser {
       throws AnalysisException {
     Object obj = parseString(query, new TQueryOptions());
     if (!(obj instanceof TimeTravelSpec)) {
-      throw new ParseException("Not a valid timestamp for iceberg: " + query);
+      throw new ParseException("Not a valid timestamp or snapshot_id for iceberg: " +
+          query);
     }
     return (TimeTravelSpec) obj;
   }
