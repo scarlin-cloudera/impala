@@ -36,7 +36,8 @@ public class JavaCCParserUtils {
    * @param beginColumn    The 1-based starting column number.
    * @param endLine        The 1-based ending line number.
    * @param endColumn      The 1-based ending column number.
-   * @return The extracted substring, or null if coordinates are invalid.
+   * @return The extracted substring.
+   * @throws RuntimeException if the string could not be extracted.
    */
   public static String extractStringFromCoordinates(String originalSource,
       int beginLine, int beginColumn, int endLine, int endColumn) {

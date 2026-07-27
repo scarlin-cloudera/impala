@@ -253,7 +253,6 @@ public class CalciteMetadataHandler {
     }
 
     private void visitTableNameNode(SqlNode fromNode) {
-      Map<TableName, List<String>> localTableNames = new HashMap<>();
       if (fromNode instanceof SqlIdentifier) {
         extractTableName((SqlIdentifier) fromNode, null);
       }

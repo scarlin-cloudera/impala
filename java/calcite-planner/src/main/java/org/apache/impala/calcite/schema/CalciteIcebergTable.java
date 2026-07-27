@@ -132,7 +132,7 @@ public class CalciteIcebergTable extends CalciteTable {
 
   @Override
   public boolean isTemporal() {
-    return true;
+    return timeTravelName_ != null;
   }
 
   @Override
