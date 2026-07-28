@@ -787,9 +787,9 @@ class TestIcebergTable(IcebergTestSuite):
         assert False  # Exception must be thrown
       except Exception as e:
         if IS_CALCITE_PLANNER:
-          assert "Column 'I' not found in any table" in str(e)
-        else:
           assert "Could not resolve column/field reference: 'i'" in str(e)
+        else:
+          assert "Column 'I' not found in any table" in str(e)
 
       # Back at ts_2 the deleted 'I' column is there
       expect_results("SELECT * FROM {0} FOR SYSTEM_TIME AS OF '{1}'".

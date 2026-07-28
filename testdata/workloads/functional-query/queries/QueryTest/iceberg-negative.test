@@ -649,15 +649,11 @@ AnalysisException: ALTER TABLE SET PARTITION SPEC is only supported for Iceberg 
 SELECT * FROM non_iceberg_table FOR SYSTEM_TIME AS OF now();
 ---- CATCH
 AS OF clause is only supported for Iceberg tables.
----- CALCITE_PLANNER_CATCH
-Table 'non_iceberg_table' is not a temporal table
 ====
 ---- QUERY
 SELECT * FROM non_iceberg_table FOR SYSTEM_VERSION AS OF 42;
 ---- CATCH
 AS OF clause is only supported for Iceberg tables.
----- CALCITE_PLANNER_CATCH
-Table 'non_iceberg_table' is not a temporal table
 ====
 ---- QUERY
 CREATE TABLE iceberg_alter_part ( i int, d DATE, s STRUCT<f1:BIGINT,f2:BIGINT>)
