@@ -214,7 +214,7 @@ public class JoinRelationInfo {
    * outer join side that will produce nulls on that side.  Inner joins do not have
    * unmatched rows. Full joins have unmatched rows on both sides.
    */
-  public double getUnmatchedRowsToOuterJoin(boolean isLeftUnmatchedSide) {
+  public double getUnmatchedRowsToOuterJoin() {
     if (!hasEqualityConjunctions()) {
       return 0.0;
     }
@@ -227,6 +227,7 @@ public class JoinRelationInfo {
     double leftNdvs = 1.0;
     double rightNdvs = 1.0;
 
+    double unmatchedRows = 0.0;
     for (EqualityConjunction equalityConj : equalityConjunctions_) {
       // blind assumption that there is no correlation between distinct
       // values across equi-conditions.
@@ -244,22 +245,19 @@ public class JoinRelationInfo {
     // Subtracting this percentage from 1 gives us the percentage of the
     // number of rows that do not match, and multiplying that number by the
     // number of rows on the left side gives us the number of unmatched rows.
-    // Right join is similar.
-    // For full join, the correct parameter should be passed in to decide which
-    // unmatched side rows we are interested in.
     double overlappedNdvs = Math.min(leftNdvs, rightNdvs);
-    if (isLeftUnmatchedSide) {
-      if (joinRelType_ == JoinRelType.LEFT ||
-          joinRelType_ == JoinRelType.FULL) {
-        return leftRows * (1 - overlappedNdvs / leftNdvs);
-      }
-    } else {
-      if (joinRelType_ == JoinRelType.RIGHT ||
-          joinRelType_ == JoinRelType.FULL) {
-        return rightRows * (1 - overlappedNdvs / rightNdvs);
-      }
+    if (joinRelType_ == JoinRelType.LEFT ||
+        joinRelType_ == JoinRelType.FULL) {
+      unmatchedRows += leftRows * (1 - overlappedNdvs / leftNdvs);
     }
-    return 0.0;
+
+    // Same as above calculation but on the other side. A full outer join has
+    // unmatched rows on both sides.
+    if (joinRelType_ == JoinRelType.RIGHT ||
+        joinRelType_ == JoinRelType.FULL) {
+      unmatchedRows += rightRows * (1 - overlappedNdvs / rightNdvs);
+    }
+    return unmatchedRows;
   }
 
   public static class EqualityConjunction {
