@@ -204,7 +204,9 @@ public class FilterSelectivityEstimator {
 
     // If the origin table can be found, get the null percentage from there.
     RelColumnOrigin originCol = mq_.getColumnOrigin(relNode, inputRef.getIndex());
-    if (originCol == null) {
+    // Return default percentage if we cannot retrieve information stats information
+    // from the base table.
+    if (originCol == null || originCol.isDerived()) {
       return DEFAULT_IS_NULL_PERCENTAGE;
     }
     int columnNum = originCol.getOriginColumnOrdinal();
@@ -249,6 +251,7 @@ public class FilterSelectivityEstimator {
           inputRef = rexBuilder.makeInputRef(column.getType(), columnNum);
           childRelNode = join.getInput(1);
         }
+
         // For the case where it is either an inner join or the column is on
         // the non-outer join side, we recursively call getNullPercentage for
         // this column for the child. Note that getNullPercentage is the caller
@@ -256,12 +259,22 @@ public class FilterSelectivityEstimator {
         if (joinRelType  == JoinRelType.INNER ||
             (joinRelType == JoinRelType.LEFT && columnOnLeft) ||
             (joinRelType == JoinRelType.RIGHT && !columnOnLeft)) {
+          
           return getNullPercentage(childRelNode, inputRef);
         }
 
         if (!(joinRelType == JoinRelType.LEFT || joinRelType == JoinRelType.RIGHT ||
             joinRelType == JoinRelType.FULL)) {
           return null;
+        }
+
+        Double nullPercentage = 0.0;
+        // In case of full join, we also need to add the nonOuter side null
+        // percentage. We should be able to add this to the outer side percentage
+        // since these percentages are non-overlapping and the denominator of total
+        // rows should be the same.
+        if (joinRelType == JoinRelType.FULL) {
+          nullPercentage = getNullPercentage(childRelNode, inputRef);
         }
 
         // if we are here, we know the column is on the outer join side. We
@@ -283,9 +296,12 @@ public class FilterSelectivityEstimator {
         if (outerRowCount == 0.0) {
           return 0.0;
         }
-        Double percentage =
-            Math.min(info.getUnmatchedRowsToOuterJoin()/outerRowCount, 1.0);
-        return Math.max(percentage, 0.0);
+        // TODO: For full joins, we are only factoring in unmatched rows. This is
+        // ignoring the u
+        nullPercentage +=
+            Math.min(info.getUnmatchedRowsToOuterJoin(!columnOnLeft)/outerRowCount, 1.0);
+
+        return Math.max(nullPercentage, 0.0);
       case SORT:
       case FILTER:
         // For these RelNodes, we look at the RelNode child to see if it is an
