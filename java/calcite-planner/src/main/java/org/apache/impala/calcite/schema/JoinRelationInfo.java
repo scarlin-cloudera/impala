@@ -218,6 +218,7 @@ public class JoinRelationInfo {
     if (!hasEqualityConjunctions()) {
       return 0.0;
     }
+
     // number of rows should be the same on any conjunction so just
     // use the first.
     EqualityConjunction conj0 = equalityConjunctions_.get(0);
@@ -251,12 +252,12 @@ public class JoinRelationInfo {
     if (isLeftUnmatchedSide) {
       if (joinRelType_ == JoinRelType.LEFT ||
           joinRelType_ == JoinRelType.FULL) {
-        return leftRows * (1 - overlappedNdvs / leftNdvs);
+        return leftRows * (1.0 - overlappedNdvs / leftNdvs);
       }
     } else {
       if (joinRelType_ == JoinRelType.RIGHT ||
           joinRelType_ == JoinRelType.FULL) {
-        return rightRows * (1 - overlappedNdvs / rightNdvs);
+        return rightRows * (1.0 - overlappedNdvs / rightNdvs);
       }
     }
     return 0.0;

@@ -77,6 +77,15 @@ public class TestCalciteStats extends PlannerTestBase {
 
   private static final double ALL_TYPES_TINY_CARD = 8.0;
 
+  private static final double MANY_NULLS_CARD = 11000;
+
+  // The amount of nulls in the many_nulls.null_col table
+  private static final double MANY_NULLS_NULL_COL_NULLS = 5500;
+
+  private static final double MANY_NULLS_SMALL_NDVS = 4897;
+
+  private static final double MANY_NULLS_NULL_COL_PERC = .5;
+
   private static final double BIGINT_NDV = 10.0;
 
   private static final double BIGINT_TINY_NDV = 2.0;
@@ -525,6 +534,44 @@ public class TestCalciteStats extends PlannerTestBase {
   }
 
   @Test
+  public void testFullJoinWithIsNullBiggerTableOnRight() {
+    try {
+      RelNode logicalPlan = getRelNodeForQuery(
+          "select a.id, b.id from functional.alltypes a full join functional.manynulls" +
+          " b on ( a.id = b.id) where nullcol is null");
+      RelMetadataQuery mq = getMQ();
+      Double isNotNullRows = MANY_NULLS_NULL_COL_NULLS;
+      assertEquals(isNotNullRows, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
+  public void testFullJoinWithIsNullBiggerTableOnLeft() {
+    // This specific test is checking a bug found in the code review. The recursion for
+    // getNullPercentage was looking at the parent RelNode but using the input ref
+    // passed in for mq_.getColumnOrigin();
+    try {
+      RelNode logicalPlan = getRelNodeForQuery(
+          "select a.id, b.id from functional.alltypes a full join functional.manynullssmall" +
+          " b on ( a.id = b.id) where nullcol is null");
+      RelMetadataQuery mq = getMQ();
+      // Number of unmatched rows are the rows on the left side that don't join with
+      // the right side. Assume ndvs map 1:1, so the percentage matching are the
+      // unmatched ndvs divided by total rows.
+      Double unmatchedRows =
+          ALL_TYPES_CARD * (1.0 - MANY_NULLS_SMALL_NDVS/ALL_TYPES_CARD);
+
+      Double isNotNullRows =
+          unmatchedRows + (MANY_NULLS_NULL_COL_PERC * MANY_NULLS_SMALL_NDVS);
+      assertEquals(isNotNullRows, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
+    } catch (ImpalaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   public void testLeftJoinWithIsNotNullFilter() {
     try {
       RelNode logicalPlan = getRelNodeForQuery("SELECT a.id, b.id FROM " +
@@ -548,7 +595,6 @@ public class TestCalciteStats extends PlannerTestBase {
 
       logicalPlan = runFilterRule(logicalPlan, CoreRules.PROJECT_FILTER_TRANSPOSE);
       RelMetadataQuery mq = getMQ();
-      Double dd = mq.getRowCount(logicalPlan);
       Double isNullRows = ALL_TYPES_CARD - ALL_TYPES_TINY_CARD;
       assertEquals(isNullRows, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
     } catch (ImpalaException e) {
@@ -563,7 +609,6 @@ public class TestCalciteStats extends PlannerTestBase {
           "functional.alltypes a left join functional.alltypestiny b " +
           " on ( a.bigint_col = b.bigint_col) where b.bigint_col is null");
       RelMetadataQuery mq = getMQ();
-      Double dd = mq.getRowCount(logicalPlan);
       Double isNullRows = 5840.0;
       assertEquals(isNullRows, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
     } catch (ImpalaException e) {

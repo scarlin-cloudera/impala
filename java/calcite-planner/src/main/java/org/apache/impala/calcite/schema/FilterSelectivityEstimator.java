@@ -268,15 +268,6 @@ public class FilterSelectivityEstimator {
           return null;
         }
 
-        Double nullPercentage = 0.0;
-        // In case of full join, we also need to add the nonOuter side null
-        // percentage. We should be able to add this to the outer side percentage
-        // since these percentages are non-overlapping and the denominator of total
-        // rows should be the same.
-        if (joinRelType == JoinRelType.FULL) {
-          nullPercentage = getNullPercentage(childRelNode, inputRef);
-        }
-
         // if we are here, we know the column is on the outer join side. We
         // calculate the number of rows as if there were an inner join. Then
         // we calculate the number of rows on the non-outer join side.
@@ -292,15 +283,25 @@ public class FilterSelectivityEstimator {
           // side didn't match. For now, return the default null percentage.
           return DEFAULT_IS_NULL_PERCENTAGE;
         }
+
         Double outerRowCount = info.getRowCount();
         if (outerRowCount == 0.0) {
           return 0.0;
         }
         // TODO: For full joins, we are only factoring in unmatched rows. This is
         // ignoring the u
-        nullPercentage +=
-            Math.min(info.getUnmatchedRowsToOuterJoin(!columnOnLeft)/outerRowCount, 1.0);
-
+        Double totalNullRows = info.getUnmatchedRowsToOuterJoin(!columnOnLeft);
+        if (joinRelType == JoinRelType.FULL) {
+          // (outerRowCount - totalNullRows) should represent the number of rows on
+          // the non-outer side that come through the full join, since the totalNumRows is
+          // currently equal to the unmatched rows. Multiplying this by the null
+          // percentage should give us the number of nulls for the column as if this were
+          // an inner join.
+          Double totalRowsNonOuterSide = Math.max(outerRowCount - totalNullRows, 0.0);
+          totalNullRows += totalRowsNonOuterSide *
+              getNullPercentage(childRelNode, inputRef);
+        }
+        Double nullPercentage = Math.min(totalNullRows/outerRowCount, 1.0);
         return Math.max(nullPercentage, 0.0);
       case SORT:
       case FILTER:
