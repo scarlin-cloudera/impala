@@ -537,8 +537,8 @@ public class TestCalciteStats extends PlannerTestBase {
   public void testFullJoinWithIsNullBiggerTableOnRight() {
     try {
       RelNode logicalPlan = getRelNodeForQuery(
-          "select a.id, b.id from functional.alltypes a full join functional.manynulls" +
-          " b on ( a.id = b.id) where nullcol is null");
+          "select a.id, b.id from functional.alltypes a full join " +
+          "functional.manynulls_withstats  b on ( a.id = b.id) where nullcol is null");
       RelMetadataQuery mq = getMQ();
       Double isNotNullRows = MANY_NULLS_NULL_COL_NULLS;
       assertEquals(isNotNullRows, (double) mq.getRowCount(logicalPlan), DOUBLE_ERR);
@@ -554,8 +554,9 @@ public class TestCalciteStats extends PlannerTestBase {
     // passed in for mq_.getColumnOrigin();
     try {
       RelNode logicalPlan = getRelNodeForQuery(
-          "select a.id, b.id from functional.alltypes a full join functional.manynullssmall" +
-          " b on ( a.id = b.id) where nullcol is null");
+          "select a.id, b.id from functional.alltypes a full join " +
+          "functional.manynullssmall_withstats b on ( a.id = b.id) " +
+          "where nullcol is null");
       RelMetadataQuery mq = getMQ();
       // Number of unmatched rows are the rows on the left side that don't join with
       // the right side. Assume ndvs map 1:1, so the percentage matching are the

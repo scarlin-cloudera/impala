@@ -3060,7 +3060,7 @@ FROM functional.alltypesagg;
 ---- DATASET
 functional
 ---- BASE_TABLE_NAME
-manynullssmall
+manynulls_withstats
 ---- COLUMNS
 id int
 nullcol int
@@ -3068,24 +3068,53 @@ nullcol int
 -- Ensure the nulls are clustered together.
 ALTER TABLE {table_name} SORT BY (id);
 ---- CREATE_KUDU
-DROP VIEW IF EXISTS {db_name}{db_suffix}.{table_name};
-DROP TABLE IF EXISTS {db_name}{db_suffix}.{table_name}_idx;
+DROP TABLE IF EXISTS {db_name}{db_suffix}.{table_name};
 
-CREATE TABLE {db_name}{db_suffix}.{table_name}_idx (
+CREATE TABLE {db_name}{db_suffix}.{table_name} (
   kudu_idx BIGINT PRIMARY KEY,
   id INT,
   nullcol INT NULL
 )
 PARTITION BY HASH (kudu_idx) PARTITIONS 3 STORED AS KUDU;
-CREATE VIEW {db_name}{db_suffix}.{table_name} AS
-SELECT id, nullcol
-FROM {db_name}{db_suffix}.{table_name}_idx;
 ---- DEPENDENT_LOAD
 INSERT OVERWRITE TABLE {db_name}{db_suffix}.{table_name}
 SELECT id, nullcol
 FROM {db_name}.{table_name};
 ---- DEPENDENT_LOAD_KUDU
-INSERT into TABLE {db_name}{db_suffix}.{table_name}_idx
+INSERT into TABLE {db_name}{db_suffix}.{table_name}
+SELECT row_number() over (order by id),
+       id, nullcol
+FROM {db_name}.{table_name};
+---- LOAD
+INSERT OVERWRITE TABLE {db_name}{db_suffix}.{table_name}
+SELECT id, if((id div 500) % 2 = 0, NULL, id) as nullcol
+FROM functional.alltypesagg;
+====
+---- DATASET
+functional
+---- BASE_TABLE_NAME
+manynullssmall_withstats
+---- COLUMNS
+id int
+nullcol int
+---- ALTER
+-- Ensure the nulls are clustered together.
+ALTER TABLE {table_name} SORT BY (id);
+---- CREATE_KUDU
+DROP TABLE IF EXISTS {db_name}{db_suffix}.{table_name}_idx;
+
+CREATE TABLE {db_name}{db_suffix}.{table_name} (
+  kudu_idx BIGINT PRIMARY KEY,
+  id INT,
+  nullcol INT NULL
+)
+PARTITION BY HASH (kudu_idx) PARTITIONS 3 STORED AS KUDU;
+---- DEPENDENT_LOAD
+INSERT OVERWRITE TABLE {db_name}{db_suffix}.{table_name}
+SELECT id, nullcol
+FROM {db_name}.{table_name};
+---- DEPENDENT_LOAD_KUDU
+INSERT into TABLE {db_name}{db_suffix}.{table_name}
 SELECT row_number() over (order by id),
        id, nullcol
 FROM {db_name}.{table_name};
