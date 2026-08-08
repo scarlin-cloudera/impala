@@ -185,6 +185,7 @@ table_name:subquery_view, constraint:restrict_to, table_format:rc/none/none
 # writing NULLs to primary key columns.
 table_name:liketbl, constraint:exclude, table_format:hbase/none/none
 table_name:manynulls, constraint:exclude, table_format:hbase/none/none
+table_name:manynullssmall, constraint:exclude, table_format:hbase/none/none
 table_name:tblwithraggedcolumns, constraint:exclude, table_format:hbase/none/none
 
 # Tables with only one column are not supported in hbase.
@@ -299,6 +300,7 @@ table_name:decimal_rtf_tiny_tbl, constraint:only, table_format:kudu/none/none
 table_name:decimal_tiny, constraint:only, table_format:kudu/none/none
 table_name:strings_with_quotes, constraint:only, table_format:kudu/none/none
 table_name:manynulls, constraint:only, table_format:kudu/none/none
+table_name:manynullssmall, constraint:only, table_format:kudu/none/none
 table_name:date_tbl, constraint:only, table_format:kudu/none/none
 table_name:timestamp_at_dst_changes, constraint:only, table_format:kudu/none/none
 table_name:binary_tbl, constraint:only, table_format:kudu/none/none
