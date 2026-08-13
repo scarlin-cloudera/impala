@@ -6265,16 +6265,6 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.OVERLAY.createCall(s.end(this), args);
         }
     |
-        <FLOOR> { s = span(); }
-        e = FloorCeilOptions(s, true) {
-            return e;
-        }
-    |
-        ( <CEIL> | <CEILING>) { s = span(); }
-        e = FloorCeilOptions(s, false) {
-            return e;
-        }
-    |
         <SUBSTRING> { s = span(); }
         <LPAREN>
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)

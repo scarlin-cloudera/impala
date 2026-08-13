@@ -59,6 +59,7 @@ parser: {
     "CASCADE"
     "CATALOG"
     "CATALOG_NAME"
+    "CEIL"
     "CENTURY"
     "CHAIN"
     "CHARACTERISTICS"
