@@ -1289,7 +1289,7 @@ class TestIcebergTable(IcebergTestSuite):
           AS SELECT * from tpcds_partitioned_parquet_snap.date_dim;
           """.format(date_dim_tbl))
       q22_result = impalad_client.execute("""
-          select i_product_name, i_brand, i_class, i_category,
+          select /*+ straight_join */ i_product_name, i_brand, i_class, i_category,
                 avg(inv_quantity_on_hand) qoh
           from inventory_ice, date_dim_ice, item_ice
           where inv_date_sk=d_date_sk and
