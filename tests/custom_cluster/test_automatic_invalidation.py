@@ -250,6 +250,7 @@ class TestAutomaticCatalogInvalidation(CustomClusterTestSuite):
     max_wait_time = 15 + self.metrics_test_ttl_s + 2
 
     # Test 1: Load a single table and verify it gets invalidated
+    self.execute_query("select 1")
     self.execute_query(self.query)
     catalogd.wait_for_metric_value(loaded_tables_metric, 1, timeout=5)
 
