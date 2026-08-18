@@ -1377,3 +1377,13 @@ STRING
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+# IMPALA-15269, comparing incompatible decimals
+select cast(2.3 as decimal(22,8)) = cast(2.3 as decimal(36,35));
+---- TYPES
+BOOLEAN
+---- RESULTS
+true
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
