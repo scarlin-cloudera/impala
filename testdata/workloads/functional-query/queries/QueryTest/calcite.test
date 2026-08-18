@@ -1517,6 +1517,14 @@ row_regex: PlannerType: CalcitePlanner
 select * from functional.alltypessmall offset cast(null as int);
 ---- CATCH
 OFFSET must be a constant expression
+====
+---- QUERY
+# IMPALA-15269, comparing incompatible decimals
+select cast(2.3 as decimal(22,8)) = cast(2.3 as decimal(36,35));
+---- TYPES
+BOOLEAN
+---- RESULTS
+true
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
