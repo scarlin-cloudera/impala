@@ -86,6 +86,7 @@ DECLARE_string(hdfs_zone_info_zip);
 DECLARE_string(ai_endpoint);
 DECLARE_string(ai_model);
 DECLARE_string(ai_additional_platforms);
+DECLARE_bool(use_calcite_planner);
 
 namespace posix_time = boost::posix_time;
 using boost::bad_lexical_cast;
@@ -204,6 +205,8 @@ class ExprTest : public testing::TestWithParam<std::tuple<bool, bool>> {
     InitFeSupport(false);
     ABORT_IF_ERROR(impala::LlvmCodeGen::InitializeLlvm());
 
+    FLAGS_use_calcite_planner=true;
+
     // The host running this test might have an out-of-date tzdata package installed.
     // To avoid tzdata related issues, we will load time-zone db from the testdata
     // directory.
@@ -247,6 +250,7 @@ class ExprTest : public testing::TestWithParam<std::tuple<bool, bool>> {
     executor_.reset(
         new ImpaladQueryExecutor(FLAGS_hostname, impala_server->GetBeeswaxPort()));
     ABORT_IF_ERROR(executor_->Setup());
+    executor_->PushExecOption("PLANNER=CALCITE");
   }
 
   static void TearDownTestCase() {
