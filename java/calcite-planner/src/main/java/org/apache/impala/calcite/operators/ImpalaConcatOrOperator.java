@@ -53,6 +53,11 @@ public class ImpalaConcatOrOperator extends SqlBinaryOperator {
         isOrOperand(opBinding, operandTypes.get(1), 1)) {
       return ImpalaTypeConverter.getRelDataType(Type.BOOLEAN);
     }
+
+    // XXX: what is the second param?
+    if (opBinding.isOperandNull(0, false) || opBinding.isOperandNull(1, false)) {
+      throw new IllegalArgumentException("Operands cannot return both NULL and STRING.");
+    }
     return ImpalaTypeConverter.getRelDataType(Type.STRING);
   }
 

@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -128,11 +129,13 @@ public class ImpalaRexExecutor implements RexExecutor {
     }
 
     // operands should all be literals or an implicit cast of a literal
+    /*
     for (RexNode operand : call.getOperands()) {
       if (!isLiteralOrCastOfLiteral(operand) && !isIntervalConst(operand)) {
         return false;
       }
     }
+    */
 
     // special cast to ignore: An implicit cast from a decimal to a double
     // needs to be kept as/is. If there is a partition on the double column,
@@ -260,11 +263,15 @@ public class ImpalaRexExecutor implements RexExecutor {
 
     @Override
     public RexNode visitCall(RexCall call) {
-      // recursively call children first.
-      RexNode reducedNode = super.visitCall(call);
+      if (RexUtil.containsInputRef(call) || !isReducible(call)) {
+        return super.visitCall(call);
+      }
+      RexNode reducedNode = call;
+      /*
       if (!isReducible(reducedNode)) {
         return reducedNode;
       }
+      */
       RexCall reducedCall = (RexCall) reducedNode;
 
       try {

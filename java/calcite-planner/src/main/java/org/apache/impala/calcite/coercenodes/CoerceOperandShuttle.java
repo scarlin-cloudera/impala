@@ -223,8 +223,9 @@ public class CoerceOperandShuttle extends RexShuttle {
     }
 
     boolean isNullable = isNullable(rexCall);
-    RelDataType retType =
-        ImpalaTypeConverter.getRelDataType(impalaReturnType, isNullable);
+    RelDataType retType = SqlTypeUtil.isNull(rexCall.getType())
+        ? ImpalaTypeConverter.getRelDataType(impalaReturnType)
+        : rexCall.getType();
 
     // This code does not handle changes in the return type when the Calcite
     // function is not a decimal but the function resolves to a function that
@@ -384,19 +385,26 @@ public class CoerceOperandShuttle extends RexShuttle {
       return null;
     }
 
-    List<RelDataType> decimalOperands = new ArrayList<>();
+    boolean hasDecimalOperand = false;
+    LOG.info("SJC: PRINTING ARG TYPES");
     for (RelDataType argType : argTypes) {
-      if (argType.getSqlTypeName().equals(SqlTypeName.DECIMAL)) {
-        decimalOperands.add(argType);
+      LOG.info("SJC: ARGTYPE IS " + argType);
+      if (SqlTypeUtil.isDecimal(argType)) {
+        hasDecimalOperand = true;
+      }
+      if (SqlTypeUtil.isBoolean(argType)) {
+        return null;
       }
     }
-    if (decimalOperands.size() == 0) {
+    LOG.info("SJC: DONE PRINTING ARG TYPES");
+    LOG.info("SJC: OP IS " + op.getName());
+    if (!hasDecimalOperand) {
       return null;
     }
 
-    RelDataType dType = ImpalaTypeConverter.getCompatibleType(decimalOperands, factory);
+    RelDataType dType = ImpalaTypeConverter.getCompatibleType(argTypes, factory);
     if (dType == null) {
-      throw new RuntimeException("could not find compatible decimal type");
+      LOG.info("could not find compatible decimal type for op " + op.getName());
     }
     return dType;
   }
@@ -445,7 +453,7 @@ public class CoerceOperandShuttle extends RexShuttle {
       }
     }
 
-    if (!toImpalaType.isDecimal() || SqlTypeUtil.isNull(fromType)) {
+    if (!toImpalaType.isDecimal()) {
       return ImpalaTypeConverter.getRelDataType(toImpalaType, isNullable);
     }
 
@@ -488,10 +496,6 @@ public class CoerceOperandShuttle extends RexShuttle {
     }
 
     if (SqlTypeUtil.isNull(fromType)) {
-      if (SqlTypeUtil.isDecimal(toType)) {
-        Type impalaType = ImpalaTypeConverter.createImpalaType(Type.DECIMAL, 1, 0);
-        toType = ImpalaTypeConverter.createRelDataType(impalaType);
-      }
       return rexBuilder.makeCast(toType, node);
     }
 
