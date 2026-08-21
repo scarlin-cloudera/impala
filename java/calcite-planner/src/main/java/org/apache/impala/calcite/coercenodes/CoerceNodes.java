@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Util;
 import org.apache.impala.calcite.functions.FunctionResolver;
 import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
@@ -319,7 +320,7 @@ public class CoerceNodes{
     for (RexNode rexNode : rexNodes) {
       RexNode changedRexNode = shuttle.apply(rexNode);
 
-      changedRexNode = RexUtil.pullFactors(rexBuilder, changedRexNode);
+      changedRexNode = pullFactors(rexBuilder, changedRexNode);
       // TODO: IMPALA-13436: use max_cnf_exprs query option instead of hardcoded 100.
       // The default for max_cnf_exprs is 200, but we use 100 here because tpcds
       // q41 is super slow when the value is at 200.
@@ -329,6 +330,13 @@ public class CoerceNodes{
       rexNodeChanged |= (changedRexNode != rexNode);
     }
     return rexNodeChanged ? changedRexNodes : null;
+  }
+
+  private static RexNode pullFactors(RexBuilder rexBuilder, RexNode rexNode) {
+    RexNode pullFactorNode = RexUtil.pullFactors(rexBuilder, rexNode);
+    return SqlTypeUtil.isNull(pullFactorNode.getType())
+        ? rexBuilder.makeNullLiteral(ImpalaTypeConverter.getRelDataType(Type.BOOLEAN))
+        : pullFactorNode;
   }
 
   /**

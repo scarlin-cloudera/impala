@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSetOperator;
@@ -33,6 +35,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
@@ -41,6 +44,7 @@ import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.calcite.type.ImpalaTypeSystemImpl;
 import org.apache.impala.catalog.Type;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 import java.util.List;
@@ -124,6 +128,14 @@ public class ImpalaCustomOperatorTable extends ReflectiveSqlOperatorTable {
     return ImpalaTypeConverter.getRelDataType(Type.STRING);
   };
 
+  public static final SqlReturnTypeInference UNARY_MINUS_RETURN_TYPE = opBinding -> {
+    List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+    Preconditions.checkState(operandTypes.size() == 1);
+    return operandTypes.get(0).getSqlTypeName().equals(SqlTypeName.FLOAT)
+        ? ImpalaTypeConverter.getRelDataType(Type.DOUBLE)
+        : operandTypes.get(0);
+  };
+
   public static final SqlBinaryOperator PLUS =
       new SqlMonotonicBinaryOperator(
           "+",
@@ -172,7 +184,7 @@ public class ImpalaCustomOperatorTable extends ReflectiveSqlOperatorTable {
           "-",
           SqlKind.MINUS_PREFIX,
           80,
-          ReturnTypes.ARG0,
+          UNARY_MINUS_RETURN_TYPE,
           InferTypes.RETURN_TYPE,
           OperandTypes.NUMERIC_OR_INTERVAL);
 
@@ -185,6 +197,11 @@ public class ImpalaCustomOperatorTable extends ReflectiveSqlOperatorTable {
           MOD_ADJUSTED_RETURN_TYPE_NULLABLE,
           null,
           OperandTypes.NUMERIC_NUMERIC);
+
+  public static final SqlFunction MOD =
+      new SqlFunction("MOD", SqlKind.MOD,
+          MOD_ADJUSTED_RETURN_TYPE_NULLABLE, null, OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 
   public static final SqlAggFunction COUNT =
       new SqlCountAggFunction("COUNT", OperandTypes.VARIADIC);

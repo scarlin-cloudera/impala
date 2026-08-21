@@ -224,7 +224,8 @@ public class ImpalaTypeSystemImpl extends RelDataTypeSystemImpl {
               ? typeFactory.createSqlType(sqlTypeName,
                   retType.getPrecision(), retType.getDecimalDigits())
               : typeFactory.createSqlType(sqlTypeName);
-      boolean nullable = type1.isNullable() && type2.isNullable();
+      boolean nullable = type1.isNullable() || type2.isNullable() ||
+          op == ArithmeticExpr.Operator.MOD;
       return typeFactory.createTypeWithNullability(preNullableType, nullable);
     } catch (Exception e) {
       throw new RuntimeException(e);

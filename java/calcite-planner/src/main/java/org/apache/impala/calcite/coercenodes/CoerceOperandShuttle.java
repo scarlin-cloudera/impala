@@ -133,7 +133,9 @@ public class CoerceOperandShuttle extends RexShuttle {
           call);
     }
 
-    RelDataType retType = castedOperandsCall.getType();
+    RelDataType retType = SqlTypeUtil.isNull(castedOperandsCall.getType())
+        ? ImpalaTypeConverter.getRelDataType(fn.getReturnType())
+        : castedOperandsCall.getType();
 
     // This code does not handle changes in the return type when the Calcite
     // function is not a decimal but the function resolves to a function that
@@ -346,9 +348,7 @@ public class CoerceOperandShuttle extends RexShuttle {
     // find a common type if it exists. If it doesn't exist, throw an exception.
     List<RelDataType> decimalOperands = new ArrayList<>();
     for (RelDataType argType : argTypes) {
-      if (argType.getSqlTypeName().equals(SqlTypeName.DECIMAL)) {
-        decimalOperands.add(argType);
-      }
+      decimalOperands.add(argType);
     }
     if (decimalOperands.size() == 0) {
       return null;
@@ -408,7 +408,7 @@ public class CoerceOperandShuttle extends RexShuttle {
       }
     }
 
-    if (!toImpalaType.isDecimal() || SqlTypeUtil.isNull(fromType)) {
+    if (!toImpalaType.isDecimal()) {
       return ImpalaTypeConverter.getRelDataType(toImpalaType, isNullable);
     }
 
@@ -451,10 +451,6 @@ public class CoerceOperandShuttle extends RexShuttle {
     }
 
     if (SqlTypeUtil.isNull(fromType)) {
-      if (SqlTypeUtil.isDecimal(toType)) {
-        Type impalaType = ImpalaTypeConverter.createImpalaType(Type.DECIMAL, 1, 0);
-        toType = ImpalaTypeConverter.createRelDataType(impalaType);
-      }
       return rexBuilder.makeCast(toType, node);
     }
 

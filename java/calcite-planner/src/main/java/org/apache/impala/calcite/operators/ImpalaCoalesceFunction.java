@@ -20,8 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.impala.calcite.functions.FunctionResolver;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
+import org.apache.impala.catalog.Type;
 
 import java.util.List;
 
@@ -41,6 +43,9 @@ public class ImpalaCoalesceFunction extends ImpalaOperator {
     RelDataTypeFactory factory = rexBuilder.getTypeFactory();
 
     List<RelDataType> operands = CommonOperatorFunctions.getOperandTypes(opBinding);
+    if (FunctionResolver.allTypesNull(operands)) {
+      return ImpalaTypeConverter.getRelDataType(Type.BOOLEAN);
+    }
     return ImpalaTypeConverter.getCompatibleType(operands, factory);
   }
 }

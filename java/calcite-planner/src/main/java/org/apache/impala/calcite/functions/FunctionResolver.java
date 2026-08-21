@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.impala.analysis.FunctionName;
 import org.apache.impala.catalog.AggregateFunction;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
@@ -34,6 +35,7 @@ import org.apache.impala.catalog.Function;
 import org.apache.impala.catalog.Type;
 import org.apache.impala.catalog.TypeCompatibility;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,7 +116,33 @@ public class FunctionResolver {
     List<RelDataType> argTypes = ARITHMETIC_TYPES.contains(call.getKind())
         ? Lists.newArrayList(call.getType(), call.getType())
         : Lists.transform(call.getOperands(), RexNode::getType);
+    if (allTypesNull(argTypes)) {
+      if (call.getOperator().getName().toLowerCase().equals("typeof")) {
+        argTypes = replaceNullType(argTypes, Type.BOOLEAN);
+      } else {
+        argTypes = replaceNullType(argTypes, Type.DOUBLE);
+      }
+    }
     return getFunction(call.getOperator().getName(), call.getKind(), argTypes, false);
+  }
+
+  public static boolean allTypesNull(List<RelDataType> argTypes) {
+    //XXX: make this better
+    for (RelDataType r : argTypes) {
+      if (!SqlTypeUtil.isNull(r)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static List<RelDataType> replaceNullType(List<RelDataType> argTypes, Type type) {
+    //XXX: make this better
+    List<RelDataType> myList = new ArrayList<>();
+    for (RelDataType r : argTypes) {
+      myList.add(ImpalaTypeConverter.getRelDataType(type));
+    }
+    return myList;
   }
 
   public static Function getSupertypeFunction(String name, SqlKind kind,
