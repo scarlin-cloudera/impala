@@ -113,23 +113,32 @@ public class FunctionResolver {
     // return the prototype of INT +(INT, INT) which is not what we want.
     // So we pass in the operands based on the already calculated return
     // type (call.getType()).
-    List<RelDataType> argTypes = ARITHMETIC_TYPES.contains(call.getKind())
-        ? Lists.newArrayList(call.getType(), call.getType())
-        : Lists.transform(call.getOperands(), RexNode::getType);
-    if (allTypesNull(argTypes)) {
-      if (call.getOperator().getName().toLowerCase().equals("typeof")) {
-        argTypes = replaceNullType(argTypes, Type.BOOLEAN);
-      } else {
-        argTypes = replaceNullType(argTypes, Type.DOUBLE);
-      }
+    List<RelDataType> argTypes;
+    if (ARITHMETIC_TYPES.contains(call.getKind())) {
+      RelDataType arithmeticType = allNodeTypesNull(call.getOperands())
+          ? ImpalaTypeConverter.getRelDataType(Type.DOUBLE)
+          : call.getType();
+      argTypes = Lists.newArrayList(arithmeticType, arithmeticType);
+    } else {
+      argTypes = Lists.transform(call.getOperands(), RexNode::getType);
     }
     return getFunction(call.getOperator().getName(), call.getKind(), argTypes, false);
   }
 
-  public static boolean allTypesNull(List<RelDataType> argTypes) {
+  public static boolean allNodeTypesNull(List<RexNode> rexNodes) {
     //XXX: make this better
-    for (RelDataType r : argTypes) {
-      if (!SqlTypeUtil.isNull(r)) {
+    for (RexNode r : rexNodes) {
+      if (!SqlTypeUtil.isNull(r.getType())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static boolean allTypesNull(List<RelDataType> types) {
+    //XXX: make this better
+    for (RelDataType type : types) {
+      if (!SqlTypeUtil.isNull(type)) {
         return false;
       }
     }

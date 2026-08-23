@@ -93,6 +93,9 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       .add("sign")
       .add("nullif")
       .add("mod")
+      .add("bitnot")
+      .add("rand")
+      .add("last_day")
       .build();
 
   private static ImpalaOperatorTable INSTANCE;
