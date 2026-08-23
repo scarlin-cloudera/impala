@@ -320,7 +320,9 @@ public class CoerceNodes{
     for (RexNode rexNode : rexNodes) {
       RexNode changedRexNode = shuttle.apply(rexNode);
 
+      LOG.info("SJC: TYPE BEFORE FOR " + changedRexNode + " WAS: " + changedRexNode.getType());
       changedRexNode = pullFactors(rexBuilder, changedRexNode);
+      LOG.info("SJC: TYPE AFTER FOR " + changedRexNode + " WAS: " + changedRexNode.getType());
       // TODO: IMPALA-13436: use max_cnf_exprs query option instead of hardcoded 100.
       // The default for max_cnf_exprs is 200, but we use 100 here because tpcds
       // q41 is super slow when the value is at 200.
@@ -335,7 +337,7 @@ public class CoerceNodes{
   private static RexNode pullFactors(RexBuilder rexBuilder, RexNode rexNode) {
     RexNode pullFactorNode = RexUtil.pullFactors(rexBuilder, rexNode);
     return SqlTypeUtil.isNull(pullFactorNode.getType())
-        ? rexBuilder.makeNullLiteral(ImpalaTypeConverter.getRelDataType(Type.BOOLEAN))
+        ? rexBuilder.makeNullLiteral(rexNode.getType())
         : pullFactorNode;
   }
 

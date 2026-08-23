@@ -346,16 +346,19 @@ public class CoerceOperandShuttle extends RexShuttle {
     // The return type is something other than a decimal. If there are no decimal
     // operands, return null. If there are multiple decimal operands (e.g. width_bucket),
     // find a common type if it exists. If it doesn't exist, throw an exception.
-    List<RelDataType> decimalOperands = new ArrayList<>();
+    // XXX: fix this
+    boolean hasCommonDecimal = false;
     for (RelDataType argType : argTypes) {
-      decimalOperands.add(argType);
+      if (SqlTypeUtil.isDecimal(argType)) {
+        hasCommonDecimal = true;
+      }
     }
-    if (decimalOperands.size() == 0) {
+    if (!hasCommonDecimal) {
       return null;
     }
 
     try {
-      RelDataType dType = ImpalaTypeConverter.getCompatibleType(decimalOperands, factory);
+      RelDataType dType = ImpalaTypeConverter.getCompatibleType(argTypes, factory);
       Preconditions.checkNotNull(dType);
       return ImpalaTypeConverter.createImpalaType(dType);
     } catch (Exception e) {

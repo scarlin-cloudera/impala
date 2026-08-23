@@ -104,6 +104,10 @@ public class ImpalaRexExecutor implements RexExecutor {
       return false;
     }
 
+    if (!RexUtil.isDeterministic(rexNode)) {
+      return false;
+    }
+
     RexCall call = (RexCall) rexNode;
 
     // cannot reduce interval operation by itself. An example of This will look like
