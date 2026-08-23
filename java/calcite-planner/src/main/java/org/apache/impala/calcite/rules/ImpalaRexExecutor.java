@@ -107,7 +107,7 @@ public class ImpalaRexExecutor implements RexExecutor {
       return false;
     }
 
-    if (!RexUtil.isDeterministic(rexNode) || !isDynamicFunction(rexNode)) {
+    if (!RexUtil.isDeterministic(rexNode) || hasSleepFunction(rexNode)) {
       return false;
     }
 
@@ -290,22 +290,22 @@ public class ImpalaRexExecutor implements RexExecutor {
     }
   }
 
-  public static boolean isDynamicFunction(RexNode e) {
+  public static boolean hasSleepFunction(RexNode e) {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
             @Override public Void visitCall(RexCall call) {
-              if (!call.getOperator().isDynamicFunction()) {
+              if (call.getOperator().getName().toLowerCase().equals("sleep")) {
                 throw Util.FoundOne.NULL;
               }
               return super.visitCall(call);
             }
           };
       e.accept(visitor);
-      return true;
+      return false;
     } catch (Util.FoundOne ex) {
       Util.swallow(ex, null);
-      return false;
+      return true;
     }
   }
   /**
