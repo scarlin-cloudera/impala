@@ -25,11 +25,14 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.Util;
 import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.FunctionCallExpr;
@@ -104,7 +107,7 @@ public class ImpalaRexExecutor implements RexExecutor {
       return false;
     }
 
-    if (!RexUtil.isDeterministic(rexNode)) {
+    if (!RexUtil.isDeterministic(rexNode) || !isDynamicFunction(rexNode)) {
       return false;
     }
 
@@ -287,6 +290,24 @@ public class ImpalaRexExecutor implements RexExecutor {
     }
   }
 
+  public static boolean isDynamicFunction(RexNode e) {
+    try {
+      RexVisitor<Void> visitor =
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitCall(RexCall call) {
+              if (!call.getOperator().isDynamicFunction()) {
+                throw Util.FoundOne.NULL;
+              }
+              return super.visitCall(call);
+            }
+          };
+      e.accept(visitor);
+      return true;
+    } catch (Util.FoundOne ex) {
+      Util.swallow(ex, null);
+      return false;
+    }
+  }
   /**
    * Interface which allows a hook for JUnit tests, avoiding the necessity of
    * a call to the backend.
