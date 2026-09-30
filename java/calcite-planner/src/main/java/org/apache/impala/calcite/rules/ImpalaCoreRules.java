@@ -33,6 +33,7 @@ import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
+import org.apache.calcite.rel.rules.MinusToAntiJoinRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.SemiJoinRule.ProjectToSemiJoinRule;
@@ -109,6 +110,11 @@ public class ImpalaCoreRules {
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
           .as(FilterJoinRule.FilterIntoJoinRule.
               FilterIntoJoinRuleConfig.class).toRule();
+
+  public static MinusToAntiJoinRule MINUS_TO_ANTIJOIN =
+      MinusToAntiJoinRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(MinusToAntiJoinRule.Config.class).toRule();
 
   public static IntersectToDistinctRule INTERSECT_TO_DISTINCT =
       IntersectToDistinctRule.Config.DEFAULT
