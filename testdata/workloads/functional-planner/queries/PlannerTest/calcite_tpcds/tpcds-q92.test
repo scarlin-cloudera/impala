@@ -37,7 +37,7 @@ ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
     ImpalaProjectRel(ws_ext_discount_amt=[$1])
       ImpalaJoinRel(condition=[=($6, $2)], joinType=[inner])
         ImpalaJoinRel(condition=[AND(>($1, *(1.3:DECIMAL(2, 1), $4)), =($5, $0))], joinType=[inner])
-          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($2), IS NOT NULL($1))])
+          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
             ImpalaProjectRel(ws_item_sk=[$2], ws_ext_discount_amt=[$21], ws_sold_date_sk=[$33])
               ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
           ImpalaJoinRel(condition=[=($2, $0)], joinType=[inner])
@@ -122,7 +122,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id = CAST(561 AS INT)
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id = CAST(561 AS INT), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -194,7 +194,7 @@ ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
     ImpalaProjectRel(ws_ext_discount_amt=[$1])
       ImpalaJoinRel(condition=[=($6, $2)], joinType=[inner])
         ImpalaJoinRel(condition=[AND(>($1, *(1.3:DECIMAL(2, 1), $4)), =($5, $0))], joinType=[inner])
-          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($2), IS NOT NULL($1))])
+          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
             ImpalaProjectRel(ws_item_sk=[$2], ws_ext_discount_amt=[$21], ws_sold_date_sk=[$33])
               ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
           ImpalaJoinRel(condition=[=($2, $0)], joinType=[inner])
@@ -345,7 +345,7 @@ max-parallelism=50 segment-costs=[496627820, 185] cpu-comparison-result=145 [max
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id = CAST(561 AS INT)
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id = CAST(561 AS INT), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -450,7 +450,7 @@ ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
     ImpalaProjectRel(ws_ext_discount_amt=[$1])
       ImpalaJoinRel(condition=[=($6, $2)], joinType=[inner])
         ImpalaJoinRel(condition=[AND(>($1, *(1.3:DECIMAL(2, 1), $4)), =($5, $0))], joinType=[inner])
-          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($2), IS NOT NULL($1))])
+          ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
             ImpalaProjectRel(ws_item_sk=[$2], ws_ext_discount_amt=[$21], ws_sold_date_sk=[$33])
               ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
           ImpalaJoinRel(condition=[=($2, $0)], joinType=[inner])
@@ -601,7 +601,7 @@ max-parallelism=50 segment-costs=[496627820, 185] cpu-comparison-result=145 [max
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id = CAST(561 AS INT)
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id = CAST(561 AS INT), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0

@@ -8,16 +8,20 @@ SELECT v1.n_name, v1_next.n_name FROM v1, v1 v1_next WHERE v1.n_nationkey + 1 = 
 ''
 'PLAN-ROOT SINK'
 '|'
-'07:EXCHANGE [UNPARTITIONED]'
+'09:EXCHANGE [UNPARTITIONED]'
 '|'
-'05:HASH JOIN [INNER JOIN, BROADCAST]'
+'07:HASH JOIN [INNER JOIN, BROADCAST]'
 '|  hash predicates: add(n_nationkey, 1) = n_nationkey'
 '|  runtime filters: RF000 <- n_nationkey, RF001 <- n_nationkey'
-'|  row-size=32B cardinality=5'
+'|  row-size=32B cardinality=1'
 '|'
-'|--06:EXCHANGE [BROADCAST]'
+'|--08:EXCHANGE [BROADCAST]'
 '|  |'
-'|  04:CTE CONSUMER [cte_suggestion_0]'
+'|  06:SELECT'
+'|  |  predicates: n_nationkey IS NOT NULL'
+'|  |  row-size=16B cardinality=1'
+'|  |'
+'|  05:CTE CONSUMER [cte_suggestion_0]'
 '|  |  row-size=23B cardinality=5'
 '|  |'
 '|  01:CTE PRODUCER [cte_suggestion_0]'
@@ -25,8 +29,12 @@ SELECT v1.n_name, v1_next.n_name FROM v1, v1 v1_next WHERE v1.n_nationkey + 1 = 
 '|  |'
 '|  02:SCAN $FILESYSTEM_NAME [tpch.nation]'
 '|     $FILESYSTEM_NAME partitions=1/1 files=1 size=2.15KB'
-'|     predicates: tpch.nation.n_regionkey = 0, tpch.nation.n_nationkey IS NOT NULL'
+'|     predicates: tpch.nation.n_regionkey = 0'
 '|     row-size=23B cardinality=5'
+'|'
+'04:SELECT'
+'|  predicates: n_nationkey IS NOT NULL'
+'|  row-size=16B cardinality=1'
 '|'
 '03:CTE CONSUMER [cte_suggestion_0]'
 '|  runtime filters: RF001 -> add(n_nationkey, 1), RF000 -> add(n_nationkey, 1)'
@@ -37,7 +45,7 @@ SELECT v1.n_name, v1_next.n_name FROM v1, v1 v1_next WHERE v1.n_nationkey + 1 = 
 '|'
 '02:SCAN $FILESYSTEM_NAME [tpch.nation]'
 '   $FILESYSTEM_NAME partitions=1/1 files=1 size=2.15KB'
-'   predicates: tpch.nation.n_regionkey = 0, tpch.nation.n_nationkey IS NOT NULL'
+'   predicates: tpch.nation.n_regionkey = 0'
 '   row-size=23B cardinality=5'
 ''
 'LOCAL MULTI SINK [FRAGMENT=F02, EXCHANGE=01, cte_suggestion_0]'
@@ -47,7 +55,7 @@ SELECT v1.n_name, v1_next.n_name FROM v1, v1 v1_next WHERE v1.n_nationkey + 1 = 
 '|'
 '02:SCAN $FILESYSTEM_NAME [tpch.nation]'
 '   $FILESYSTEM_NAME partitions=1/1 files=1 size=2.15KB'
-'   predicates: tpch.nation.n_regionkey = 0, tpch.nation.n_nationkey IS NOT NULL'
+'   predicates: tpch.nation.n_regionkey = 0'
 '   row-size=23B cardinality=5'
 ====
 ---- QUERY
@@ -235,13 +243,15 @@ select distinct(k) from (
 5
 ====
 ---- QUERY
+set enable_explain_calcite=true;
 select c_name, sum(l_quantity)
 from tpch.customer, tpch.orders, tpch.lineitem
 where
   o_orderkey in (
-    select l_orderkey from tpch.lineitem group by l_orderkey having sum(l_quantity) > 300)
+    select l_orderkey from tpch.lineitem where l_quantity > 0 group by l_orderkey having sum(l_quantity) > 300)
   and c_custkey = o_custkey
   and o_orderkey = l_orderkey
+  and l_quantity > 0
 group by c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice
 order by o_totalprice desc, o_orderdate, o_orderkey
 limit 10
@@ -259,15 +269,41 @@ limit 10
 ---- TYPES
 STRING, DECIMAL
 ---- RUNTIME_PROFILE
+# Verify Calcite plan to ensure CTEs are present
+     ImpalaSequence
+       ImpalaProjectRel(C_NAME=[$0], EXPR$1=[$1])
+         ImpalaSortRel(sort0=[$2], sort1=[$3], sort2=[$4], dir0=[DESC], dir1=[ASC], dir2=[ASC], fetch=[10:TINYINT])
+           ImpalaProjectRel(C_NAME=[$0], EXPR$1=[$5], o_totalprice=[$4], o_orderdate=[$3], o_orderkey=[$2])
+             ImpalaAggRel(group=[{0, 1, 2, 3, 4}], EXPR$1=[SUM($5)])
+               ImpalaProjectRel(C_NAME=[$1], c_custkey=[$0], o_orderkey=[$4], o_orderdate=[$7], o_totalprice=[$6], l_quantity=[$3])
+                 ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
+                   ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                     ImpalaProjectRel(c_custkey=[$0], c_name=[$1])
+                       ImpalaHdfsScanRel(table=[[tpch, customer]])
+                   ImpalaJoinRel(condition=[=($2, $0)], joinType=[inner])
+                     ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                       ImpalaCTEConsumer(cteName=[cte_suggestion_0])
+                     ImpalaJoinRel(condition=[=($0, $4)], joinType=[inner])
+                       ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($1))])
+                         ImpalaProjectRel(o_orderkey=[$0], o_custkey=[$1], o_totalprice=[$3], o_orderdate=[$4])
+                           ImpalaHdfsScanRel(table=[[tpch, orders]])
+                       ImpalaProjectRel(L_ORDERKEY=[$0])
+                         ImpalaFilterRel(condition=[>($1, 300.00)])
+                           ImpalaAggRel(group=[{0}], agg#0=[SUM($1)])
+                             ImpalaFilterRel(condition=[IS NOT NULL($0)])
+                               ImpalaCTEConsumer(cteName=[cte_suggestion_0])
+       ImpalaCTEProducer(readType=[EAGER], writeType=[EAGER], cteName=[cte_suggestion_0])
+         ImpalaFilterRel(condition=[>($1, 0.00)])
+           ImpalaProjectRel(l_orderkey=[$0], l_quantity=[$4])
+             ImpalaHdfsScanRel(table=[[tpch, lineitem]])
+# Runtime filters on 04:CTE CONSUMER
+     |  04:CTE CONSUMER [cte_suggestion_0]
+     |  |  runtime filters: RF003[min_max] -> l_orderkey, RF002[bloom] -> l_orderkey
 # Verify Final filter table:
-#  ID  Src. Node  Tgt. Node(s)  Eff. Tgt. Node(s)  Target type  ...
-# -----------------------------------------------------------------
-#   4          7             4                  N        LOCAL  ...
-#   3          8             3                  N        LOCAL  ...
-#   2          8             3                  3        LOCAL  ...
-#   0         10             4                  N       REMOTE  ...
-row_regex: 4\s+7\s+4\s+N\s+LOCAL
-row_regex: 3\s+8\s+3\s+[3N]\s+LOCAL
-row_regex: 2\s+8\s+3\s+3\s+LOCAL
-row_regex: 0\s+10\s+4\s+N\s+REMOTE
+#     ID  Src. Node  Tgt. Node(s)  Eff. Tgt. Node(s)  Target type
+#    ------------------------------------------------------------
+#      2         11             4                  4       REMOTE
+#      3         11             4                  N       REMOTE
+row_regex: 2\s+11\s+4\s+4\s+REMOTE
+row_regex: 3\s+11\s+4\s+N\s+REMOTE
 ====

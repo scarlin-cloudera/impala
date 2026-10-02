@@ -123,11 +123,13 @@ select id from functional.alltypessmall a where 1 IN
     order by int_col limit 5) order by id;
 ---- TYPES
 INT
----- RESULTS
+---- RESULTS: VERIFY_IS_EQUAL_SORTED
 1
 3
 5
 7
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
 ====
 ---- QUERY
 # nested subqueries
