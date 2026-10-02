@@ -19,13 +19,16 @@ package org.apache.impala.calcite.rules;
 
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategy;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
-import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
@@ -33,6 +36,8 @@ import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
+import org.apache.calcite.rel.rules.MinusToAntiJoinRule;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.SemiJoinRule.ProjectToSemiJoinRule;
@@ -149,6 +154,12 @@ public class ImpalaCoreRules {
       FilterAggregateTransposeRule.Config.DEFAULT
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(FilterAggregateTransposeRule.Config.class).toRule();
+
+  public static RelOptRule PROJECT_FILTER_SCAN_TRANSPOSE =
+      ProjectFilterTransposeRule.Config.DEFAULT
+          .withOperandFor(Project.class, Filter.class, TableScan.class)
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+          .toRule();
 
   public static ProjectJoinTransposeRule PROJECT_JOIN_TRANSPOSE =
       ProjectJoinTransposeRule.Config.DEFAULT

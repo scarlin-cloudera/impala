@@ -36,7 +36,7 @@ ImpalaSortRel(sort0=[$4], sort1=[$1], sort2=[$0], sort3=[$2], sort4=[$3], dir0=[
             ImpalaJoinRel(condition=[=($1, $11)], joinType=[inner])
               ImpalaJoinRel(condition=[=($10, $4)], joinType=[inner])
                 ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
-                  ImpalaFilterRel(condition=[AND(IS NOT NULL($4), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+                  ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($4), IS NOT NULL($1), IS NOT NULL($2))])
                     ImpalaProjectRel(ss_item_sk=[$1], ss_customer_sk=[$2], ss_store_sk=[$6], ss_ext_sales_price=[$14], ss_sold_date_sk=[$22])
                       ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, store_sales]])
                   ImpalaProjectRel(i_item_sk=[$0], i_brand_id=[$1], i_brand=[$2], i_manufact_id=[$3], i_manufact=[$4])
@@ -189,7 +189,7 @@ PLAN-ROOT SINK
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=20B cardinality=4.92M(filtered from 7.70G) cost=181857343
@@ -206,7 +206,7 @@ ImpalaSortRel(sort0=[$4], sort1=[$1], sort2=[$0], sort3=[$2], sort4=[$3], dir0=[
             ImpalaJoinRel(condition=[=($1, $11)], joinType=[inner])
               ImpalaJoinRel(condition=[=($10, $4)], joinType=[inner])
                 ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
-                  ImpalaFilterRel(condition=[AND(IS NOT NULL($4), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+                  ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($4), IS NOT NULL($1), IS NOT NULL($2))])
                     ImpalaProjectRel(ss_item_sk=[$1], ss_customer_sk=[$2], ss_store_sk=[$6], ss_ext_sales_price=[$14], ss_sold_date_sk=[$22])
                       ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, store_sales]])
                   ImpalaProjectRel(i_item_sk=[$0], i_brand_id=[$1], i_brand=[$2], i_manufact_id=[$3], i_manufact=[$4])
@@ -487,7 +487,7 @@ max-parallelism=30 segment-costs=[235757726]
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=20B cardinality=4.92M(filtered from 7.70G) cost=181857343
@@ -504,7 +504,7 @@ ImpalaSortRel(sort0=[$4], sort1=[$1], sort2=[$0], sort3=[$2], sort4=[$3], dir0=[
             ImpalaJoinRel(condition=[=($1, $11)], joinType=[inner])
               ImpalaJoinRel(condition=[=($10, $4)], joinType=[inner])
                 ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
-                  ImpalaFilterRel(condition=[AND(IS NOT NULL($4), IS NOT NULL($0), IS NOT NULL($1), IS NOT NULL($2))])
+                  ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($4), IS NOT NULL($1), IS NOT NULL($2))])
                     ImpalaProjectRel(ss_item_sk=[$1], ss_customer_sk=[$2], ss_store_sk=[$6], ss_ext_sales_price=[$14], ss_sold_date_sk=[$22])
                       ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, store_sales]])
                   ImpalaProjectRel(i_item_sk=[$0], i_brand_id=[$1], i_brand=[$2], i_manufact_id=[$3], i_manufact=[$4])
@@ -785,7 +785,7 @@ max-parallelism=30 segment-costs=[235757726]
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=20B cardinality=4.92M(filtered from 7.70G) cost=181857343

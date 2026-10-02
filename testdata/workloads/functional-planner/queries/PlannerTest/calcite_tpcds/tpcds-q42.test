@@ -30,7 +30,7 @@ ImpalaSortRel(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=
       ImpalaProjectRel(I_CATEGORY_ID=[$4], I_CATEGORY=[$5], ss_ext_sales_price=[$1])
         ImpalaJoinRel(condition=[=($6, $2)], joinType=[inner])
           ImpalaJoinRel(condition=[=($0, $3)], joinType=[inner])
-            ImpalaFilterRel(condition=[AND(IS NOT NULL($2), IS NOT NULL($0))])
+            ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($2))])
               ImpalaProjectRel(ss_item_sk=[$1], ss_ext_sales_price=[$14], ss_sold_date_sk=[$22])
                 ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, store_sales]])
             ImpalaProjectRel(i_item_sk=[$0], i_category_id=[$1], i_category=[$2])
@@ -112,7 +112,7 @@ PLAN-ROOT SINK
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=12B cardinality=4.92M(filtered from 8.25G) cost=98133602
@@ -126,7 +126,7 @@ ImpalaSortRel(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=
       ImpalaProjectRel(I_CATEGORY_ID=[$4], I_CATEGORY=[$5], ss_ext_sales_price=[$1])
         ImpalaJoinRel(condition=[=($6, $2)], joinType=[inner])
           ImpalaJoinRel(condition=[=($0, $3)], joinType=[inner])
-            ImpalaFilterRel(condition=[AND(IS NOT NULL($2), IS NOT NULL($0))])
+            ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($2))])
               ImpalaProjectRel(ss_item_sk=[$1], ss_ext_sales_price=[$14], ss_sold_date_sk=[$22])
                 ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, store_sales]])
             ImpalaProjectRel(i_item_sk=[$0], i_category_id=[$1], i_category=[$2])
@@ -268,7 +268,7 @@ max-parallelism=20 segment-costs=[123414721, 35475] cpu-comparison-result=25 [ma
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=12B cardinality=4.92M(filtered from 8.25G) cost=98133602
@@ -282,7 +282,7 @@ ImpalaSortRel(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=
       ImpalaProjectRel(I_CATEGORY_ID=[$4], I_CATEGORY=[$5], ss_ext_sales_price=[$1])
         ImpalaJoinRel(condition=[=($6, $2)], joinType=[inner])
           ImpalaJoinRel(condition=[=($0, $3)], joinType=[inner])
-            ImpalaFilterRel(condition=[AND(IS NOT NULL($2), IS NOT NULL($0))])
+            ImpalaFilterRel(condition=[AND(IS NOT NULL($0), IS NOT NULL($2))])
               ImpalaProjectRel(ss_item_sk=[$1], ss_ext_sales_price=[$14], ss_sold_date_sk=[$22])
                 ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, store_sales]])
             ImpalaProjectRel(i_item_sk=[$0], i_category_id=[$1], i_category=[$2])
@@ -424,7 +424,7 @@ max-parallelism=20 segment-costs=[123414721, 35475] cpu-comparison-result=25 [ma
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=12B cardinality=4.92M(filtered from 8.25G) cost=98133602

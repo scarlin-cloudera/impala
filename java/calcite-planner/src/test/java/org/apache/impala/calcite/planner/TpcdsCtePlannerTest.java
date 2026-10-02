@@ -191,7 +191,8 @@ public class TpcdsCtePlannerTest extends PlannerTestBase {
       14, List.of("q14a", "q14b"),
       23, List.of("q23a", "q23b"),
       24, List.of("q24a", "q24b"),
-      39, List.of("q39a", "q39b")
+      39, List.of("q39a", "q39b"),
+      80, List.of("q80", "q80a")
     );
     List<Object[]> queries = new ArrayList<>(99);
     for (int i = 1; i <= 99; i++) {

@@ -194,10 +194,12 @@ public class CalciteOptimizer implements CompilerStep {
     timeline_.markEvent("Created optimized CTE plan");
     LogUtil.logDebug(optimizedCTEPlan, "Optimized plan after CTE substitution.");
 
+    RelNode notNullPlan = runNotNullDerivation(optimizedCTEPlan, simplifier);
+
     // Run some essential rules needed to create working RelNodes after
     // optimization
     RelNode preImpalaConvertPlan =
-        runPreImpalaConvertProgram(optimizedCTEPlan, simplifier);
+        runPreImpalaConvertProgram(notNullPlan, simplifier);
     LogUtil.logDebug(preImpalaConvertPlan, "Optimized plan after final "
         + "preparation done before conversion to physical nodes.");
 
@@ -280,7 +282,6 @@ public class CalciteOptimizer implements CompilerStep {
     HepProgramBuilder builder = new HepProgramBuilder();
     // has to be in a separate program or else there is an infinite loop
     builder.addRuleInstance(ImpalaCoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES);
-    builder.addRuleInstance(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE);
 
     // XXX: add comment about project
     // Merge the filter nodes into the Join. Also include
@@ -311,6 +312,24 @@ public class CalciteOptimizer implements CompilerStep {
   }
 
   /**
+   * Runs the rules for deriving {@code NOT NULL} predicates from joins
+   * and pushing them down as much as possible.
+   */
+  private RelNode runNotNullDerivation(RelNode plan, ImpalaRexSimplify simplifier) {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleInstance(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE);
+
+    List<RelOptRule> filterPushdownRules = new ArrayList<>();
+    filterPushdownRules.add(ImpalaCoreRules.FILTER_PROJECT_TRANSPOSE);
+    filterPushdownRules.add(ImpalaCoreRules.FILTER_SET_OP_TRANSPOSE);
+    filterPushdownRules.add(ImpalaCoreRules.FILTER_AGGREGATE_TRANSPOSE);
+    filterPushdownRules.add(ImpalaCoreRules.FILTER_INTO_JOIN);
+    filterPushdownRules.add(ImpalaCoreRules.FILTER_MERGE);
+    builder.addRuleCollection(filterPushdownRules);
+    return runProgram(plan, builder.build(), simplifier);
+  }
+
+  /**
    * Run the convert program that does one last step to prepare the Logical
    * plan to conversion into the Physical plan. The two current rules in
    * this method are:
@@ -330,7 +349,8 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleCollection(ImmutableList.of(
         ImpalaCoreRules.REWRITE_REX_OVER,
-        ImpalaCoreRules.PROJECT_MERGE
+        ImpalaCoreRules.PROJECT_MERGE,
+        ImpalaCoreRules.PROJECT_FILTER_SCAN_TRANSPOSE
         ));
 
     return runProgram(retRelNode, builder.build(), simplifier);
