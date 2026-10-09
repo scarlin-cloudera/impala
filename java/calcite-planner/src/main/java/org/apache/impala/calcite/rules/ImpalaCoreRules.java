@@ -182,6 +182,15 @@ public class ImpalaCoreRules {
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(ProjectToSemiJoinRule.ProjectToSemiJoinRuleConfig.class).toRule();
 
+  // Experimental (impala.exp.calcite_dag): same as PROJECT_TO_SEMI_JOIN, except that a
+  // DISTINCT aggregate which reduces its input a lot is kept under the semi-join.
+  public static ImpalaProjectToSemiJoinRule PROJECT_TO_SEMI_JOIN_KEEP_SELECTIVE_AGG =
+      new ImpalaProjectToSemiJoinRule(
+          ProjectToSemiJoinRule.ProjectToSemiJoinRuleConfig.DEFAULT
+              .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+              .withDescription("ImpalaSemiJoinRule:project")
+              .as(ProjectToSemiJoinRule.ProjectToSemiJoinRuleConfig.class));
+
   public static ValuesReduceRule FILTER_VALUES_MERGE =
       ValuesReduceRule.Config.FILTER
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)

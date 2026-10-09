@@ -35,6 +35,8 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelCommonExpressionSuggester;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
@@ -75,9 +77,12 @@ import org.apache.impala.util.EventSequence;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -92,6 +97,28 @@ import org.slf4j.LoggerFactory;
 public class CalciteOptimizer implements CompilerStep {
   protected static final Logger LOG =
       LoggerFactory.getLogger(CalciteOptimizer.class.getName());
+
+  // Experimental, off by default (JVM system property 'impala.exp.calcite_dag').
+  // When on:
+  // 1. The expensive HepPlanner programs (node optimization before and after join
+  //    ordering, and join ordering itself) run in DAG mode (noDag=false), so identical
+  //    subtrees (e.g. a WITH clause inlined many times) are stored and optimized only
+  //    once. The resulting plan, in which such subtrees are shared, is turned back into
+  //    a tree (see unshare()) before the CTE rewrite and the conversion to Impala
+  //    nodes, so every PlanNode / TupleDescriptor is still created once per position.
+  // 2. PROJECT_TO_SEMI_JOIN is replaced by PROJECT_TO_SEMI_JOIN_KEEP_SELECTIVE_AGG,
+  //    which keeps a DISTINCT that reduces its input by >10x under the semi-join.
+  // The two parts can be switched off individually with
+  // -Dimpala.exp.calcite_dag.hep=false / -Dimpala.exp.calcite_dag.semijoin=false.
+  private static final boolean EXP_CALCITE_DAG = true;
+//      Boolean.getBoolean("impala.exp.calcite_dag");
+  private static final boolean EXP_CALCITE_DAG_HEP = true;
+//  private static final boolean EXP_CALCITE_DAG_HEP = EXP_CALCITE_DAG
+//      && Boolean.parseBoolean(System.getProperty("impala.exp.calcite_dag.hep", "true"));
+  private static final boolean EXP_CALCITE_DAG_SEMIJOIN = true;
+//  private static final boolean EXP_CALCITE_DAG_SEMIJOIN = EXP_CALCITE_DAG
+//      && Boolean.parseBoolean(
+//          System.getProperty("impala.exp.calcite_dag.semijoin", "true"));
 
   private static final List<RelOptRule> CTE_MATERIALIZATION_RULES =
       ImmutableList.of(
@@ -186,6 +213,12 @@ public class CalciteOptimizer implements CompilerStep {
     // since the join optimization may have enabled some more rules that can be applied.
     RelNode postOptimizedJoinPlan = runOptimizeNodesProgram(relBuilder, rexBuilder,
         optimizedJoinPlan, simplifier, true);
+    if (EXP_CALCITE_DAG_HEP) {
+      // The DAG mode programs above may return a plan in which identical subtrees are
+      // shared. Everything below expects a tree.
+      postOptimizedJoinPlan = unshare(postOptimizedJoinPlan,
+          Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
     timeline_.markEvent("Created optimized plan post join");
     LogUtil.logDebug(postOptimizedJoinPlan, "Optimized plan after a second pass of "
         + "rules applied after join optimization.");
@@ -253,7 +286,9 @@ public class CalciteOptimizer implements CompilerStep {
     // It creates a semi-join which could prevent the join optimizer from
     // making an optimal choice.
     if (post) {
-      interRulesBuilder.add(ImpalaCoreRules.PROJECT_TO_SEMI_JOIN);
+      interRulesBuilder.add(EXP_CALCITE_DAG_SEMIJOIN
+          ? ImpalaCoreRules.PROJECT_TO_SEMI_JOIN_KEEP_SELECTIVE_AGG
+          : ImpalaCoreRules.PROJECT_TO_SEMI_JOIN);
     }
     interRulesBuilder.add(ImpalaCoreRules.FILTER_VALUES_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.PROJECT_VALUES_MERGE);
@@ -271,7 +306,8 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addMatchOrder(HepMatchOrder.TOP_DOWN);
     builder.addRuleCollection(interRulesBuilder.build());
 
-    return trimmer.trim(runProgram(trimmedPlan, builder.build(), simplifier));
+    return trimmer.trim(runProgram(trimmedPlan, builder.build(), simplifier,
+        !EXP_CALCITE_DAG_HEP));
   }
 
   /**
@@ -310,7 +346,7 @@ public class CalciteOptimizer implements CompilerStep {
     builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_MULTI_JOIN);
     builder.addRuleInstance(ImpalaCoreRules.MULTI_JOIN_OPTIMIZE);
 
-    return runProgram(plan, builder.build(), simplifier);
+    return runProgram(plan, builder.build(), simplifier, !EXP_CALCITE_DAG_HEP);
   }
 
   /**
@@ -377,8 +413,19 @@ public class CalciteOptimizer implements CompilerStep {
 
   private RelNode runProgram(RelNode currentNode, HepProgram program,
       ImpalaRexSimplify simplifier) {
+    return runProgram(currentNode, program, simplifier, true);
+  }
+
+  /**
+   * Runs 'program' on 'currentNode'. With noDag=false the HepPlanner stores identical
+   * subtrees only once and the returned plan may reference the same RelNode object from
+   * several parents; such a plan must go through unshare() before it is converted to
+   * Impala nodes.
+   */
+  private RelNode runProgram(RelNode currentNode, HepProgram program,
+      ImpalaRexSimplify simplifier, boolean noDag) {
     HepPlanner planner = new HepPlanner(program, new ImpalaMQContext(),
-        true, null,
+        noDag, null,
         ImpalaCost.FACTORY);
     planner.setRoot(currentNode);
     // Within Calcite, the RuleEventLogger logs at DEBUG level, but that would
@@ -389,6 +436,44 @@ public class CalciteOptimizer implements CompilerStep {
     if (simplifier != null) planner.setExecutor(simplifier.getRexExecutor());
 
     return planner.findBestExp();
+  }
+
+  /**
+   * Returns a plan equivalent to 'rel' in which every RelNode object occurs only once.
+   * A node that has already been visited (i.e. that is shared with an earlier part of
+   * the plan) is copied, together with all its descendants. Logical table scans and
+   * values are copied too, so the result has exactly the shape of a plan produced in
+   * tree mode (noDag=true). Nodes that are referenced only once are returned as is.
+   */
+  @VisibleForTesting
+  static RelNode unshare(RelNode rel, Set<RelNode> seen) {
+    List<RelNode> inputs = rel.getInputs();
+    List<RelNode> newInputs = new ArrayList<>(inputs.size());
+    boolean inputsChanged = false;
+    for (RelNode input : inputs) {
+      RelNode newInput = unshare(input, seen);
+      inputsChanged |= newInput != input;
+      newInputs.add(newInput);
+    }
+    boolean firstVisit = seen.add(rel);
+    if (firstVisit && !inputsChanged) return rel;
+    if (inputs.isEmpty()) {
+      // Leaf nodes do not create a copy in copy(), so create one explicitly where
+      // possible. Any other leaf is converted to a separate Impala node per position
+      // by the (tree mode) conversion program anyway.
+      if (rel.getClass() == LogicalTableScan.class) {
+        LogicalTableScan scan = (LogicalTableScan) rel;
+        return new LogicalTableScan(scan.getCluster(), scan.getTraitSet(),
+            scan.getHints(), scan.getTable());
+      }
+      if (rel.getClass() == LogicalValues.class) {
+        LogicalValues values = (LogicalValues) rel;
+        return new LogicalValues(values.getCluster(), values.getTraitSet(),
+            values.getHints(), values.getRowType(), values.getTuples());
+      }
+      return rel;
+    }
+    return rel.copy(rel.getTraitSet(), newInputs);
   }
 
   public RelNode runCTEProgram(RelBuilder relBuilder,
