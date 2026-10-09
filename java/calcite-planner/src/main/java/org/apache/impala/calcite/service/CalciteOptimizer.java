@@ -294,7 +294,7 @@ public class CalciteOptimizer implements CompilerStep {
     interRulesBuilder.add(ImpalaCoreRules.PROJECT_VALUES_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.FILTER_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.PROJECT_MERGE);
-//    interRulesBuilder.add(ImpalaCoreRules.UNION_MERGE);
+    interRulesBuilder.add(ImpalaCoreRules.UNION_MERGE);
     interRulesBuilder.add(ImpalaCoreRules.JOIN_PUSH_EXPRESSIONS);
     interRulesBuilder.add(PruneEmptyRules.PROJECT_INSTANCE);
     interRulesBuilder.add(PruneEmptyRules.AGGREGATE_INSTANCE);
