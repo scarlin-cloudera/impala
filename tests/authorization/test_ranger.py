@@ -1731,11 +1731,24 @@ class TestRanger(CustomClusterTestSuite):
       self.create_impala_client(user=grantee_user) as non_owner_client:
       # Set the query option planner to CALCITE and ensure there is no fallback to
       # the original planner
-      non_owner_client.set_configuration({"planner": "CALCITE"})
-      non_owner_client.set_configuration({"fallback_planner": "CALCITE"})
+      non_owner_client.set_configuration({"planner": "CALCITE",
+          "fallback_planner": "CALCITE"})
+      # This prevents execute() of 'non_owner_client' from fetching the query profile
+      # from the server. Recall that if 'grantee_user' does not have the SELECT privilege
+      # on the underlying table of a view, even though 'grantee_user' has the SELECT
+      # privileges on all the columns of the underlying table, the attempt to retrieve
+      # the query profile from the server would still result in an error.
+      non_owner_client._collect_profile_and_log = False
       unique_database = unique_name + "_db"
       unique_table = unique_name + "_tbl"
+      unique_view = unique_name + "_view"
       test_select_query = "select * from {0}.{1}".format(unique_database, unique_table)
+      test_join_query = "with iv as (select 1 as id) \
+          select iv.id from iv join {0}.{1} using (id)"\
+        .format(unique_database, unique_table)
+      test_join_query_with_view = "with iv as (select 1 as id) \
+          select iv.id from iv join {0}.{1} using (id)" \
+        .format(unique_database, unique_view)
       error_msg_prefix = "User '{0}' does not have privileges to execute 'SELECT' on:" \
           .format(grantee_user)
       try:
@@ -1745,10 +1758,14 @@ class TestRanger(CustomClusterTestSuite):
         admin_client.execute("create database {0}".format(unique_database))
         admin_client.execute("create table {0}.{1} (id int, bigint_col bigint)"
             .format(unique_database, unique_table))
+        admin_client.execute("create view {0}.{1} as select * from {0}.{2}"
+            .format(unique_database, unique_view, unique_table))
         admin_client.execute("refresh authorization")
 
         admin_client.execute("grant select (id) on table {0}.{1} to user {2}"
             .format(unique_database, unique_table, grantee_user))
+        admin_client.execute("grant select (id) on table {0}.{1} to user {2}"
+            .format(unique_database, unique_view, grantee_user))
         admin_client.execute("refresh authorization")
 
         # Even though 'grantee_user' was already granted the SELECT privilege on the
@@ -1758,6 +1775,16 @@ class TestRanger(CustomClusterTestSuite):
         result = self.execute_query_expect_failure(non_owner_client, test_select_query)
         assert "{0} {1}.{2}" \
             .format(error_msg_prefix, unique_database, unique_table) in str(result)
+
+        # Verify that the query succeeds without an AuthorizationException which shows
+        # that it suffices to only have the SELECT privilege on the column 'id' of the
+        # table 'unique_table' (v.s. the SELECT privilege on the whole table).
+        non_owner_client.execute(test_join_query)
+
+        # Verify that the query succeeds without an AuthorizationException which shows
+        # that it suffices to only have the SELECT privilege on the column 'id' of the
+        # table 'unique_view' (v.s. the SELECT privilege on the whole table).
+        non_owner_client.execute(test_join_query_with_view)
 
         admin_client.execute("grant select (bigint_col) on table {0}.{1} to user {2}"
             .format(unique_database, unique_table, grantee_user))
@@ -1769,6 +1796,8 @@ class TestRanger(CustomClusterTestSuite):
       finally:
         admin_client.execute("revoke select (id) on table {0}.{1} from user {2}"
             .format(unique_database, unique_table, grantee_user))
+        admin_client.execute("revoke select (id) on table {0}.{1} from user {2}"
+            .format(unique_database, unique_view, grantee_user))
         admin_client.execute("revoke select (bigint_col) on table {0}.{1} from user {2}"
             .format(unique_database, unique_table, grantee_user))
         admin_client.execute("refresh authorization")
@@ -1793,8 +1822,8 @@ class TestRanger(CustomClusterTestSuite):
       if use_calcite_planner is True:
         # Set the query option planner to CALCITE and ensure there is no fallback to
         # the original planner
-        non_owner_client.set_configuration({"planner": "CALCITE"})
-        non_owner_client.set_configuration({"fallback_planner": "CALCITE"})
+        non_owner_client.set_configuration({"planner": "CALCITE",
+            "fallback_planner": "CALCITE"})
       test_select_query = "select * from {0}".format(v2_name)
       select_error_prefix = "User '{0}' does not have privileges to execute " \
           "'SELECT' on:".format(grantee_user)
