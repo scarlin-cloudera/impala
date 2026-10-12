@@ -57,6 +57,7 @@ import org.apache.impala.common.Pair;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.planner.HdfsEstimatedMissingTableStats;
 import org.apache.impala.planner.HdfsPartitionPruner;
+import org.apache.impala.planner.KuduEstimatedMissingTableStats;
 import org.apache.impala.util.AcidUtils;
 
 import java.util.ArrayList;
@@ -78,7 +79,8 @@ public class CalciteTable extends RelOptAbstractTable
 
   private final SimplifiedAnalyzer analyzer_;
 
-  private final HdfsEstimatedMissingTableStats estimatedMissingStats_;
+  // Row count estimate when table_.getNumRows() is unknown (-1). -1 if not computed.
+  private final long estimatedMissingNumRows_;
 
   public CalciteTable(FeTable table, CalciteCatalogReader reader,
       Analyzer analyzer) throws ImpalaException {
@@ -88,16 +90,35 @@ public class CalciteTable extends RelOptAbstractTable
     this.columns_ = Lists.newArrayList(table.getStarColumns());
     this.impalaPositionMap_ = buildPositionMap();
     this.analyzer_ = (SimplifiedAnalyzer) analyzer;
-    // TODO: If table_.getNumRows() is unknown (-1), this logic will load all partitions
-    // to compute estimation using HdfsEstimatedMissingTableStats. This is potentially
-    // expensive and should be avoided in local catalog mode.
-    estimatedMissingStats_ = (table_ instanceof FeFsTable) && table_.getNumRows() < 0 ?
-        new HdfsEstimatedMissingTableStats(
-            analyzer.getQueryOptions(), (FeFsTable) table_,
-            ((FeFsTable) table_).loadAllPartitions(), -1) :
-        null;
+    estimatedMissingNumRows_ = computeEstimatedMissingNumRows(table_, analyzer);
 
     checkIfTableIsSupported(table);
+  }
+
+  /**
+   * Computes a fallback row count when HMS stats are unavailable.
+   *
+   * <p>For HDFS tables, uses {@link HdfsEstimatedMissingTableStats}. For Kudu tables,
+   * fetches Kudu's live row count, matching {@link KuduEstimatedMissingTableStats}.
+   */
+  private static long computeEstimatedMissingNumRows(FeTable table, Analyzer analyzer) {
+    if (table.getNumRows() >= 0) {
+      return -1;
+    }
+    if (table instanceof FeFsTable) {
+      // TODO: If table.getNumRows() is unknown (-1), this logic will load all
+      // partitions to compute estimation using HdfsEstimatedMissingTableStats. This is
+      // potentially expensive and should be avoided in local catalog mode.
+      return new HdfsEstimatedMissingTableStats(
+          analyzer.getQueryOptions(), (FeFsTable) table,
+          ((FeFsTable) table).loadAllPartitions(), /* tableNumRowsHint */ -1)
+          .statsNumRows_;
+    }
+    if (table instanceof FeKuduTable) {
+      return KuduEstimatedMissingTableStats.getStatsNumRows(
+          (FeKuduTable) table, analyzer);
+    }
+    return -1;
   }
 
   public static RelDataType buildColumnsForRelDataType(FeTable table)
@@ -221,12 +242,13 @@ public class CalciteTable extends RelOptAbstractTable
 
   @Override
   public double getRowCount() {
-    if (table_.getNumRows() >= 0.0) {
+    if (table_.getNumRows() >= 0) {
       return (double) table_.getNumRows();
     }
 
-    Preconditions.checkNotNull(estimatedMissingStats_);
-    return estimatedMissingStats_.statsNumRows_;
+    Preconditions.checkState(estimatedMissingNumRows_ >= 0,
+        "Missing row count estimate for table %s", table_.getFullName());
+    return (double) estimatedMissingNumRows_;
   }
 
   public List<Column> getColumns() {
