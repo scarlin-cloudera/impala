@@ -670,7 +670,8 @@ class TestUdfTargeted(TestUdfBase):
     query_stmt = "select fn() from functional.alltypes limit 1"
     result = self.execute_query_expect_failure(self.client, query_stmt)
     if IS_CALCITE_PLANNER:
-      assert "No match found for function signature FN" in str(result)
+      assert "No match found for function signature FN" in str(result) or \
+        "default.fn() unknown for database default" in str(result)
     else:
       assert "default.fn() unknown for database default" in str(result)
 

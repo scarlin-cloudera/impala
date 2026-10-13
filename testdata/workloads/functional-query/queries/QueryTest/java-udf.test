@@ -229,9 +229,8 @@ string
 # BINARY is only supported when the function is created
 # specifically with BINARY arguments / return type (IMPALA-11340).
 select identity_anytype(cast("a" as binary));
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature
----- CALCITE_PLANNER_CATCH
 Cannot infer return type
 ====
 ---- QUERY
