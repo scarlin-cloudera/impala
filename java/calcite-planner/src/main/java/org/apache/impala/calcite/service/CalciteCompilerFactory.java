@@ -100,5 +100,12 @@ public class CalciteCompilerFactory implements CompilerFactory {
       throw new UnsupportedFeatureException("Cannot disable hdfs_num_rows_estimate "
           + "in Calcite, falling back to Impala compiler.");
     }
+
+    // IMPALA-15765
+    if (queryCtx.getClient_request().getQuery_options()
+        .isValues_stmt_avoid_lossy_char_padding()) {
+      throw new UnsupportedFeatureException("Avoid Lossy Char Padding query "+
+          "option is not supported in Calcite, falling back to the Impala compiler.");
+    }
   }
 }

@@ -24,6 +24,9 @@ from tests.common.test_dimensions import (
     default_protocol_or_parquet_constraint,
     default_protocol_or_text_constraint,
 )
+from tests.common.environ import (
+    IS_CALCITE_PLANNER
+)
 
 
 class TestStringQueries(ImpalaTestSuite):

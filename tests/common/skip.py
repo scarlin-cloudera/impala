@@ -317,3 +317,15 @@ class SkipIfCalcite:
       reason="IMPALA-15260: processing plan is different, needs investigation.")
   missing_join_hint_warning = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="IMPALA-15614: no warning for unsupported join hint.")
+  pivot_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-15767: pivot not supported yet")
+  trino_variant_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-15768: trino type variant not supported yet")
+  geometry_type_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-15766: geometry type variant not supported yet")
+  disable_having_ordinal = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-15769: ordinals in having not allowed for Calcite")
+  functions_fallback_db_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-15770: fallback_db_for_functions not supported for Calcite")
+  ok_3_0_reserved_keywords = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-15771: 'at' is ok to use in select query")
