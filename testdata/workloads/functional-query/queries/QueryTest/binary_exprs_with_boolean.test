@@ -143,18 +143,21 @@ row_regex:.*double_col = CAST\(bool_col AS DOUBLE\).*
 ====
 ---- QUERY
 select string_col = bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type STRING and BOOLEAN are not comparable
+Invalid type cast from STRING to BOOLEAN
 ====
 ---- QUERY
 select date_col = bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type DATE and BOOLEAN are not comparable
+Cannot apply '=' to arguments of type '<DATE> = <BOOLEAN>'
 ====
 ---- QUERY
 select timestamp_col = bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type TIMESTAMP and BOOLEAN are not comparable
+Cannot apply '=' to arguments of type '<TIMESTAMP(15)> = <BOOLEAN>'
 ====
 ---- QUERY
 select decimal_col = bool_col as a from test_bool_binary_eq order by a;
@@ -176,8 +179,9 @@ row_regex:.*CAST\(decimal_col AS FLOAT\) = CAST\(bool_col AS FLOAT\).*
 ====
 ---- QUERY
 select binary_col = bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type BINARY and BOOLEAN are not comparable
+Cannot apply '=' to arguments of type '<BINARY> = <BOOLEAN>'
 ====
 ---- QUERY
 select tinyint_col > bool_col as a from test_bool_binary_eq order by a;
@@ -289,18 +293,21 @@ row_regex:.*double_col > CAST\(bool_col AS DOUBLE\).*
 ====
 ---- QUERY
 select string_col > bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type STRING and BOOLEAN are not comparable
+Invalid type cast from STRING to BOOLEAN
 ====
 ---- QUERY
 select date_col > bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type DATE and BOOLEAN are not comparable
+Cannot apply '>' to arguments of type '<DATE> > <BOOLEAN>'
 ====
 ---- QUERY
 select timestamp_col > bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type TIMESTAMP and BOOLEAN are not comparable
+Cannot apply '>' to arguments of type '<TIMESTAMP(15)> > <BOOLEAN>'
 ====
 ---- QUERY
 select decimal_col > bool_col as a from test_bool_binary_eq order by a;
@@ -322,8 +329,9 @@ row_regex:.*CAST\(decimal_col AS FLOAT\) > CAST\(bool_col AS FLOAT\).*
 ====
 ---- QUERY
 select binary_col > bool_col as a from test_bool_binary_eq order by a;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: operands of type BINARY and BOOLEAN are not comparable
+Cannot apply '>' to arguments of type '<BINARY> > <BOOLEAN>'
 ====
 ---- QUERY
 select 2 = true;

@@ -154,7 +154,8 @@ class TestLocalCatalogCompactUpdates(CustomClusterTestSuite):
               'WARNING', 'Detected catalog service restart')
             err = self.execute_query_expect_failure(
               client, "select * from {}".format(view))
-            assert "Could not resolve table reference" in str(err)
+            assert "Could not resolve table reference" in str(err) or \
+                "not found" in str(err)
             view_not_found = True
           if not database_found:
             # This part is only needed to ensure unique_database cleanup is successful.

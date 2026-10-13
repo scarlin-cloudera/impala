@@ -23,6 +23,7 @@ from subprocess import check_call
 
 import pytest
 
+from tests.common.environ import IS_CALCITE_PLANNER
 from tests.common.impala_test_suite import ImpalaTestSuite
 from tests.common.skip import SkipIfFS, SkipIfNotHdfsMinicluster
 from tests.common.test_dimensions import (
@@ -108,6 +109,9 @@ class TestQueries(ImpalaTestSuite):
     if table_format.file_format == 'hbase':
       pytest.xfail("A lot of queries check for NULLs, which hbase does not recognize")
     self.run_test_case('QueryTest/analytic-fns', vector)
+    # IMPALA-XXXXX: support geometry type
+    if not IS_CALCITE_PLANNER:
+      self.run_test_case('QueryTest/analytic-fns-geometry', vector)
 
   def test_limit(self, vector):
     if vector.get_value('table_format').file_format == 'hbase':

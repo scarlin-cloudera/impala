@@ -943,7 +943,8 @@ class TestCreateExternalTable(KuduTestSuite):
           "SELECT COUNT(*) FROM %s.%s" % (unique_database, impala_table_name), vector)
         assert False
       except Exception as e:
-        assert "Could not resolve table reference" in str(e)
+        assert "Could not resolve table reference" in str(e) or \
+            "not found" in str(e)
       assert kudu_client.table_exists(kudu_table.name)
 
   @SkipIfKudu.hms_integration_enabled()

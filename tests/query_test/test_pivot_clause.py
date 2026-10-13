@@ -23,6 +23,7 @@ from tests.common.test_dimensions import (
     create_parquet_dimension,
     default_client_protocol_dimension,
 )
+from tests.common.skip import SkipIfCalcite
 
 
 class TestPivotClause(ImpalaTestSuite):
@@ -32,5 +33,6 @@ class TestPivotClause(ImpalaTestSuite):
     cls.ImpalaTestMatrix.add_dimension(create_parquet_dimension(cls.get_workload()))
     cls.ImpalaTestMatrix.add_dimension(create_single_exec_option_dimension())
 
+  @SkipIfCalcite.pivot_not_supported
   def test_pivot_clause(self, unique_database, vector):
     self.run_test_case('QueryTest/pivot-clause', vector, unique_database)
