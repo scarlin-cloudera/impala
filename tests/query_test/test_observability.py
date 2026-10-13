@@ -547,6 +547,9 @@ class TestObservability(ImpalaTestSuite):
         # Wait for 1 second to ensure the stats are written to the cache.
         sleep(1)
 
+  # IMPALA-14817
+  # Calcite planner does not populate these profile columns yet
+  @SkipIfCalcite.observability_info_missing
   def test_query_profile_contains_query_compilation_metadata_load_events(self,
         cluster_properties, unique_database):
     """Test that the Metadata load started and finished events appear in the query
