@@ -15,8 +15,9 @@ AnalysisException: Database does not exist: ice
 ---- QUERY
 # Cannot select from any tables in a blacklisted database.
 select count(*) from ice.airports_parquet;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: Could not resolve table reference: 'ice.airports_parquet'
+Object 'ICE' not found
 ====
 ---- QUERY
 # Cannot create tables via Iceberg REST Catalog, guard against that functionality

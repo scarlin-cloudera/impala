@@ -143,8 +143,9 @@ INT
 ====
 ---- QUERY
 SELECT * FROM iceberg_rename;
----- CATCH
+---- CATCH: ANY_OF
 Could not resolve table reference: 'iceberg_rename'
+Object 'ICEBERG_RENAME' not found
 ====
 ---- QUERY
 CREATE TABLE iceberg_changing_fileformats (i int)

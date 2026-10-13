@@ -2,8 +2,9 @@
 ---- QUERY
 # Check that ds_kll_quantile rejects STRING sketch inputs.
 select ds_kll_quantile(date_string_col, 0.5) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_quantile(STRING, DECIMAL(1,1))
+Cannot infer return type for DS_KLL_QUANTILE
 ====
 ---- QUERY
 # Check that ds_kll_quantile returns error for BINARY that is not a serialized sketch.
@@ -65,24 +66,28 @@ FLOAT,FLOAT,FLOAT,FLOAT,FLOAT,FLOAT
 ====
 ---- QUERY
 select ds_kll_sketch(double_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_sketch(DOUBLE)
+Cannot infer return type for DS_KLL_SKETCH
 ====
 ---- QUERY
 select ds_kll_sketch(string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_sketch(STRING)
+Cannot infer return type for DS_KLL_SKETCH
 ====
 ---- QUERY
 select ds_kll_sketch(timestamp_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_sketch(TIMESTAMP)
+Cannot infer return type for DS_KLL_SKETCH
 ====
 ---- QUERY
 select ds_kll_sketch(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_sketch(DATE)
+Cannot infer return type for DS_KLL_SKETCH
 ====
 ---- QUERY
 # Check that ds_kll_quantile() returns null for null inputs.
@@ -169,8 +174,9 @@ BIGINT
 ---- QUERY
 # Check that ds_kll_n() rejects STRING sketch inputs.
 select ds_kll_n(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_n(STRING)
+Cannot infer return type for DS_KLL_N
 ====
 ---- QUERY
 # Check that ds_kll_n() returns error for BINARY that is not a serialized sketch.
@@ -225,8 +231,9 @@ DOUBLE
 ---- QUERY
 # Check that ds_kll_rank() rejects STRING sketch inputs.
 select ds_kll_rank(date_string_col, 10.0) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_rank(STRING, DECIMAL(3,1))
+Cannot infer return type for DS_KLL_RANK
 ====
 ---- QUERY
 # Check that ds_kll_rank() returns error for BINARY that is not a serialized sketch.
@@ -281,8 +288,9 @@ BINARY
 ---- QUERY
 # Check that ds_kll_union rejects STRING sketch inputs.
 select ds_kll_union(date_string_col) from functional_parquet.alltypestiny where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_union(STRING)
+Cannot infer return type for DS_KLL_UNION
 ====
 ---- QUERY
 # ds_kll_union() returns an error if it receives an invalid serialized sketch.
@@ -333,8 +341,9 @@ STRING
 select
     ds_kll_quantiles_as_string(date_string_col, 0.5)
 from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_quantiles_as_string(STRING, DECIMAL(1,1))
+Cannot infer return type for DS_KLL_QUANTILES_AS_STRING
 ====
 ---- QUERY
 # Check that ds_kll_quantiles_as_string() returns error for BINARY that is not a
@@ -434,8 +443,9 @@ UDF ERROR: NULL or NaN provided in the input list.
 select
     ds_kll_quantiles_as_string(ds_kll_sketch(float_col))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_quantiles_as_string(BINARY)
+Cannot infer return type for DS_KLL_QUANTILES_AS_STRING
 ====
 ---- QUERY
 # Checks that ds_kll_pmf_as_string() produces NULL for an empty dataset.
@@ -458,8 +468,9 @@ STRING
 ---- QUERY
 # Check that ds_kll_pmf_as_string() rejects STRING sketch inputs.
 select ds_kll_pmf_as_string(date_string_col, 0.5) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_pmf_as_string(STRING, DECIMAL(1,1))
+Cannot infer return type for DS_KLL_PMF_AS_STRING
 ====
 ---- QUERY
 # Check that ds_kll_pmf_as_string() returns error for BINARY that is not a serialized
@@ -541,8 +552,9 @@ STRING
 ---- QUERY
 # Check that ds_kll_cdf_as_string() rejects STRING sketch inputs.
 select ds_kll_cdf_as_string(date_string_col, 0.5) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_cdf_as_string(STRING, DECIMAL(1,1))
+Cannot infer return type for DS_KLL_CDF_AS_STRING
 ====
 ---- QUERY
 # Check that ds_kll_cdf_as_string() returns error for BINARY that is not a serialized
@@ -629,8 +641,9 @@ STRING
 ---- QUERY
 # Check that ds_kll_stringify() rejects STRING sketch inputs.
 select ds_kll_stringify(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_kll_stringify(STRING)
+Cannot infer return type for DS_KLL_STRINGIFY
 ====
 ---- QUERY
 # Check that ds_kll_stringify() returns error for BINARY that is not a serialized sketch.
