@@ -1,0 +1,18 @@
+====
+---- QUERY
+# Analytic functions (first_value/last_value/lag/lead) work over GEOMETRY: they just
+# pass a value through, and GEOMETRY reuses STRING's StringVal analytic implementation.
+# The GEOMETRY results are wrapped in ST_AsText because a top-level query may not return
+# GEOMETRY (see IMPALA-15244).
+select id,
+       ST_AsText(first_value(ST_Point(id, id)) over (order by id)),
+       ST_AsText(last_value(ST_Point(id, id)) over (order by id)),
+       ST_AsText(lag(ST_Point(id, id)) over (order by id))
+from functional.alltypes where id <= 2 order by id
+---- RESULTS
+0,'POINT (0 0)','POINT (0 0)','NULL'
+1,'POINT (0 0)','POINT (1 1)','POINT (0 0)'
+2,'POINT (0 0)','POINT (2 2)','POINT (1 1)'
+---- TYPES
+INT,STRING,STRING,STRING
+====

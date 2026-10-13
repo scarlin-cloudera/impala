@@ -34,46 +34,54 @@ BIGINT,BIGINT,BIGINT,BIGINT,BIGINT,BIGINT
 ---- QUERY
 # Check that unsupported types give error with ds_theta_sketch().
 select ds_theta_sketch(bool_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch(BOOLEAN)
+Cannot infer return type for DS_THETA_SKETCH
 ====
 ---- QUERY
 select ds_theta_sketch(smallint_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch(SMALLINT)
+Cannot infer return type for DS_THETA_SKETCH
 ====
 ---- QUERY
 select ds_theta_sketch(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch(DATE)
+Cannot infer return type for DS_THETA_SKETCH
 ====
 ---- QUERY
 select ds_theta_sketch(d1) from functional_parquet.decimal_tbl;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch(DECIMAL(9,0))
+Cannot infer return type for DS_THETA_SKETCH
 ====
 ---- QUERY
 # Check that unsupported types give error with ds_theta_sketch_and_estimate().
 select ds_theta_sketch_and_estimate(bool_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(BOOLEAN)
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_theta_sketch_and_estimate(smallint_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(SMALLINT)
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_theta_sketch_and_estimate(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(DATE)
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_theta_sketch_and_estimate(d1) from functional_parquet.decimal_tbl;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_sketch_and_estimate(DECIMAL(9,0))
+Cannot infer return type for DS_THETA_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 # Check if Theta works with null values.
@@ -135,8 +143,9 @@ INT,INT,BIGINT,BIGINT
 ---- QUERY
 # Check that ds_theta_estimate rejects STRING sketch inputs.
 select ds_theta_estimate(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_estimate(STRING)
+Cannot infer return type for DS_THETA_ESTIMATE
 ====
 ---- QUERY
 # Check that ds_theta_estimate returns an error for non-sketch bytes cast to BINARY.
@@ -211,8 +220,9 @@ BINARY
 ---- QUERY
 # Check that ds_theta_union rejects STRING sketch inputs.
 select ds_theta_union(date_string_col) from functional_parquet.alltypestiny where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_union(STRING)
+Cannot infer return type for DS_THETA_UNION
 ====
 ---- QUERY
 # ds_theta_union() returns an error if it receives an invalid serialized sketch.
@@ -274,8 +284,9 @@ BINARY
 # Check that ds_theta_intersect rejects STRING sketch inputs.
 select ds_theta_intersect(date_string_col) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_intersect(STRING)
+Cannot infer return type for DS_THETA_INTERSECT
 ====
 ---- QUERY
 # ds_theta_intersect() returns an error if it receives an invalid serialized sketch.
@@ -373,8 +384,9 @@ BIGINT
 # Check that ds_theta_exclude rejects STRING sketch inputs.
 select ds_theta_exclude(date_string_col, date_string_col) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_exclude(STRING, STRING)
+Cannot infer return type for DS_THETA_EXCLUDE
 ====
 ---- QUERY
 # ds_theta_exclude() returns an error if it receives an invalid serialized sketch.
@@ -462,8 +474,9 @@ BIGINT
 # ds_theta_union_f() rejects STRING sketch inputs.
 select ds_theta_union_f(null, date_string_col) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_union_f(NULL_TYPE, STRING)
+Cannot infer return type for DS_THETA_UNION_F
 ====
 ---- QUERY
 # ds_theta_union_f() returns an error if it receives an invalid serialized sketch.
@@ -476,8 +489,9 @@ UDF ERROR: Unable to deserialize sketch: sketch type mismatch: expected 3, actua
 # ds_theta_union_f() rejects STRING sketch inputs.
 select ds_theta_union_f(date_string_col, null) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_union_f(STRING, NULL_TYPE)
+Cannot infer return type for DS_THETA_UNION_F
 ====
 ---- QUERY
 # ds_theta_union_f() returns an error if it receives an invalid serialized sketch.
@@ -550,8 +564,9 @@ BIGINT
 # ds_theta_intersect_f() rejects STRING sketch inputs.
 select ds_theta_intersect_f(date_string_col, null) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_intersect_f(STRING, NULL_TYPE)
+Cannot infer return type for DS_THETA_INTERSECT_F
 ====
 ---- QUERY
 # ds_theta_intersect_f() returns an error if it receives an invalid serialized sketch.
@@ -566,8 +581,9 @@ select ds_theta_intersect_f(sketch1, sketch2) from (
 select ds_theta_sketch(float_col) sketch1, max(date_string_col) sketch2 from
 functional_parquet.alltypestiny
 ) t
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_theta_intersect_f(BINARY, STRING)
+Cannot infer return type for DS_THETA_INTERSECT_F
 ====
 ---- QUERY
 # ds_theta_intersect_f() returns an error if it receives an invalid serialized sketch.
