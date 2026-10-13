@@ -16,11 +16,12 @@
 # under the License.
 
 from tests.common.impala_test_suite import ImpalaTestSuite
-from tests.common.skip import SkipIfApacheHive
+from tests.common.skip import SkipIfApacheHive, SkipIfCalcite
 from tests.common.test_dimensions import create_single_exec_option_dimension
 
 
 @SkipIfApacheHive.feature_not_supported
+@SkipIfCalcite.geometry_type_not_supported
 class TestGeospatialFuctions(ImpalaTestSuite):
   """Tests the geospatial builtin functions in the default WKB_EXPERIMENTAL mode."""
 

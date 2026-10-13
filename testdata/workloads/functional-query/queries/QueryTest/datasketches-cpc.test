@@ -36,46 +36,54 @@ BIGINT,BIGINT,BIGINT,BIGINT,BIGINT,BIGINT,BIGINT
 ---- QUERY
 # Check that unsupported types give error with ds_cpc_sketch().
 select ds_cpc_sketch(bool_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch(BOOLEAN)
+Cannot infer return type for DS_CPC_SKETCH
 ====
 ---- QUERY
 select ds_cpc_sketch(smallint_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch(SMALLINT)
+Cannot infer return type for DS_CPC_SKETCH
 ====
 ---- QUERY
 select ds_cpc_sketch(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch(DATE)
+Cannot infer return type for DS_CPC_SKETCH
 ====
 ---- QUERY
 select ds_cpc_sketch(d1) from functional_parquet.decimal_tbl;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch(DECIMAL(9,0))
+Cannot infer return type for DS_CPC_SKETCH
 ====
 ---- QUERY
 # Check that unsupported types give error with ds_cpc_sketch_and_estimate().
 select ds_cpc_sketch_and_estimate(bool_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch_and_estimate(BOOLEAN)
+Cannot infer return type for DS_CPC_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_cpc_sketch_and_estimate(smallint_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch_and_estimate(SMALLINT)
+Cannot infer return type for DS_CPC_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_cpc_sketch_and_estimate(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch_and_estimate(DATE)
+Cannot infer return type for DS_CPC_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_cpc_sketch_and_estimate(d1) from functional_parquet.decimal_tbl;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_sketch_and_estimate(DECIMAL(9,0))
+Cannot infer return type for DS_CPC_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 # Check if CPC works with null values.
@@ -137,8 +145,9 @@ INT,INT,BIGINT,BIGINT
 ---- QUERY
 # Check that ds_cpc_estimate rejects STRING sketch inputs.
 select ds_cpc_estimate(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_estimate(STRING)
+Cannot infer return type for DS_CPC_ESTIMATE
 ====
 ---- QUERY
 # Check that ds_cpc_estimate returns an error for non-sketch bytes cast to BINARY.
@@ -222,8 +231,9 @@ BINARY
 ---- QUERY
 # Check that ds_cpc_union rejects STRING sketch inputs.
 select ds_cpc_union(date_string_col) from functional_parquet.alltypestiny where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_union(STRING)
+Cannot infer return type for DS_CPC_UNION
 ====
 ---- QUERY
 # ds_cpc_union() returns an error if it receives an invalid serialized sketch.
@@ -275,8 +285,9 @@ STRING
 ---- QUERY
 # Check that ds_cpc_stringify rejects STRING sketch inputs.
 select ds_cpc_stringify(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_stringify(STRING)
+Cannot infer return type for DS_CPC_STRINGIFY
 ====
 ---- QUERY
 # Check that ds_cpc_stringify() returns an error for non-sketch bytes cast to BINARY.
@@ -335,8 +346,9 @@ BIGINT
 # ds_cpc_union_f() rejects STRING sketch inputs.
 select ds_cpc_union_f(null, date_string_col) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_union_f(NULL_TYPE, STRING)
+Cannot infer return type for DS_CPC_UNION_F
 ====
 ---- QUERY
 # ds_cpc_union_f() returns an error if it receives an invalid serialized sketch.
@@ -349,8 +361,9 @@ UDF ERROR: Unable to deserialize sketch: Insufficient buffer size detected: byte
 # ds_cpc_union_f() rejects STRING sketch inputs.
 select ds_cpc_union_f(date_string_col, null) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_cpc_union_f(STRING, NULL_TYPE)
+Cannot infer return type for DS_CPC_UNION_F
 ====
 ---- QUERY
 # ds_cpc_union_f() returns an error if it receives an invalid serialized sketch.
