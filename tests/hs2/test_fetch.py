@@ -28,7 +28,7 @@ from tests.hs2.hs2_test_suite import (
     needs_session,
     needs_session_cluster_properties,
 )
-
+from tests.common.skip import SkipIfCalcite
 
 # Simple test to make sure all the HS2 types are supported for both the row and
 # column-oriented versions of the HS2 protocol.
@@ -298,6 +298,7 @@ class TestFetch(HS2TestSuite):
     HS2TestSuite.check_response(self.hs2_client.CloseOperation(
         TCLIService.TCloseOperationReq(operationHandle=good_handle)))
 
+  @SkipIfCalcite.trino_variant_not_supported
   @needs_session_cluster_properties()
   def test_variant_type_metadata(self, cluster_properties, unique_database):  # noqa: U100
     """IMPALA-15052: a VARIANT column is reported to clients as STRING over the HS2

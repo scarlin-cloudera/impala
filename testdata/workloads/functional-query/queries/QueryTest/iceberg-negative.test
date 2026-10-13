@@ -647,13 +647,15 @@ AnalysisException: ALTER TABLE SET PARTITION SPEC is only supported for Iceberg 
 ====
 ---- QUERY
 SELECT * FROM non_iceberg_table FOR SYSTEM_TIME AS OF now();
----- CATCH
+---- CATCH: ANY_OF
 AS OF clause is only supported for Iceberg tables.
+Table 'non_iceberg_table' is not a temporal table
 ====
 ---- QUERY
 SELECT * FROM non_iceberg_table FOR SYSTEM_VERSION AS OF 42;
----- CATCH
+---- CATCH: ANY_OF
 AS OF clause is only supported for Iceberg tables.
+Table 'non_iceberg_table' is not a temporal table
 ====
 ---- QUERY
 CREATE TABLE iceberg_alter_part ( i int, d DATE, s STRUCT<f1:BIGINT,f2:BIGINT>)
@@ -765,8 +767,9 @@ AnalysisException: Impala does not support writing tables with complex types. Ta
 ---- QUERY
 # ICEBERG__DATA__SEQUENCE__NUMBER is not supported for non-Iceberg tables.
 SELECT ICEBERG__DATA__SEQUENCE__NUMBER FROM functional_parquet.alltypes;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: Could not resolve column/field reference: 'iceberg__data__sequence__number'
+Column 'ICEBERG__DATA__SEQUENCE__NUMBER' not found in any table
 ====
 ---- QUERY
 update functional_parquet.iceberg_int_partitioned set k = 1, k = 2;
