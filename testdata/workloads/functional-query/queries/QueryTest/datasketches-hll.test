@@ -34,46 +34,54 @@ BIGINT,BIGINT,BIGINT,BIGINT,BIGINT,BIGINT
 ---- QUERY
 # Check that unsupported types give error with ds_hll_sketch().
 select ds_hll_sketch(bool_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch(BOOLEAN)
+Cannot infer return type for DS_HLL_SKETCH
 ====
 ---- QUERY
 select ds_hll_sketch(smallint_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch(SMALLINT)
+Cannot infer return type for DS_HLL_SKETCH
 ====
 ---- QUERY
 select ds_hll_sketch(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch(DATE)
+Cannot infer return type for DS_HLL_SKETCH
 ====
 ---- QUERY
 select ds_hll_sketch(d1) from functional_parquet.decimal_tbl;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch(DECIMAL(9,0))
+Cannot infer return type for DS_HLL_SKETCH
 ====
 ---- QUERY
 # Check that unsupported types give error with ds_hll_sketch_and_estimate().
 select ds_hll_sketch_and_estimate(bool_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch_and_estimate(BOOLEAN)
+Cannot infer return type for DS_HLL_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_hll_sketch_and_estimate(smallint_col) from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch_and_estimate(SMALLINT)
+Cannot infer return type for DS_HLL_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_hll_sketch_and_estimate(cast(date_string_col as date format 'MM/DD/YYYY'))
 from functional_parquet.alltypessmall;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch_and_estimate(DATE)
+Cannot infer return type for DS_HLL_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 select ds_hll_sketch_and_estimate(d1) from functional_parquet.decimal_tbl;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_sketch_and_estimate(DECIMAL(9,0))
+Cannot infer return type for DS_HLL_SKETCH_AND_ESTIMATE
 ====
 ---- QUERY
 # Check if HLL works with null values.
@@ -135,8 +143,9 @@ INT,INT,BIGINT,BIGINT
 ---- QUERY
 # Check that ds_hll_estimate rejects STRING sketch inputs.
 select ds_hll_estimate(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_estimate(STRING)
+Cannot infer return type for DS_HLL_ESTIMATE
 ====
 ---- QUERY
 # Check that ds_hll_estimate returns an error for non-sketch bytes cast to BINARY.
@@ -201,8 +210,9 @@ BINARY
 ---- QUERY
 # Check that ds_hll_union rejects STRING sketch inputs.
 select ds_hll_union(date_string_col) from functional_parquet.alltypestiny where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_union(STRING)
+Cannot infer return type for DS_HLL_UNION
 ====
 ---- QUERY
 # ds_hll_union() returns an error if it receives an invalid serialized sketch.
@@ -278,8 +288,9 @@ STRING
 ---- QUERY
 # Check that ds_hll_stringify rejects STRING sketch inputs.
 select ds_hll_stringify(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_stringify(STRING)
+Cannot infer return type for DS_HLL_STRINGIFY
 ====
 ---- QUERY
 # Check that ds_hll_stringify() returns error for BINARY that is not a serialized sketch.
@@ -305,8 +316,9 @@ STRING
 ---- QUERY
 # Check that ds_hll_estimate_bounds_as_string() rejects STRING sketch inputs.
 select ds_hll_estimate_bounds_as_string(date_string_col) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_estimate_bounds_as_string(STRING)
+Cannot infer return type for DS_HLL_ESTIMATE_BOUNDS_AS_STRING
 ====
 ---- QUERY
 # Check that ds_hll_estimate_bounds_as_string() returns error for BINARY that is not a
@@ -318,8 +330,9 @@ UDF ERROR: Unable to deserialize sketch: Attempt to deserialize unknown object t
 ---- QUERY
 # Check that ds_hll_estimate_bounds_as_string() with two args rejects STRING sketch inputs.
 select ds_hll_estimate_bounds_as_string(date_string_col, 2) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_estimate_bounds_as_string(STRING, TINYINT)
+Cannot infer return type for DS_HLL_ESTIMATE_BOUNDS_AS_STRING
 ====
 ---- QUERY
 # Check that ds_hll_estimate_bounds_as_string() returns error for kappa is not 1, 2, 3.
@@ -329,8 +342,9 @@ UDF ERROR: Kappa must be 1, 2 or 3
 ====
 ---- QUERY
 select ds_hll_estimate_bounds_as_string(date_string_col, 1.5) from functional_parquet.alltypestiny;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_estimate_bounds_as_string(STRING, DECIMAL(2,1)).
+Cannot infer return type for DS_HLL_ESTIMATE_BOUNDS_AS_STRING
 ====
 ---- QUERY
 # Check that ds_hll_estimate_bounds_as_string() works on sketches created by Hive.
@@ -406,8 +420,9 @@ BIGINT
 # ds_hll_union_f() rejects STRING sketch inputs.
 select ds_hll_union_f(null, date_string_col) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_union_f(NULL_TYPE, STRING)
+Cannot infer return type for DS_HLL_UNION_F
 ====
 ---- QUERY
 # ds_hll_union_f() returns an error if it receives an invalid serialized sketch.
@@ -420,8 +435,9 @@ UDF ERROR: Unable to deserialize sketch: Attempt to deserialize unknown object t
 # ds_hll_union_f() rejects STRING sketch inputs.
 select ds_hll_union_f(date_string_col, null) from functional_parquet.alltypestiny
 where id=1;
----- CATCH
+---- CATCH: ANY_OF
 AnalysisException: No matching function with signature: ds_hll_union_f(STRING, NULL_TYPE)
+Cannot infer return type for DS_HLL_UNION_F
 ====
 ---- QUERY
 # ds_hll_union_f() returns an error if it receives an invalid serialized sketch.

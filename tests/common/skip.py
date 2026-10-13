@@ -315,3 +315,5 @@ class SkipIfCalcite:
       reason="IMPALA-15123: spilling plan is different, needs investigation.")
   processing_plan_different = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="IMPALA-15260: processing plan is different, needs investigation.")
+  pivot_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="pivot not supported yet")

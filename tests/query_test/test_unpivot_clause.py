@@ -23,6 +23,7 @@ from tests.common.test_dimensions import (
     create_parquet_dimension,
     default_client_protocol_dimension,
 )
+from tests.common.skip import SkipIfCalcite
 
 
 class TestUnpivotClause(ImpalaTestSuite):
@@ -33,6 +34,7 @@ class TestUnpivotClause(ImpalaTestSuite):
     cls.ImpalaTestMatrix.add_dimension(create_exec_option_dimension(
         disable_codegen_options=[False], batch_sizes=[1, 3]))
 
+  @SkipIfCalcite.pivot_not_supported
   def test_unpivot_clause(self, unique_database, vector):
     self.run_test_case('QueryTest/unpivot-clause', vector, unique_database)
 
@@ -45,5 +47,6 @@ class TestUnpivotClauseOnLargeTable(ImpalaTestSuite):
     cls.ImpalaTestMatrix.add_dimension(create_exec_option_dimension(
         disable_codegen_options=[False], batch_sizes=[0]))
 
+  @SkipIfCalcite.pivot_not_supported
   def test_unpivot_clause(self, unique_database, vector):
     self.run_test_case('QueryTest/unpivot-clause-large', vector, unique_database)
