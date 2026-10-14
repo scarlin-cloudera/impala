@@ -321,6 +321,7 @@ class TestObservability(ImpalaTestSuite):
             "CANCELLED marker found in running query: " + str(row)
       sleep(0.5)
 
+  @SkipIfCalcite.observability_info_missing
   def test_query_options(self):
     """Test that the query profile shows expected non-default query options, both set
     explicitly through client and those set by planner"""

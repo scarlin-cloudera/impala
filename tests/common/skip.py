@@ -316,4 +316,8 @@ class SkipIfCalcite:
   processing_plan_different = pytest.mark.skipif(IS_CALCITE_PLANNER,
       reason="IMPALA-15260: processing plan is different, needs investigation.")
   pivot_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
-      reason="pivot not supported yet")
+      reason="IMPALA-XXXXX: pivot not supported yet")
+  trino_variant_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-XXXXX: trino type variant not supported yet")
+  geometry_type_not_supported = pytest.mark.skipif(IS_CALCITE_PLANNER,
+      reason="IMPALA-XXXXX: geometry type variant not supported yet")

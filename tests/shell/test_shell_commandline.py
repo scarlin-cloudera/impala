@@ -1175,7 +1175,8 @@ class TestImpalaShell(ImpalaTestSuite):
       start_time = time()
       result = run_impala_shell_cmd(vector, args, expect_success=False)
       assert "Could not resolve table reference: 'non_existence_large_table'" \
-          in result.stderr
+          in result.stderr or \
+          "Object 'NON_EXISTENCE_LARGE_TABLE' not found" in result.stderr
       end_time = time()
       # Use higher timeout in ASAN/UBSAN to avoid flakiness (IMPALA-11921).
       build_runs_slowly = ImpalaTestClusterProperties.get_instance().runs_slowly()
