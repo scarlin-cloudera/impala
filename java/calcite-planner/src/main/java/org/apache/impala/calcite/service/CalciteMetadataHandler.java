@@ -174,11 +174,6 @@ public class CalciteMetadataHandler {
     private final String currentDb_;
     private final Map<TableName, List<TimeTravelSpec>> tableNames_ = new HashMap<>();
 
-    // Error condition for now. Complex tables are not yet supported
-    // so if we see a table name that has more than 2 parts, this variable
-    // will contain that table.
-    public final List<String> errorTables_ = new ArrayList<>();
-
     // This stack contains the sets of TableName's of the currently visited SqlWith
     // nodes, with the set of TableName's of the most recently visited SqlWith node being
     // the top of the stack.
@@ -236,7 +231,8 @@ public class CalciteMetadataHandler {
       String tableNameString = identifer.toString();
       List<String> parts = Splitter.on('.').splitToList(tableNameString);
       if (parts.size() > 2) {
-        errorTables_.add(tableNameString);
+        exception_ = new UnsupportedFeatureException(
+              "Table " + tableNameString + " is not supported.");
         return;
       }
       TableName tableName = parts.size() == 1

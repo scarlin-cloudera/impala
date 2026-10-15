@@ -39,6 +39,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -101,6 +102,13 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
   public RelDataType deriveType(
       SqlValidatorScope scope,
       SqlNode operand) {
+    if (operand instanceof SqlDataTypeSpec) {
+      SqlDataTypeSpec spec = (SqlDataTypeSpec) operand;
+      if (spec.getTypeName().names.get(0).toLowerCase().equals("uuid")) {
+        throw new CalciteContextException("", new UnsupportedFeatureException(
+            "Uuid type not supported yet."));
+      }
+    }
     // This code is needed because Calcite treats all integer literals (except
     // BIGINT) as Integers, but Impala needs the finer granularity of smaller
     // integers (e.g. tinyint)
