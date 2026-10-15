@@ -42,6 +42,7 @@ import org.apache.impala.calcite.schema.CalciteDb;
 import org.apache.impala.calcite.schema.ImpalaCalciteCatalogReader;
 import org.apache.impala.calcite.type.ImpalaTypeFactoryImpl;
 import org.apache.impala.calcite.validate.ImpalaSnapshotSqlNode;
+import org.apache.impala.catalog.Column;
 import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeIcebergTable;
@@ -337,6 +338,11 @@ public class CalciteMetadataHandler {
     for (FeTable table : stmtTableCache.tables.values()) {
       if (table.getColumn(onlyColumnPart) != null) {
         return true;
+      }
+      for (Column c : table.getVirtualColumns()) {
+        if (c.getName().equals(onlyColumnPart.toLowerCase())) {
+          return true;
+        }
       }
     }
     return false;
