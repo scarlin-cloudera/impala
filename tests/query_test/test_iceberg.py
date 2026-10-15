@@ -840,7 +840,9 @@ class TestIcebergTable(IcebergTestSuite):
         impalad_client.execute("SELECT i FROM {0}".format(tbl_name))
         assert False  # Exception must be thrown
       except Exception as e:
-        assert "Could not resolve column/field reference: 'i'" in str(e)
+        e_string = str(e).replace("\r", "").replace("\n", " ")
+        assert "Could not resolve column/field reference: 'i'" in str(e_string) or \
+            "'I' not found in any table " in str(e_string)
 
       # Back at ts_2 the deleted 'I' column is there
       expect_results("SELECT * FROM {0} FOR SYSTEM_TIME AS OF '{1}'".
