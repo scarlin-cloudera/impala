@@ -2746,7 +2746,7 @@ class TestRangerLegacyCatalog(TestRanger):
 
   @SkipIfFS.hive
   @pytest.mark.execute_serially
-  def test_select_view_created_by_non_superuser_with_catalog_v1(self, unique_name):
+  def test_sel_view_created_by_non_su_with_cat_v1(self, unique_name):
     self._test_select_view_created_by_non_superuser(unique_name)
 
 
@@ -2780,7 +2780,7 @@ class TestRangerLocalCatalog(TestRanger):
 
   @SkipIfFS.hive
   @pytest.mark.execute_serially
-  def test_select_view_created_by_non_superuser_with_local_catalog(self, unique_name):
+  def test_select_view_created_by_non_su_with_local_cat(self, unique_name):
     self._test_select_view_created_by_non_superuser(unique_name)
 
   @pytest.mark.execute_serially
@@ -3161,6 +3161,7 @@ class TestRangerLocalCatalog(TestRanger):
                               ADMIN, True)
 
   @pytest.mark.execute_serially
+  @SkipIfCalcite.functions_fallback_db_not_supported
   def test_select_function_with_fallback_db(self, unique_name):
     """Verifies that Impala should not allow using functions in the fallback database
     unless the user has been granted sufficient privileges on the given database."""
