@@ -167,8 +167,8 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
       return new CalciteAnalysisResult(this);
     } catch (ImpalaException e) {
       try {
-        ComplexTableAssessor c =
-            new ComplexTableAssessor(parsedStmt_.getParsedSqlNode(), queryCtx_, ctx_);
+        ComplexTableDetector.checkForComplexTables(parsedStmt_.getParsedSqlNode(),
+            queryCtx_, ctx_);
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
             queryCtx_);
       } catch (ImpalaException u) {
@@ -180,8 +180,8 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
         return new CalciteAnalysisResult(this, (UnsupportedFeatureException)e.getCause());
       }
       try {
-        ComplexTableAssessor c =
-            new ComplexTableAssessor(parsedStmt_.getParsedSqlNode(), queryCtx_, ctx_);
+        ComplexTableDetector.checkForComplexTables(parsedStmt_.getParsedSqlNode(),
+            queryCtx_, ctx_);
         UnsupportedChecker.throwUnsupportedIfKnownException(e, stmtTableCache_,
             queryCtx_);
       } catch (ImpalaException u) {

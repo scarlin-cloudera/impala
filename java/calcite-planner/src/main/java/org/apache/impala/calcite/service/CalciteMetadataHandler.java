@@ -30,7 +30,6 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlSnapshot;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -47,7 +46,6 @@ import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
-import org.apache.impala.catalog.IcebergTable;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
@@ -261,28 +259,6 @@ public class CalciteMetadataHandler {
         ImpalaSnapshotSqlNode snapshot = (ImpalaSnapshotSqlNode) fromNode;
         extractTableName(snapshot.tableRefOriginal_, snapshot.timeTravelSpec_);
         return;
-      }
-
-      List<TableName> localTableNames = new ArrayList<>();
-      if (fromNode instanceof SqlIdentifier) {
-        String tableName = fromNode.toString();
-        List<String> parts = Splitter.on('.').splitToList(tableName);
-        if (parts.size() == 1) {
-          TableName tableNameToAdd = new TableName(
-              currentDb_.toLowerCase(), parts.get(0).toLowerCase());
-          // Do not collect this table if 'tableNameToAdd' was already registered via
-          // a SqlWithItem node since in this case 'tableNameToAdd' is not an actual
-          // table.
-          if (!isRegisteredBySqlWithItem(tableNameToAdd)) {
-            localTableNames.add(tableNameToAdd);
-          }
-        } else if (parts.size() == 2) {
-          localTableNames.add(
-              new TableName(parts.get(0).toLowerCase(), parts.get(1).toLowerCase()));
-        } else {
-          exception_ = new UnsupportedFeatureException(
-              "Table " + tableName + " is not supported.");
-        }
       }
 
       // Join node has the tables in the left and right node.

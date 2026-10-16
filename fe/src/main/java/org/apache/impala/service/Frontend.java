@@ -2558,8 +2558,9 @@ public class Frontend {
       // If an exception was thrown, this means that the query failed to parse through
       // the Parser.parse() method in the original planner. In this case, it's ok to
       // fallback to the original planner.  We know it will fail there too, but it
-      // will go through the original planner code and return the error message there.
-      return false;
+      // will go through the original planner code and return an error message already
+      // existing in the test framework.
+      return true;
     }
   }
 

@@ -183,9 +183,11 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
   }
 
   @Override public void validateWithItem(SqlWithItem withItem) {
-    // Little hack.  This code is already in Calcite. But this is supported
-    // by Impala. So we need to throw an Unsupported error rather than a
-    // validation error.
+    // Impala supports the case (for better or for worse) where the number of
+    // columns in the with clause definition do not match the number of columns
+    // being selected out (e.g. "with t(c1) as (select c1, c2 from ...)")
+    // Calcite will throw its own exception, but we need to throw an
+    // "UnsupportedFeatureException so this can be run by the original planner.
     SqlNodeList columnList = withItem.columnList;
     if (columnList != null) {
       final RelDataType rowType = getValidatedNodeType(withItem.query);

@@ -30,7 +30,6 @@ import org.apache.impala.analysis.StmtMetadataLoader;
 import org.apache.impala.analysis.TimeTravelSpec;
 import org.apache.impala.analysis.ColumnLineageGraph.OperationType;
 import org.apache.impala.common.ImpalaException;
-import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
 
 import java.util.List;
