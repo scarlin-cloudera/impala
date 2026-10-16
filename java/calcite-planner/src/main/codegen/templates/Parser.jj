@@ -2443,11 +2443,12 @@ SqlNode TableConstructor() :
         )*
       )
     |
-      // Impala multi-row form, e.g. values((1, 2), (3, 4)).
+      // Impala multi-row form, e.g. values((1 x), (2), (3)) or values((1, 2), (3)).
+      // Not values ((1+2), 4), where three consecutive "(" appear here.
       LOOKAHEAD({
           getToken(1).kind == LPAREN
-          && getToken(2).kind == LPAREN
-          && getToken(3).kind != LPAREN
+          && !(getToken(2).kind == LPAREN
+              && getToken(3).kind == LPAREN)
       })
       (
         <LPAREN>

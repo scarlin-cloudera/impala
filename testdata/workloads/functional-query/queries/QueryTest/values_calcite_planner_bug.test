@@ -18,6 +18,16 @@ values ((1+2),4);
 SMALLINT, TINYINT
 ====
 ---- QUERY
+set planner=calcite;
+values((1 x), (2), (3));
+---- RESULTS
+1
+2
+3
+---- TYPES
+TINYINT
+====
+---- QUERY
 # IMPALA-14943: Because of known Calcite issue, an unsupported
 >>>>>>> 73b3e5db65 (IMPALA-14459: Parse VALUES with a parenthesized first column)
 # exception should be thrown and this should fallback.

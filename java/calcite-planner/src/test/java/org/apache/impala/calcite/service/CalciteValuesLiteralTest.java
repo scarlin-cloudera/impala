@@ -107,6 +107,12 @@ public class CalciteValuesLiteralTest extends FrontendTestBase {
     assertEquals("[3, 4]", constantRow("values ((1+2),4)"));
   }
 
+  /** Per-row aliases in Impala multi-row form, e.g. values((1 x), (2), (3)). */
+  @Test
+  public void aliasedRowsInImpalaDoubleParenValuesPlans() throws ImpalaException {
+    assertEquals("[1, 2, 3]", sorted(constantRow("values((1 x), (2), (3))")));
+  }
+
   /** The literals the physical plan holds for a single-row VALUES, as SQL. */
   private String constantRow(String sql) throws ImpalaException {
     return sqlOf(constantExprs(planNodeFor(sql)));
