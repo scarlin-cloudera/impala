@@ -101,6 +101,12 @@ public class CalciteValuesLiteralTest extends FrontendTestBase {
     assertEquals("[DATE '1970-01-01']", constantRow("values (date '1970-01-01')"));
   }
 
+  /** Parenthesized expression as the first column, e.g. values ((1+2), 4). */
+  @Test
+  public void parenthesizedExpressionAsFirstValuesColumnPlans() throws ImpalaException {
+    assertEquals("[3, 4]", constantRow("values ((1+2),4)"));
+  }
+
   /** The literals the physical plan holds for a single-row VALUES, as SQL. */
   private String constantRow(String sql) throws ImpalaException {
     return sqlOf(constantExprs(planNodeFor(sql)));

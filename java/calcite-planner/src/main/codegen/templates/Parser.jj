@@ -2411,7 +2411,92 @@ SqlNode ExplicitTable(SqlParserPos pos) :
 }
 
 /**
- * Parses one item in a select list.
+ * Parses a VALUES leaf query expression.
+ */
+SqlNode TableConstructor() :
+{
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    final List<SqlNode> outerList = new ArrayList<SqlNode>();
+    Span s = null;
+}
+{
+    (
+        <VALUES> { s = span(); }
+    )
+    <LPAREN>
+    (
+      // values ((1+2), 4): one row; the second and third "(" start a parenthesized
+      // expression, not Impala's per-row ((col1, col2), ...) syntax.
+      LOOKAHEAD({
+          getToken(1).kind == LPAREN
+          && getToken(2).kind == LPAREN
+          && getToken(3).kind == LPAREN
+      })
+      (
+        AddValuesRow(list, outerList, s)
+        <RPAREN>
+        (
+          <COMMA>
+          <LPAREN>
+          AddValuesRow(list, outerList, s)
+          <RPAREN>
+        )*
+      )
+    |
+      // Impala multi-row form, e.g. values((1, 2), (3, 4)).
+      LOOKAHEAD({
+          getToken(1).kind == LPAREN
+          && getToken(2).kind == LPAREN
+          && getToken(3).kind != LPAREN
+      })
+      (
+        <LPAREN>
+        AddValuesRow(list, outerList, s)
+        <RPAREN>
+        (
+          <COMMA>
+          <LPAREN>
+          AddValuesRow(list, outerList, s)
+          <RPAREN>
+        )*
+        [ <RPAREN> ]
+      )
+    |
+      (
+        AddValuesRow(list, outerList, s)
+        <RPAREN>
+        (
+          <COMMA>
+          <LPAREN>
+          AddValuesRow(list, outerList, s)
+          <RPAREN>
+        )*
+      )
+    )
+    {
+        return SqlStdOperatorTable.VALUES.createCall(s.end(this), outerList);
+    }
+}
+
+/** Parses one row of a VALUES expression and adds it to a list. */
+void AddValuesRow(List<SqlNode> list, List<SqlNode> outerList, Span s) :
+{
+    SqlNode last;
+    SqlNode row;
+}
+{
+    AddValuesItem(list)
+    ( <COMMA> AddValuesItem(list) )*
+    {
+        last = list.get(list.size() - 1);
+        row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
+        outerList.add(row);
+        list.clear();
+    }
+}
+
+/**
+ * Parses one item in a VALUES row.
  */
 void AddValuesItem(List<SqlNode> list) :
 {
@@ -2419,7 +2504,7 @@ void AddValuesItem(List<SqlNode> list) :
     final SqlIdentifier id;
 }
 {
-    e = Expression(ExprContext.ACCEPT_NON_QUERY)
+    e = Expression(ExprContext.ACCEPT_CURSOR)
     (
         [ <AS> ]
         (
@@ -2429,83 +2514,6 @@ void AddValuesItem(List<SqlNode> list) :
         { list.add(SqlStdOperatorTable.AS.createCall(span().end(e), e, id)); }
     |   { list.add(e); }
     )
-}
-
-/**
- * Parses a VALUES leaf query expression.
- */
-SqlNode TableConstructor() :
-{
-    final List<SqlNode> list = new ArrayList<SqlNode>();
-    final List<SqlNode> outerList = new ArrayList<SqlNode>();
-    Span s = null;
-    SqlNode e;
-    SqlNode row;
-    SqlNode last;
-}
-{
-    (
-        <VALUES> { s = span(); }
-    )
-    <LPAREN>
-    (
-      // Double parens version for Impala
-      (
-        <LPAREN>
-        AddValuesItem(list)
-        ( <COMMA> AddValuesItem(list) )*
-        <RPAREN>
-        {
-          last = list.get(list.size() - 1);
-          row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
-          outerList.add(row);
-          list.clear();
-        }
-        (
-          <COMMA>
-          <LPAREN>
-            AddValuesItem(list)
-            ( <COMMA> AddValuesItem(list) )*
-          <RPAREN>
-          {
-            last = list.get(list.size() - 1);
-            row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
-            outerList.add(row);
-            list.clear();
-          }
-        )*
-      <RPAREN>
-    )
-    |
-    (
-      // Single parens version
-      AddValuesItem(list)
-      ( <COMMA> AddValuesItem(list) )*
-      <RPAREN>
-      {
-        last = list.get(list.size() - 1);
-        row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
-        outerList.add(row);
-        list.clear();
-      }
-      (
-        <COMMA>
-        <LPAREN>
-          AddValuesItem(list)
-          ( <COMMA> AddValuesItem(list) )*
-        <RPAREN>
-        {
-          last = list.get(list.size() - 1);
-          row = SqlStdOperatorTable.ROW.createCall(s.end(last), list);
-          outerList.add(row);
-          list.clear();
-        }
-      )*
-    )
-    )
-    {
-        return SqlStdOperatorTable.VALUES.createCall(s.end(this), outerList);
-    }
 }
 
 /**
