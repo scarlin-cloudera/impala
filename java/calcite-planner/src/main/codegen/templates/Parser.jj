@@ -299,36 +299,6 @@ void debug_message1() {
     LOGGER.info("{} , {}", getToken(0).image, getToken(1).image);
 }
 
-/**
- * Returns true if the tokens after {@code VALUES (} look like Impala's
- * {@code values((row1), (row2))} form: a top-level {@code ) , (} sequence
- * between row parenthesis groups. This distinguishes that form from a single
- * row such as {@code values ((1+2), 4)}.
- */
-JAVACODE
-boolean valuesHasImpalaPerRowParenGroups() {
-    int depth = 0;
-    for (int i = 1;; i++) {
-        final Token t = getToken(i);
-        if (t.kind == EOF) {
-            return false;
-        }
-        if (t.kind == LPAREN) {
-            depth++;
-        } else if (t.kind == RPAREN) {
-            depth--;
-            if (depth == 0
-                && getToken(i + 1).kind == COMMA
-                && getToken(i + 2).kind == LPAREN) {
-                return true;
-            }
-            if (depth <= 0) {
-                return false;
-            }
-        }
-    }
-}
-
 JAVACODE String unquotedIdentifier() {
     return SqlParserUtil.toCase(getToken(0).image, unquotedCasing);
 }
@@ -2455,35 +2425,43 @@ SqlNode TableConstructor() :
     )
     <LPAREN>
     (
-      // Impala multi-row form, e.g. values((1 x), (2), (3)) or values((1, 2), (3)).
-      LOOKAHEAD({ valuesHasImpalaPerRowParenGroups() })
-      (
-        <LPAREN>
-        AddValuesRow(list, outerList, s)
-        <RPAREN>
-        (
-          <COMMA>
-          <LPAREN>
-          AddValuesRow(list, outerList, s)
-          <RPAREN>
-        )*
-        [ <RPAREN> ]
-      )
+      // values ((1+2), 4): "( (" then a parenthesized expression in the same row.
+      LOOKAHEAD(2) <LPAREN> <LPAREN>
+      AddValuesRow(list, outerList, s)
+      <RPAREN>
+      AddValuesMoreRows(list, outerList, s)
+      [ <RPAREN> ]
+    |
+      // values((1 x), (2)) or values((1, 2), (3, 4)): one "(" per row.
+      LOOKAHEAD({ getToken(1).kind == LPAREN
+          && getToken(2).kind != LPAREN })
+      <LPAREN>
+      AddValuesRow(list, outerList, s)
+      <RPAREN>
+      AddValuesMoreRows(list, outerList, s)
+      [ <RPAREN> ]
     |
       (
         AddValuesRow(list, outerList, s)
         <RPAREN>
-        (
-          <COMMA>
-          <LPAREN>
-          AddValuesRow(list, outerList, s)
-          <RPAREN>
-        )*
+        AddValuesMoreRows(list, outerList, s)
       )
     )
     {
         return SqlStdOperatorTable.VALUES.createCall(s.end(this), outerList);
     }
+}
+
+/** Parses additional parenthesized rows in a VALUES expression. */
+void AddValuesMoreRows(List<SqlNode> list, List<SqlNode> outerList, Span s) :
+{}
+{
+    (
+      <COMMA>
+      <LPAREN>
+      AddValuesRow(list, outerList, s)
+      <RPAREN>
+    )*
 }
 
 /** Parses one row of a VALUES expression and adds it to a list. */
