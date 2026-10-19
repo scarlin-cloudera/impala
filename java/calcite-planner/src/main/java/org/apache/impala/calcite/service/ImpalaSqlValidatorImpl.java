@@ -365,8 +365,14 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
     }
     if (fromNode instanceof SqlJoin) {
       SqlJoin joinNode = (SqlJoin) fromNode;
+      if (joinNode.getLeft() instanceof SqlJoin) {
+        throwIfValuesClauseBugPresent(joinNode.getLeft());
+      }
       if (joinNode.getLeft() instanceof SqlBasicCall) {
         throwIfValuesClauseBugPresentInternal((SqlBasicCall) joinNode.getLeft());
+      }
+      if (joinNode.getRight() instanceof SqlJoin) {
+        throwIfValuesClauseBugPresent(joinNode.getRight());
       }
       if (joinNode.getRight() instanceof SqlBasicCall) {
         throwIfValuesClauseBugPresentInternal((SqlBasicCall) joinNode.getRight());
