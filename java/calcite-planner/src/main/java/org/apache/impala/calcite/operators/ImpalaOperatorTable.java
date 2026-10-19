@@ -159,6 +159,13 @@ public class ImpalaOperatorTable extends ReflectiveSqlOperatorTable {
       }
     }
 
+    // The catalog_ variable is null for the operator table that handles builtins. So
+    // if the dbName is not null, just return here.  This case will be handled
+    // by the operator table object that handles when the database is supplied and can
+    // be fetched by catalog_.getDb(<dbName>)
+    if (dbName != null && catalog_ == null) {
+      return;
+    }
     FeDb dbToUse = (dbName == null || catalog_== null) ? db_ : catalog_.getDb(dbName);
     if (dbToUse == null) {
       dbToUse = db_;
