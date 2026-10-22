@@ -52,7 +52,6 @@ import org.apache.impala.catalog.FeView;
 import org.apache.impala.catalog.Function;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
-import org.apache.impala.common.ParseException;
 import org.apache.impala.common.UnsupportedFeatureException;
 import org.apache.impala.thrift.TQueryCtx;
 
@@ -228,7 +227,7 @@ public class CalciteAnalysisDriver implements AnalysisDriver {
    */
   private void registerPrivReqsInTables(Set<TableName> tableNamesInQuery,
       boolean shouldMaskPrivChecks, FeCatalog catalog, ImpalaSqlValidatorImpl validator)
-      throws ParseException, ImpalaException {
+      throws ImpalaException {
 
     for (TableName tableName : tableNamesInQuery) {
       FeTable feTable = registerTablePrivReq(tableName, catalog);

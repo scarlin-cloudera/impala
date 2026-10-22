@@ -77,8 +77,6 @@ public class ComplexTableDetector extends SqlShuttle {
       List<String> names = fromIdentifier.names;
       String table = names.get(names.size() - 1);
       if (names.size() > 1) {
-        String potentialTable = names.get(names.size() - 2).toLowerCase();
-        SqlIdentifier tableNameIdentifier = fromIdentifier;
         if (tableAndArrayColumnExists(names)) {
           complexTable_ = table;
         }
