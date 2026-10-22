@@ -46,6 +46,7 @@ import org.apache.impala.catalog.FeCatalog;
 import org.apache.impala.catalog.FeDb;
 import org.apache.impala.catalog.FeIcebergTable;
 import org.apache.impala.catalog.FeTable;
+import org.apache.impala.catalog.ScalarType;
 import org.apache.impala.common.AnalysisException;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.common.UnsupportedFeatureException;
@@ -304,11 +305,12 @@ public class CalciteMetadataHandler {
     }
   }
 
-  public static boolean anyTableContainsColumn(
+  public static boolean anyTableContainsUnsupportedColumn(
       StmtMetadataLoader.StmtTableCache stmtTableCache, String columnName) {
     String onlyColumnPart = columnName.split("\\.")[0];
     for (FeTable table : stmtTableCache.tables.values()) {
-      if (table.getColumn(onlyColumnPart) != null) {
+      if (table.getColumn(onlyColumnPart) != null &&
+          !(table.getColumn(onlyColumnPart).getType() instanceof ScalarType)) {
         return true;
       }
       for (Column c : table.getVirtualColumns()) {

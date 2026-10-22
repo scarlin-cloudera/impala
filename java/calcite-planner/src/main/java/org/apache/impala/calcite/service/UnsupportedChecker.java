@@ -104,7 +104,8 @@ public class UnsupportedChecker {
     // However, that case should be extremely rare, and the result would be that
     // the wrong error message will show up.
     if (m.matches()) {
-      if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
+      if (CalciteMetadataHandler.anyTableContainsUnsupportedColumn(
+          stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
             "Complex column " + m.group(1) + " not supported.");
       }
@@ -112,7 +113,8 @@ public class UnsupportedChecker {
 
     m = COLUMN_NOT_FOUND.matcher(s);
     if (m.matches()) {
-      if (CalciteMetadataHandler.anyTableContainsColumn(stmtTableCache, m.group(1))) {
+      if (CalciteMetadataHandler.anyTableContainsUnsupportedColumn(
+          stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
             "Complex column " + m.group(1) + " not supported.");
       }
