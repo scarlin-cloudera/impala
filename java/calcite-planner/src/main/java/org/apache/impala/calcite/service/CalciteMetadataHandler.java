@@ -307,14 +307,17 @@ public class CalciteMetadataHandler {
 
   public static boolean anyTableContainsUnsupportedColumn(
       StmtMetadataLoader.StmtTableCache stmtTableCache, String columnName) {
-    String onlyColumnPart = columnName.split("\\.")[0];
+    String onlyColumnPart = columnName.split("\\.")[0].toLowerCase();
+    if (onlyColumnPart.toLowerCase().equals("_file_row_id")) {
+      return true;
+    }
     for (FeTable table : stmtTableCache.tables.values()) {
       if (table.getColumn(onlyColumnPart) != null &&
           !(table.getColumn(onlyColumnPart).getType() instanceof ScalarType)) {
         return true;
       }
       for (Column c : table.getVirtualColumns()) {
-        if (c.getName().equals(onlyColumnPart.toLowerCase())) {
+        if (c.getName().equals(onlyColumnPart)) {
           return true;
         }
       }
