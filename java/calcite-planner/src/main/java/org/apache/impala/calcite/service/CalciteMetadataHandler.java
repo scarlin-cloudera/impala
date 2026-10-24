@@ -312,12 +312,17 @@ public class CalciteMetadataHandler {
       return true;
     }
     for (FeTable table : stmtTableCache.tables.values()) {
-      if (table.getColumn(onlyColumnPart) != null &&
-          !(table.getColumn(onlyColumnPart).getType() instanceof ScalarType)) {
-        return true;
+      Column c = table.getColumn(onlyColumnPart) ;
+      if (c != null) {
+        if (!(c.getType() instanceof ScalarType)) {
+          return true;
+        }
+        if (c.isHidden()) {
+          return true;
+        }
       }
-      for (Column c : table.getVirtualColumns()) {
-        if (c.getName().equals(onlyColumnPart)) {
+      for (Column c2 : table.getVirtualColumns()) {
+        if (c2.getName().equals(onlyColumnPart)) {
           return true;
         }
       }

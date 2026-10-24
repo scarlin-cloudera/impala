@@ -107,7 +107,7 @@ public class UnsupportedChecker {
       if (CalciteMetadataHandler.anyTableContainsUnsupportedColumn(
           stmtTableCache, m.group(1))) {
         throw new UnsupportedFeatureException(
-            "Complex column " + m.group(1) + " not supported.");
+            "Column " + m.group(1) + " not supported.");
       }
     }
 
