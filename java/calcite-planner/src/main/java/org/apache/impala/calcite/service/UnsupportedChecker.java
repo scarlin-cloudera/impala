@@ -118,10 +118,12 @@ public class UnsupportedChecker {
         throw new UnsupportedFeatureException(
             "Complex column " + m.group(1) + " not supported.");
       }
+      /*
       if (stmt.contains("`" + m.group(1) + "`")) {
         throw new UnsupportedFeatureException(
             "Backticks around column " + m.group(1) + " is not supported.");
       }
+      */
     }
 
     m = UNKNOWN_IDENTIFIER_ROW__ID.matcher(s);
