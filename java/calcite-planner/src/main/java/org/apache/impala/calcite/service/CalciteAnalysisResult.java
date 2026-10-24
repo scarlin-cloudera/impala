@@ -71,7 +71,7 @@ public class CalciteAnalysisResult extends AnalysisResult {
   }
 
   @Override
-  public boolean shouldFallbackBecauseOfException() {
-    return getException() instanceof UnsupportedFeatureException;
+  public boolean shouldFallbackBecauseOfException(ImpalaException exception) {
+    return exception instanceof UnsupportedFeatureException;
   }
 }

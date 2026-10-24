@@ -43,7 +43,7 @@ public class CalciteQueryParser implements CompilerStep {
     this.sqlStmt_ = stmt;
   }
 
-  public SqlNode parse() throws ParseException, ImpalaException {
+  public SqlNode parse() throws ImpalaException {
     try {
       // Create an SQL parser
       SqlParser parser = SqlParser.create(sqlStmt_,

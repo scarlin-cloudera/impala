@@ -2519,6 +2519,9 @@ public class Frontend {
         return request;
       } catch (Throwable e) {
         // If there is any kind of exception from the first planner, we hit this code.
+        // This exception could be any kind of exception, like an NPE or perhaps
+        // a planned "UnsupportedFeatureException" from something that isn't currently
+        // supported by the Calcite planner.
         error = e;
         attemptedPlanner = compilerFactory.getPlannerString();
         LOG.info(attemptedPlanner + " planner failed: {}", e.getClass());
@@ -2536,9 +2539,6 @@ public class Frontend {
 
     if (error instanceof ImpalaException) {
       throw (ImpalaException) error;
-    }
-    if (error instanceof InconsistentMetadataFetchException) {
-      throw (InconsistentMetadataFetchException) error;
     }
     throw new RuntimeException(error);
   }

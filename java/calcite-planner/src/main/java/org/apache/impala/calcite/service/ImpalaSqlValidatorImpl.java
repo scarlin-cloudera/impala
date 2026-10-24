@@ -110,6 +110,8 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
       SqlNode operand) {
     if (operand instanceof SqlDataTypeSpec) {
       SqlDataTypeSpec spec = (SqlDataTypeSpec) operand;
+      // Impala allows the type uuid, e.g.
+      // "SELECT CAST('12345678-1234-5678-1234-567812345678' AS UUID)"
       if (spec.getTypeName().names.get(0).toLowerCase().equals("uuid")) {
         throw new CalciteContextException("", new UnsupportedFeatureException(
             "Uuid type not supported yet."));
@@ -197,6 +199,9 @@ public class ImpalaSqlValidatorImpl extends SqlValidatorImpl {
             "Number of columns in with clause must match number of query columns"));
       }
     }
+    // After the above check, the Impala "with" validation is in sync with the
+    // Calcite "with" validation, so we can just call the Calcite version of
+    // validateWithItem().
     super.validateWithItem(withItem);
   }
 

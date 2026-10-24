@@ -471,7 +471,7 @@ public class AnalysisContext {
 
     // Only the Calcite planner has the potential of falling back because of
     // the type of Exception right now, when a feature is not supported in Calcite.
-    public boolean shouldFallbackBecauseOfException() {
+    public boolean shouldFallbackBecauseOfException(ImpalaException exception) {
       return false;
     }
   }
@@ -526,7 +526,8 @@ public class AnalysisContext {
     // Because of this, authorization cannot kick in properly for Calcite. By
     // throwing an unsupported feature exception, fallback will always get triggred,
     // and the original planner can then check for authorization on the table.
-    if (!disableAuthorization && !analysisResult_.shouldFallbackBecauseOfException()) {
+    if (!disableAuthorization &&
+        !analysisResult_.shouldFallbackBecauseOfException(analysisException)) {
       try {
         if (analysisResult_.getAnalyzer().encounteredMVAuthException()) {
           throw new AuthorizationException(
