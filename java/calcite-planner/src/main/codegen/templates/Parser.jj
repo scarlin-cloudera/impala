@@ -4451,6 +4451,9 @@ SqlNode AtomicRowExpression() :
     |
         e = DynamicParam()
     |
+        LOOKAHEAD(<EXTRACT> <LPAREN> TimeUnitOrName() <FROM>)
+        e = ExtractFromFunctionCall()
+    |
         LOOKAHEAD(2)
         e = BuiltinFunctionCall()
     |
@@ -6522,9 +6525,31 @@ SqlNode CursorExpression(ExprContext exprContext) :
     }
 }
 
-/**
- * Parses a call to a builtin function with special syntax.
- */
+/** Parses EXTRACT(unit FROM value) using Impala's two-argument function. */
+SqlNode ExtractFromFunctionCall() :
+{
+    final Span s;
+    final ImpalaSqlIntervalQualifier unit;
+    final SqlNode value;
+}
+{
+    <EXTRACT> { s = span(); }
+    <LPAREN>
+    unit = TimeUnitOrName()
+    <FROM>
+    value = Expression(ExprContext.ACCEPT_SUB_QUERY)
+    <RPAREN> {
+        final SqlParserPos pos = s.end(this);
+        final String unitName = unit.timeFrameName != null
+            ? unit.timeFrameName : unit.timeUnitRange.toString();
+        return createCall(new SqlIdentifier("extract", pos), pos,
+            SqlFunctionCategory.USER_DEFINED_FUNCTION, null,
+            ImmutableList.of(value,
+                SqlLiteral.createCharString(unitName, unit.getParserPosition())));
+    }
+}
+
+/** Parses a call to a builtin function with special syntax. */
 SqlNode BuiltinFunctionCall() :
 {
     final SqlIdentifier name;
