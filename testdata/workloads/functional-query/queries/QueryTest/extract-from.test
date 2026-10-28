@@ -1,0 +1,84 @@
+# Exercise both EXTRACT syntaxes for DATE, TIMESTAMP and NULL operands.
+====
+---- QUERY
+drop table if exists extract_input;
+create table extract_input (id int, d date, ts timestamp) stored as parquet;
+insert into extract_input values
+  (1,cast('2024-01-02' as date),cast('2024-01-02 03:04:00.123456' as timestamp)),
+  (2,NULL,NULL);
+====
+---- QUERY
+select extract(year from d) as year_part,
+  extract(month from d) as month_part,
+  extract(day from d) as day_part
+from $DATABASE.extract_input order by id;
+---- RESULTS
+2024,1,2
+NULL,NULL,NULL
+---- TYPES
+bigint, bigint, bigint
+---- LABELS
+year_part, month_part, day_part
+====
+---- QUERY
+select extract(year from ts) as year_part,
+  extract(month from ts) as month_part,
+  extract(day from ts) as day_part,
+  extract(hour from ts) as hour_part,
+  extract(minute from ts) as minute_part,
+  extract(second from ts) as second_part,
+  extract(millisecond from ts) as millisecond_part,
+  extract(quarter from ts) as quarter_part
+from $DATABASE.extract_input order by id;
+---- RESULTS
+2024,1,2,3,4,0,123,1
+NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+---- TYPES
+bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint
+---- LABELS
+year_part, month_part, day_part, hour_part, minute_part, second_part, millisecond_part, quarter_part
+====
+---- QUERY
+select extract(d, 'year') as year_part,
+  extract(d, 'month') as month_part,
+  extract(d, 'day') as day_part
+from $DATABASE.extract_input order by id;
+---- RESULTS
+2024,1,2
+NULL,NULL,NULL
+---- TYPES
+bigint, bigint, bigint
+---- LABELS
+year_part, month_part, day_part
+====
+---- QUERY
+select extract(ts, 'year') as year_part,
+  extract(ts, 'month') as month_part,
+  extract(ts, 'day') as day_part,
+  extract(ts, 'hour') as hour_part,
+  extract(ts, 'minute') as minute_part,
+  extract(ts, 'second') as second_part,
+  extract(ts, 'millisecond') as millisecond_part,
+  extract(ts, 'quarter') as quarter_part
+from $DATABASE.extract_input order by id;
+---- RESULTS
+2024,1,2,3,4,0,123,1
+NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
+---- TYPES
+bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint
+---- LABELS
+year_part, month_part, day_part, hour_part, minute_part, second_part, millisecond_part, quarter_part
+====
+---- QUERY
+select extract(year from coalesce(ts, cast('1999-12-31' as timestamp))) as year_part,
+  extract(month from cast(d as timestamp)) as month_part,
+  extract(year from cast(NULL as timestamp)) as null_part
+from $DATABASE.extract_input order by id;
+---- RESULTS
+2024,1,NULL
+1999,NULL,NULL
+---- TYPES
+bigint, bigint, bigint
+---- LABELS
+year_part, month_part, null_part
+====
