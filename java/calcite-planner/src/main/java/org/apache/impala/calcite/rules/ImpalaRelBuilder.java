@@ -26,10 +26,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 public class ImpalaRelBuilder extends RelBuilder {
-  protected static final Logger LOG = LoggerFactory.getLogger(ImpalaRelBuilder.class.getName());
   public ImpalaRelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
     super(context, cluster, relOptSchema);
@@ -45,10 +42,6 @@ public class ImpalaRelBuilder extends RelBuilder {
    */
   @Override
   public RexNode isDistinctFrom(RexNode operand0, RexNode operand1) {
-    if (operand0.getType().isStruct()) {
-      LOG.info("SJC: IN IS DISTINCT");
-      return super.isDistinctFrom(operand0, operand1);
-    }
     return getRexBuilder().makeCall(SqlStdOperatorTable.IS_DISTINCT_FROM, operand0,
         operand1);
   }
@@ -58,10 +51,6 @@ public class ImpalaRelBuilder extends RelBuilder {
    */
   @Override
   public RexNode isNotDistinctFrom(RexNode operand0, RexNode operand1) {
-    if (operand0.getType().isStruct()) {
-      LOG.info("SJC: IN NOT DISTINCT");
-      return super.isNotDistinctFrom(operand0, operand1);
-    }
     return getRexBuilder().makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, operand0,
         operand1);
   }
