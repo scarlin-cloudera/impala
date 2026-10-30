@@ -65,7 +65,8 @@ public class ImpalaCoreRules {
   // the rules here that use this NO_SIMPLIFY configuration.
   private static final RelBuilder.Config CONFIG_NO_SIMPLIFY =
       RelBuilder.Config.DEFAULT
-          .withSimplify(false);
+          .withSimplify(false)
+          .withAggregateUnique(true);
 
   public static final RelBuilderFactory LOGICAL_BUILDER_NO_SIMPLIFY =
       proto(Contexts.of(RelFactories.DEFAULT_FILTER_FACTORY, RelFactories.DEFAULT_STRUCT,
