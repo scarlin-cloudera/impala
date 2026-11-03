@@ -117,7 +117,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -141,7 +141,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -162,7 +162,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=32B cardinality=360.00K cost=113796
@@ -396,7 +396,7 @@ max-parallelism=180 segment-costs=[1705557306, 825868381] cpu-comparison-result=
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -450,7 +450,7 @@ max-parallelism=180 segment-costs=[1705557306, 825868381] cpu-comparison-result=
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -488,7 +488,7 @@ max-parallelism=180 segment-costs=[1705557306, 825868381] cpu-comparison-result=
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=32B cardinality=360.00K cost=113796
@@ -764,7 +764,7 @@ max-parallelism=240 segment-costs=[2354978207]
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -818,7 +818,7 @@ max-parallelism=240 segment-costs=[2354978207]
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IN (CAST(2 AS INT), CAST(3 AS INT), CAST(5 AS INT), CAST(7 AS INT), CAST(11 AS INT), CAST(13 AS INT), CAST(17 AS INT), CAST(19 AS INT), CAST(23 AS INT), CAST(29 AS INT))
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -856,7 +856,7 @@ max-parallelism=240 segment-costs=[2354978207]
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=32B cardinality=360.00K cost=113796

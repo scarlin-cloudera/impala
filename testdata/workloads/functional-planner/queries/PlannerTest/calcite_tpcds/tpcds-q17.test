@@ -139,7 +139,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=12 row-size=145B cardinality=360.00K cost=635303
@@ -227,7 +227,7 @@ PLAN-ROOT SINK
 |       table: rows=8.64G size=389.90GB
 |       partitions: 1823/1823 rows=8.25G
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=91(filtered from 1823)
+|     extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=91(filtered from 1823)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_ticket_number IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=28B cardinality=64.48M(filtered from 7.70G) cost=212211224
@@ -422,7 +422,7 @@ max-parallelism=60 segment-costs=[555988555, 373496680] cpu-comparison-result=15
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=12 row-size=145B cardinality=360.00K cost=635303
@@ -580,7 +580,7 @@ max-parallelism=60 segment-costs=[555988555, 373496680] cpu-comparison-result=15
 |       table: rows=8.64G size=389.90GB
 |       partitions: 1823/1823 rows=8.25G
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=91(filtered from 1823)
+|     extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=91(filtered from 1823)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_ticket_number IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=28B cardinality=64.48M(filtered from 7.70G) cost=212211224
@@ -801,7 +801,7 @@ max-parallelism=60 segment-costs=[555988555, 373496680] cpu-comparison-result=15
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=12 row-size=145B cardinality=360.00K cost=635303
@@ -959,7 +959,7 @@ max-parallelism=60 segment-costs=[555988555, 373496680] cpu-comparison-result=15
 |       table: rows=8.64G size=389.90GB
 |       partitions: 1823/1823 rows=8.25G
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=91(filtered from 1823)
+|     extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=91(filtered from 1823)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_ticket_number IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=28B cardinality=64.48M(filtered from 7.70G) cost=212211224

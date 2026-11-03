@@ -199,7 +199,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_4.i_category = 'Electronics'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_4.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_4.i_manufact_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -221,7 +221,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_3.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_3.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=29 row-size=8B cardinality=359.10K cost=61704
@@ -310,7 +310,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_category = 'Electronics'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_2.i_manufact_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -332,7 +332,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=17 row-size=8B cardinality=359.10K cost=61704
@@ -415,7 +415,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_category = 'Electronics'
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_0.i_manufact_id IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -437,7 +437,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=8B cardinality=359.10K cost=61704
@@ -494,7 +494,7 @@ PLAN-ROOT SINK
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=16B cardinality=466.49M(filtered from 7.88G) cost=139995472
@@ -682,7 +682,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_4.i_category = 'Electronics'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_4.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_4.i_manufact_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -721,7 +721,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_3.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_3.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=29 row-size=8B cardinality=359.10K cost=61704
@@ -877,7 +877,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_category = 'Electronics'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_2.i_manufact_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -916,7 +916,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=17 row-size=8B cardinality=359.10K cost=61704
@@ -1066,7 +1066,7 @@ max-parallelism=60 segment-costs=[562376873, 207079] cpu-comparison-result=60 [m
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_category = 'Electronics'
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_0.i_manufact_id IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -1106,7 +1106,7 @@ max-parallelism=60 segment-costs=[562376873, 207079] cpu-comparison-result=60 [m
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=8B cardinality=359.10K cost=61704
@@ -1197,7 +1197,7 @@ max-parallelism=60 segment-costs=[562376873, 207079] cpu-comparison-result=60 [m
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=16B cardinality=466.49M(filtered from 7.88G) cost=139995472
@@ -1385,7 +1385,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_4.i_category = 'Electronics'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_4.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_4.i_manufact_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -1424,7 +1424,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_3.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_3.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=29 row-size=8B cardinality=359.10K cost=61704
@@ -1580,7 +1580,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_category = 'Electronics'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_2.i_manufact_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -1619,7 +1619,7 @@ max-parallelism=60 segment-costs=[59409, 59409, 59409, 8325, 5176] cpu-compariso
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=17 row-size=8B cardinality=359.10K cost=61704
@@ -1769,7 +1769,7 @@ max-parallelism=60 segment-costs=[562376873, 207079] cpu-comparison-result=60 [m
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_category = 'Electronics'
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_category = 'Electronics', tpcds_partitioned_parquet_snap.item_0.i_manufact_id IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -1809,7 +1809,7 @@ max-parallelism=60 segment-costs=[562376873, 207079] cpu-comparison-result=60 [m
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=8B cardinality=359.10K cost=61704
@@ -1900,7 +1900,7 @@ max-parallelism=60 segment-costs=[562376873, 207079] cpu-comparison-result=60 [m
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=16B cardinality=466.49M(filtered from 7.88G) cost=139995472

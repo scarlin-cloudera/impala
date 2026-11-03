@@ -215,7 +215,7 @@ PLAN-ROOT SINK
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |  |     tuple-ids=34 row-size=50B cardinality=360.00K cost=145233
@@ -319,7 +319,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=19 row-size=50B cardinality=360.00K cost=145233
@@ -423,7 +423,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=50B cardinality=360.00K cost=145233
@@ -734,7 +734,7 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |  |     tuple-ids=34 row-size=50B cardinality=360.00K cost=145233
@@ -913,7 +913,7 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=19 row-size=50B cardinality=360.00K cost=145233
@@ -1100,7 +1100,7 @@ max-parallelism=99 segment-costs=[1576556032, 1312093920] cpu-comparison-result=
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=50B cardinality=360.00K cost=145233
@@ -1428,7 +1428,7 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |  |     tuple-ids=34 row-size=50B cardinality=360.00K cost=145233
@@ -1607,7 +1607,7 @@ max-parallelism=11740 segment-costs=[117321219739, 408] cpu-comparison-result=29
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=19 row-size=50B cardinality=360.00K cost=145233
@@ -1794,7 +1794,7 @@ max-parallelism=99 segment-costs=[1576556032, 1312093920] cpu-comparison-result=
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=50B cardinality=360.00K cost=145233

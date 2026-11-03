@@ -232,7 +232,7 @@ PLAN-ROOT SINK
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_4.i_color IN ('gainsboro', 'lace', 'tan')
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_4.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_4.i_item_id IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -246,7 +246,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_3.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_3.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=29 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -350,7 +350,7 @@ PLAN-ROOT SINK
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_color IN ('gainsboro', 'lace', 'tan')
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_2.i_item_id IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -364,7 +364,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=16 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -462,7 +462,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('gainsboro', 'lace', 'tan')
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_0.i_item_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -476,7 +476,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -512,7 +512,7 @@ PLAN-ROOT SINK
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=16B cardinality=466.49M(filtered from 7.88G) cost=139995472
@@ -788,7 +788,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_4.i_color IN ('gainsboro', 'lace', 'tan')
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_4.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_4.i_item_id IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -802,7 +802,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_3.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_3.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=29 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -1005,7 +1005,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_color IN ('gainsboro', 'lace', 'tan')
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_2.i_item_id IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -1019,7 +1019,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=16 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -1216,7 +1216,7 @@ max-parallelism=50 segment-costs=[489792473, 13955253] cpu-comparison-result=50 
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('gainsboro', 'lace', 'tan')
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_0.i_item_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -1230,7 +1230,7 @@ max-parallelism=50 segment-costs=[489792473, 13955253] cpu-comparison-result=50 
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -1283,7 +1283,7 @@ max-parallelism=50 segment-costs=[489792473, 13955253] cpu-comparison-result=50 
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=16B cardinality=466.49M(filtered from 7.88G) cost=139995472
@@ -1567,7 +1567,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_4.i_color IN ('gainsboro', 'lace', 'tan')
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_4.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_4.i_item_id IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -1581,7 +1581,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_3.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_3.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=29 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -1784,7 +1784,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_color IN ('gainsboro', 'lace', 'tan')
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_2.i_item_id IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -1798,7 +1798,7 @@ max-parallelism=50 segment-costs=[3009167, 1914295, 1228691, 1605767, 1853359] c
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item_1.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=16 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -1995,7 +1995,7 @@ max-parallelism=50 segment-costs=[489792473, 13955253] cpu-comparison-result=50 
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('gainsboro', 'lace', 'tan')
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('gainsboro', 'lace', 'tan'), tpcds_partitioned_parquet_snap.item_0.i_item_id IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -2009,7 +2009,7 @@ max-parallelism=50 segment-costs=[489792473, 13955253] cpu-comparison-result=50 
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_item_id IS NOT NULL, tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=4 row-size=32B cardinality=22.77K(filtered from 360.00K) cost=123912
@@ -2062,7 +2062,7 @@ max-parallelism=50 segment-costs=[489792473, 13955253] cpu-comparison-result=50 
      table: rows=8.64G size=389.90GB
      partitions: 1823/1823 rows=8.25G
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=12.31M est-scan-range=108(filtered from 1823)
+   extrapolated-rows=disabled max-scan-range-rows=12.22M est-scan-range=108(filtered from 1823)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=16B cardinality=466.49M(filtered from 7.88G) cost=139995472

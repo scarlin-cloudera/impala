@@ -166,7 +166,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=24 row-size=62B cardinality=360.00K cost=144396
@@ -309,7 +309,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_color = 'beige'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_color = 'beige', tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -591,7 +591,7 @@ max-parallelism=10 segment-costs=[725295, 40883, 24001] cpu-comparison-result=30
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=24 row-size=62B cardinality=360.00K cost=144396
@@ -878,7 +878,7 @@ max-parallelism=50 segment-costs=[420163999, 1066398] cpu-comparison-result=130 
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_color = 'beige'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_color = 'beige', tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -1212,7 +1212,7 @@ max-parallelism=10 segment-costs=[725295, 40883, 24001] cpu-comparison-result=30
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=24 row-size=62B cardinality=360.00K cost=144396
@@ -1499,7 +1499,7 @@ max-parallelism=50 segment-costs=[420163999, 1066398] cpu-comparison-result=130 
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_color = 'beige'
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_color = 'beige', tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0

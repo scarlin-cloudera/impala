@@ -667,7 +667,7 @@ PLAN-ROOT SINK
 |  |  |  |     stored statistics:
 |  |  |  |       table: rows=360.00K size=33.54MB
 |  |  |  |       columns: all
-|  |  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item_0.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_current_price >= CAST(76.00 AS DECIMAL(7,2))
 |  |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item_0.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_current_price >= CAST(76.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -683,7 +683,7 @@ PLAN-ROOT SINK
 |  |  |       table: rows=8.64G size=389.90GB
 |  |  |       partitions: 1823/1823 rows=8.25G
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=12.31M
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=12.22M
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales_0.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_cdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_promo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_hdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_ticket_number IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |  |     tuple-ids=44 row-size=52B cardinality=170.04M(filtered from 7.37G) cost=8031921375
@@ -1071,7 +1071,7 @@ PLAN-ROOT SINK
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(76.00 AS DECIMAL(7,2))
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(76.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -1087,7 +1087,7 @@ PLAN-ROOT SINK
 |  |       table: rows=8.64G size=389.90GB
 |  |       partitions: 1823/1823 rows=8.25G
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=12.31M
+|  |     extrapolated-rows=disabled max-scan-range-rows=12.22M
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_cdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_promo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_hdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_ticket_number IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=4 row-size=52B cardinality=170.04M(filtered from 7.37G) cost=8031921375
@@ -2053,7 +2053,7 @@ max-parallelism=30 segment-costs=[261869530, 141112200] cpu-comparison-result=10
 |  |  |  |     stored statistics:
 |  |  |  |       table: rows=360.00K size=33.54MB
 |  |  |  |       columns: all
-|  |  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item_0.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_current_price >= CAST(76.00 AS DECIMAL(7,2))
 |  |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item_0.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_current_price >= CAST(76.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -2069,7 +2069,7 @@ max-parallelism=30 segment-costs=[261869530, 141112200] cpu-comparison-result=10
 |  |  |       table: rows=8.64G size=389.90GB
 |  |  |       partitions: 1823/1823 rows=8.25G
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=12.31M
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=12.22M
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales_0.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_cdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_promo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_hdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_ticket_number IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |  |     tuple-ids=44 row-size=52B cardinality=170.04M(filtered from 7.37G) cost=8031921375
@@ -2844,7 +2844,7 @@ max-parallelism=50 segment-costs=[475953592]
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(76.00 AS DECIMAL(7,2))
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(76.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -2860,7 +2860,7 @@ max-parallelism=50 segment-costs=[475953592]
 |  |       table: rows=8.64G size=389.90GB
 |  |       partitions: 1823/1823 rows=8.25G
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=12.31M
+|  |     extrapolated-rows=disabled max-scan-range-rows=12.22M
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_cdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_promo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_hdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_ticket_number IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=4 row-size=52B cardinality=170.04M(filtered from 7.37G) cost=8031921375
@@ -3843,7 +3843,7 @@ max-parallelism=30 segment-costs=[261869530, 141112200] cpu-comparison-result=10
 |  |  |  |     stored statistics:
 |  |  |  |       table: rows=360.00K size=33.54MB
 |  |  |  |       columns: all
-|  |  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item_0.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_current_price >= CAST(76.00 AS DECIMAL(7,2))
 |  |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item_0.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_current_price >= CAST(76.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item_0.i_item_sk IS NOT NULL
 |  |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -3859,7 +3859,7 @@ max-parallelism=30 segment-costs=[261869530, 141112200] cpu-comparison-result=10
 |  |  |       table: rows=8.64G size=389.90GB
 |  |  |       partitions: 1823/1823 rows=8.25G
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=12.31M
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=12.22M
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales_0.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_cdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_promo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_hdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales_0.ss_ticket_number IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |  |     tuple-ids=44 row-size=52B cardinality=170.04M(filtered from 7.37G) cost=8031921375
@@ -4634,7 +4634,7 @@ max-parallelism=50 segment-costs=[475953592]
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(76.00 AS DECIMAL(7,2))
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_color IN ('almond', 'chocolate', 'drab', 'misty', 'peach', 'saddle'), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(85.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(76.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -4650,7 +4650,7 @@ max-parallelism=50 segment-costs=[475953592]
 |  |       table: rows=8.64G size=389.90GB
 |  |       partitions: 1823/1823 rows=8.25G
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=12.31M
+|  |     extrapolated-rows=disabled max-scan-range-rows=12.22M
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.store_sales.ss_customer_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_cdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_promo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_hdemo_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_addr_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_store_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_item_sk IS NOT NULL, tpcds_partitioned_parquet_snap.store_sales.ss_ticket_number IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=4 row-size=52B cardinality=170.04M(filtered from 7.37G) cost=8031921375

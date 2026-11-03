@@ -114,7 +114,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_2.i_manufact_id >= CAST(732 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_2.i_manufact_id >= CAST(732 AS INT)
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -139,7 +139,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_1.i_manufact_id >= CAST(732 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_1.i_manufact_id >= CAST(732 AS INT)
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -173,7 +173,7 @@ PLAN-ROOT SINK
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact_id >= CAST(732 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact_id >= CAST(732 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -187,7 +187,7 @@ PLAN-ROOT SINK
    stored statistics:
      table: rows=360.00K size=33.54MB
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=101.54K
+   extrapolated-rows=disabled max-scan-range-rows=101.53K
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact IS NOT NULL
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
    tuple-ids=0 row-size=91B cardinality=178 cost=181456
@@ -361,7 +361,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact_id >= CAST(732 AS INT)
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact_id >= CAST(732 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -384,7 +384,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=0 row-size=91B cardinality=178 cost=181456
@@ -416,7 +416,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_1.i_manufact_id >= CAST(732 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_1.i_manufact_id >= CAST(732 AS INT)
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -429,7 +429,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
    stored statistics:
      table: rows=360.00K size=33.54MB
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=101.54K
+   extrapolated-rows=disabled max-scan-range-rows=101.53K
    parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_2.i_manufact_id >= CAST(732 AS INT)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_2.i_manufact_id >= CAST(732 AS INT)
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -604,7 +604,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
 |  |  |     stored statistics:
 |  |  |       table: rows=360.00K size=33.54MB
 |  |  |       columns: all
-|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_0.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact_id >= CAST(732 AS INT)
 |  |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_0.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact_id >= CAST(732 AS INT), tpcds_partitioned_parquet_snap.item_0.i_manufact IS NOT NULL
 |  |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -627,7 +627,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=0 row-size=91B cardinality=178 cost=181456
@@ -659,7 +659,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
 |     stored statistics:
 |       table: rows=360.00K size=33.54MB
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_1.i_manufact_id >= CAST(732 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_1.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_1.i_manufact_id >= CAST(732 AS INT)
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -672,7 +672,7 @@ max-parallelism=4 segment-costs=[6114355, 99346] cpu-comparison-result=12 [max(4
    stored statistics:
      table: rows=360.00K size=33.54MB
      columns: all
-   extrapolated-rows=disabled max-scan-range-rows=101.54K
+   extrapolated-rows=disabled max-scan-range-rows=101.53K
    parquet statistics predicates: tpcds_partitioned_parquet_snap.item_2.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_2.i_manufact_id >= CAST(732 AS INT)
    parquet dictionary predicates: tpcds_partitioned_parquet_snap.item_2.i_manufact_id <= CAST(772 AS INT), tpcds_partitioned_parquet_snap.item_2.i_manufact_id >= CAST(732 AS INT)
    mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
