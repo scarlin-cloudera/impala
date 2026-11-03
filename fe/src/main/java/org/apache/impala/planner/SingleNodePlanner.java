@@ -2494,7 +2494,7 @@ public class SingleNodePlanner implements SingleNodePlannerIntf {
   }
 
   @Override
-  public boolean allowPlannerToInvertCheaperJoin() {
+  public boolean allowPlannerToInvertCheaperJoin(JoinNode joinNode, boolean isLocal) {
     return true;
   }
 }

@@ -20,6 +20,7 @@ package org.apache.impala.planner;
 import org.apache.impala.analysis.ExprSubstitutionMap;
 import org.apache.impala.analysis.ParsedStatement;
 import org.apache.impala.common.ImpalaException;
+import org.apache.impala.planner.JoinNode;
 import org.apache.impala.thrift.TResultSetMetadata;
 
 import java.util.List;
@@ -60,5 +61,5 @@ public interface SingleNodePlannerIntf {
    * For Calcite planner, this will be set to false since the join ordering is
    * determined at optimization time and should not be checked again.
    */
-  boolean allowPlannerToInvertCheaperJoin();
+  boolean allowPlannerToInvertCheaperJoin(JoinNode joinNode, boolean isLocal);
 }

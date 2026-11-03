@@ -31,6 +31,7 @@ import org.apache.impala.calcite.rel.node.ImpalaPlanRel;
 import org.apache.impala.calcite.rel.node.NodeWithExprs;
 import org.apache.impala.common.ImpalaException;
 import org.apache.impala.planner.DataSink;
+import org.apache.impala.planner.JoinNode;
 import org.apache.impala.planner.PlanNode;
 import org.apache.impala.planner.PlanRootSink;
 import org.apache.impala.planner.PlannerContext;
@@ -171,7 +172,16 @@ public class CalciteSingleNodePlanner implements SingleNodePlannerIntf {
   }
 
   @Override
-  public boolean allowPlannerToInvertCheaperJoin() {
-    return false;
+  public boolean allowPlannerToInvertCheaperJoin(JoinNode joinNode, boolean isLocalPlan) {
+    // Calcite has already determined the logical join ordering based on cost
+    // optimization. However, there may be some aspects of the physical plan where
+    // inverting the join would improve the perfomance of the plan.
+    //
+    // The overly simplified criteria we use here is based on if there
+    // are more nodes on the right child versus the left child. In this case, the caller
+    // will proceed with the check to see if join inversion should b done.
+    return !isLocalPlan
+        && joinNode.getChild(0).getNumNodes() > 0
+        && joinNode.getChild(0).getNumNodes() < joinNode.getChild(1).getNumNodes();
   }
 }

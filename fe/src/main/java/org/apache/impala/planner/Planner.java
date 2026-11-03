@@ -151,8 +151,7 @@ public class Planner {
     checkForSmallQueryOptimization(singleNodePlan);
 
     // Join rewrites.
-    invertJoins(singleNodePlan, ctx_.isSingleNodeExec(),
-        singleNodePlannerIntf_.allowPlannerToInvertCheaperJoin());
+    invertJoins(singleNodePlan, ctx_.isSingleNodeExec());
     singleNodePlan = useNljForSingularRowBuilds(singleNodePlan, ctx_.getRootAnalyzer());
 
     if(ctx_.isMerge()) {
@@ -1037,14 +1036,14 @@ public class Planner {
    * cheaper plan when true. This is avoided when the Calcite planner is used since
    * it already determined the join ordering in the optimization phase.
    */
-  public static void invertJoins(PlanNode root, boolean isLocalPlan,
-      boolean shouldCheckForInvertJoinCost) {
+  public void invertJoins(PlanNode root, boolean isLocalPlan) {
+  
     if (root instanceof SubplanNode) {
-      invertJoins(root.getChild(0), isLocalPlan, shouldCheckForInvertJoinCost);
-      invertJoins(root.getChild(1), true, shouldCheckForInvertJoinCost);
+      invertJoins(root.getChild(0), isLocalPlan);
+      invertJoins(root.getChild(1), true);
     } else {
       for (PlanNode child: root.getChildren()) {
-        invertJoins(child, isLocalPlan, shouldCheckForInvertJoinCost);
+        invertJoins(child, isLocalPlan);
       }
     }
 
@@ -1074,7 +1073,8 @@ public class Planner {
         // The current join is a distributed non-equi right outer or semi join
         // which has no backend support. Invert the join to make it executable.
         joinNode.invertJoin();
-      } else if (shouldCheckForInvertJoinCost) {
+      } else if (singleNodePlannerIntf_.allowPlannerToInvertCheaperJoin(
+          joinNode, isLocalPlan)) {
         // IMPALA-15196: Calcite plan should avoid the invert joins in its
         // optimization phase that are related to costs since it has already
         // been evaluated.
