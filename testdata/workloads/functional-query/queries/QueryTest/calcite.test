@@ -1557,3 +1557,18 @@ SMALLINT, TINYINT
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+select
+'a\\' like 'a\\%',
+'a\\' like 'a\\%%',
+'a\%' like 'a\\%',
+'a\%' like 'a\\%%',
+'a%' like 'a\\%',
+'a%' like 'a\\%%';
+---- TYPES
+BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN, BOOLEAN
+---- RESULTS
+false,true,false,true,true,false
+---- RUNTIME_PROFILE
+row_regex: PlannerType: CalcitePlanner
+====
