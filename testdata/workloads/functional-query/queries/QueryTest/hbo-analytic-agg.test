@@ -31,6 +31,35 @@ PLAN-ROOT SINK
    HDFS partitions=2/24 files=2 size=40.32KB
    predicates: string_col != 'test_agg_over_analytic'
    row-size=21B cardinality=620 (from HBO)
+---- CALCITE_PLANNER_PLAN
+# The plan for the Calcite planner has a smaller row-size
+# because the "month" has been stripped out (it is only used
+# in the partition predicate).
+PLAN-ROOT SINK
+|
+03:AGGREGATE [FINALIZE]
+|  output: count()
+|  group by: mod(rank(), 10)
+|  row-size=16B cardinality=10 (from HBO)
+|
+02:ANALYTIC
+|  functions: rank()
+|  order by: id ASC
+|  window: RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+|  row-size=25B cardinality=620
+|
+04:MERGING-EXCHANGE [UNPARTITIONED]
+|  order by: id ASC NULLS LAST
+|
+01:SORT
+|  order by: id ASC NULLS LAST
+|  row-size=17B cardinality=620
+|
+00:SCAN HDFS [functional.alltypes]
+   partition predicates: functional.alltypes.month = 1
+   HDFS partitions=2/24 files=2 size=40.32KB
+   predicates: functional.alltypes.string_col != 'test_agg_over_analytic'
+   row-size=17B cardinality=620 (from HBO)
 ====
 ---- QUERY
 EXPLAIN select count(*), rnk % 10 from
@@ -64,4 +93,33 @@ PLAN-ROOT SINK
    HDFS partitions=2/24 files=2 size=36.51KB
    predicates: string_col != 'test_agg_over_analytic'
    row-size=21B cardinality=620 (from HBO, key ignores partition constants)
+---- CALCITE_PLANNER_PLAN
+# The plan for the Calcite planner has a smaller row-size
+# because the "month" has been stripped out (it is only used
+# in the partition predicate).
+PLAN-ROOT SINK
+|
+03:AGGREGATE [FINALIZE]
+|  output: count()
+|  group by: mod(rank(), 10)
+|  row-size=16B cardinality=10 (from HBO, key ignores partition constants)
+|
+02:ANALYTIC
+|  functions: rank()
+|  order by: id ASC
+|  window: RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+|  row-size=25B cardinality=620
+|
+04:MERGING-EXCHANGE [UNPARTITIONED]
+|  order by: id ASC NULLS LAST
+|
+01:SORT
+|  order by: id ASC NULLS LAST
+|  row-size=17B cardinality=620
+|
+00:SCAN HDFS [functional.alltypes]
+   partition predicates: functional.alltypes.month = 2
+   HDFS partitions=2/24 files=2 size=36.51KB
+   predicates: functional.alltypes.string_col != 'test_agg_over_analytic'
+   row-size=17B cardinality=620 (from HBO, key ignores partition constants)
 ====
