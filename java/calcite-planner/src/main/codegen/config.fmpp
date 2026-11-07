@@ -36,6 +36,7 @@ parser: {
   # List of keywords from "keywords" section that are not reserved.
   nonReservedKeywords: [
     "A"
+    "ABS"
     "ABSENT"
     "ABSOLUTE"
     "ACTION"
