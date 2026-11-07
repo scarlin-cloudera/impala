@@ -121,6 +121,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SourceStringReader;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
+import org.apache.impala.analysis.NumericLiteral;
 import org.apache.impala.analysis.Parser;
 import org.apache.impala.analysis.SelectStmt;
 import org.apache.impala.analysis.TimeTravelSpec;
@@ -133,7 +134,9 @@ import org.apache.impala.calcite.operators.ImpalaConcatOrOperator;
 import org.apache.impala.calcite.operators.ImpalaOperator;
 import org.apache.impala.calcite.operators.ImpalaSqlNumericLiteral;
 import org.apache.impala.catalog.ScalarType;
+import org.apache.impala.catalog.Type;
 import org.apache.impala.common.AnalysisException;
+import org.apache.impala.common.SqlCastException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -150,6 +153,8 @@ import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * SQL parser, generated from Parser.jj by JavaCC.
  *
@@ -157,6 +162,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class ${parser.class} extends SqlAbstractParserImpl
 {
+  protected static final Logger LOG = LoggerFactory.getLogger(SqlAbstractParserImpl.class.getName());
     private static final Logger LOGGER = CalciteTrace.getParserTracer();
 
     // Can't use quoted literal because of a bug in how JavaCC translates
@@ -4796,8 +4802,15 @@ final String p;
 |
     <APPROX_NUMERIC_LITERAL> {
         BigDecimal bd = new BigDecimal(token.image);
-        ScalarType t = (ScalarType) TypesUtil.computeDecimalType(bd);
-        return new ImpalaSqlNumericLiteral(bd, t, getPos());
+        try {
+          ScalarType t = NumericLiteral.inferType(bd);
+          return t.isDecimal()
+              ? new ImpalaSqlNumericLiteral(bd, t, getPos())
+              : SqlLiteral.createApproxNumeric(token.image, getPos());
+        } catch (SqlCastException e) {
+          throw new RuntimeException("Error deriving approximate literal:" +
+              token.image);
+        }
     }
 }
 
