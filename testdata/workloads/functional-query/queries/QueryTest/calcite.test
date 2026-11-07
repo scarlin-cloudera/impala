@@ -1673,3 +1673,10 @@ TINYINT
 ---- RUNTIME_PROFILE
 row_regex: PlannerType: CalcitePlanner
 ====
+---- QUERY
+select 1e-46
+---- RESULTS
+1e-46
+---- TYPES
+DOUBLE
+====
