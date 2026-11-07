@@ -223,8 +223,9 @@ public class CoerceNodes{
       isInputChanged = true;
       List<RexNode> changedList =
           processRexNodes(sort, inputs, ImmutableList.of(sort.fetch));
-      Preconditions.checkNotNull(changedList);
-      newFetch = changedList.get(0);
+      if (changedList != null) {
+        newFetch = changedList.get(0);
+      }
     }
     if (newFetch != null && !SqlTypeUtil.isIntType(newFetch.getType())) {
       throw new RuntimeException("LIMIT expression must be an integer type.");
@@ -233,8 +234,9 @@ public class CoerceNodes{
       isInputChanged = true;
       List<RexNode> changedList =
           processRexNodes(sort, inputs, ImmutableList.of(sort.offset));
-      Preconditions.checkNotNull(changedList);
-      newOffset = changedList.get(0);
+      if (changedList != null) {
+        newOffset = changedList.get(0);
+      }
     }
     if (newOffset != null && !SqlTypeUtil.isIntType(newOffset.getType())) {
       throw new RuntimeException("OFFSET expression must be an integer type.");
