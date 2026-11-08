@@ -20,17 +20,13 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import java.util.regex.Pattern;
 /**
  * ImpalaRexSimplify extends the RexSimplify class in order to 'simplify' expressions.
  * The extension of the "simplify" method catches the double and float types used in
@@ -60,55 +56,9 @@ public class ImpalaRexSimplify extends RexSimplify {
     if (hasApproximateTypeIssues(rexNode)) {
       return rexNode;
     }
-
     return isFilter
         ? super.simplifyUnknownAs(rexNode, RexUnknownAs.FALSE)
         : super.simplify(rexNode);
-  }
-
-  @Override
-  public RexNode simplifyUnknownAs(RexNode rexNode, RexUnknownAs unknownAs) {
-    // Override the simplify for the LIKE command (see comment for simplifyLike)
-    return rexNode.getKind() == SqlKind.LIKE
-        ? simplifyLike(rexNode, unknownAs)
-        : super.simplifyUnknownAs(rexNode, unknownAs);
-  }
-
-  /**
-   * simplifyLike is overridden because it is not working properly for Impala.
-   * The following expression causes a problem because of Calcite's simplification.
-   * 'a\\' like 'a\\%%';
-   * The Calcite simplification code treats multiple adjacent percentage signs as
-   * redundant and removes all but one. So Calcite changes this expression to
-   * 'a\\' like 'a\\%';
-   * However, this simplification changes the return value for Impala. Impala will
-   * treat this like expression as an escaped  percentage character,
-   * i.e. 'a\%'.  The percentage sign here is not treated as a wildcard and Impala
-   * returns false for 'a\\' like 'a\\%'.
-   * Because the simplification changes values, we cannot use the Calcite simplification
-   * code. To keep the code simple for this edge case, if we see that the like clause
-   * contains a percentage sign, no further simplification is done on the like
-   * expression.
-   */
-  private RexNode simplifyLike(RexNode rexNode, RexUnknownAs unknownAs) {
-    RexCall rexCall = (RexCall) rexNode;
-    if (rexCall.getOperands().get(1) instanceof RexLiteral) {
-      final RexLiteral literal = (RexLiteral) rexCall.getOperands().get(1);
-      String likeStr = literal.getValueAs(String.class);
-      Pattern pattern = Pattern.compile("%+");
-      String value = pattern.matcher(likeStr).replaceAll("%");
-      // This simplification was copied from Calcite's simplifyLike
-      if ("%".equals(value)) {
-        // "x LIKE '%'" or "x LIKE '%...'" simplifies to "x = x"
-        final RexNode x = rexCall.getOperands().get(0);
-        return simplifyUnknownAs(rexBuilder.makeCall(
-            rexCall.getParserPosition(), SqlStdOperatorTable.EQUALS, x, x), unknownAs);
-      }
-      if (likeStr.contains("%")) {
-        return rexNode;
-      }
-    }
-    return super.simplifyUnknownAs(rexCall, unknownAs);
   }
 
   private boolean hasApproximateTypeIssues(RexNode rexNode) {
