@@ -20,11 +20,14 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 /**
@@ -56,6 +59,11 @@ public class ImpalaRexSimplify extends RexSimplify {
     if (hasApproximateTypeIssues(rexNode)) {
       return rexNode;
     }
+
+    if (hasLikeEscapedWildcardIssue(rexNode)) {
+      return rexNode;
+    }
+
     return isFilter
         ? super.simplifyUnknownAs(rexNode, RexUnknownAs.FALSE)
         : super.simplify(rexNode);
@@ -65,6 +73,13 @@ public class ImpalaRexSimplify extends RexSimplify {
     RexHasApproximateIssuesShuttle shuttle = new RexHasApproximateIssuesShuttle();
     shuttle.apply(rexNode);
     return shuttle.hasApproximateIssues_;
+  }
+
+  private boolean hasLikeEscapedWildcardIssue(RexNode rexNode) {
+    RexHasLikeEscapedWildcardVisitor visitor =
+        new RexHasLikeEscapedWildcardVisitor();
+    rexNode.accept(visitor);
+    return visitor.hasLikeEscapedWildcardIssue_;
   }
 
   private static class RexHasApproximateIssuesShuttle extends RexShuttle {
@@ -82,6 +97,58 @@ public class ImpalaRexSimplify extends RexSimplify {
         }
       }
       return rexCall;
+    }
+  }
+
+  /**
+   * Finds a LIKE call whose pattern contains a backslash followed by two
+   * percent signs. The pattern may be the second operand itself or a string
+   * literal nested under that operand.
+   */
+  private static class RexHasLikeEscapedWildcardVisitor
+      extends RexVisitorImpl<Void> {
+    public boolean hasLikeEscapedWildcardIssue_ = false;
+
+    private RexHasLikeEscapedWildcardVisitor() {
+      super(true);
+    }
+
+    @Override
+    public Void visitCall(RexCall rexCall) {
+      if (!hasLikeEscapedWildcardIssue_
+          && rexCall.getKind() == SqlKind.LIKE
+          && rexCall.getOperands().size() > 1
+          && patternHasEscapedWildcard(rexCall.getOperands().get(1))) {
+        hasLikeEscapedWildcardIssue_ = true;
+      }
+      return super.visitCall(rexCall);
+    }
+
+    private static boolean patternHasEscapedWildcard(RexNode pattern) {
+      EscapedWildcardLiteralVisitor visitor =
+          new EscapedWildcardLiteralVisitor();
+      pattern.accept(visitor);
+      return visitor.found_;
+    }
+
+    private static class EscapedWildcardLiteralVisitor
+        extends RexVisitorImpl<Void> {
+      private boolean found_ = false;
+
+      private EscapedWildcardLiteralVisitor() {
+        super(true);
+      }
+
+      @Override
+      public Void visitLiteral(RexLiteral literal) {
+        if (SqlTypeUtil.isString(literal.getType())) {
+          String value = literal.getValueAs(String.class);
+          if (value != null && value.contains("\\%%")) {
+            found_ = true;
+          }
+        }
+        return super.visitLiteral(literal);
+      }
     }
   }
 }
