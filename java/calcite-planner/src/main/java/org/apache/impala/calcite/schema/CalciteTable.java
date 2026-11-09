@@ -88,10 +88,7 @@ public class CalciteTable extends RelOptAbstractTable
     this.columns_ = Lists.newArrayList(table.getStarColumns());
     this.impalaPositionMap_ = buildPositionMap();
     this.analyzer_ = (SimplifiedAnalyzer) analyzer;
-    double estimatedMissingNumRows = table_.getStatsNumRows(analyzer);
-    estimatedMissingNumRows_ = estimatedMissingNumRows >= 0.0
-        ? estimatedMissingNumRows
-        : Double.MAX_VALUE;
+    estimatedMissingNumRows_ = table_.getStatsNumRows(analyzer);
 
     checkIfTableIsSupported(table);
   }
