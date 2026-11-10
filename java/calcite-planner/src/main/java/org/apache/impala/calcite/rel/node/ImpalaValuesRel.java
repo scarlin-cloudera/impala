@@ -25,6 +25,7 @@ import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.NullLiteral;
+import org.apache.impala.analysis.StringLiteral;
 import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.calcite.functions.AnalyzedNullLiteral;
@@ -137,7 +138,7 @@ public class ImpalaValuesRel extends Values
       return expr;
     }
 
-    return LiteralExpr.createFromStr(expr.getStringValue(), impalaType, true);
+    return LiteralExpr.createFromStr(expr.getStringValue(), impalaType, false);
   }
 
   @Override
