@@ -20,14 +20,11 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 /**
@@ -59,11 +56,6 @@ public class ImpalaRexSimplify extends RexSimplify {
     if (hasApproximateTypeIssues(rexNode)) {
       return rexNode;
     }
-
-    if (hasLikeEscapedWildcardIssue(rexNode)) {
-      return rexNode;
-    }
-
     return isFilter
         ? super.simplifyUnknownAs(rexNode, RexUnknownAs.FALSE)
         : super.simplify(rexNode);
@@ -73,13 +65,6 @@ public class ImpalaRexSimplify extends RexSimplify {
     RexHasApproximateIssuesShuttle shuttle = new RexHasApproximateIssuesShuttle();
     shuttle.apply(rexNode);
     return shuttle.hasApproximateIssues_;
-  }
-
-  private boolean hasLikeEscapedWildcardIssue(RexNode rexNode) {
-    RexHasLikeEscapedWildcardVisitor visitor =
-        new RexHasLikeEscapedWildcardVisitor();
-    rexNode.accept(visitor);
-    return visitor.hasLikeEscapedWildcardIssue_;
   }
 
   private static class RexHasApproximateIssuesShuttle extends RexShuttle {
@@ -97,35 +82,6 @@ public class ImpalaRexSimplify extends RexSimplify {
         }
       }
       return rexCall;
-    }
-  }
-
-  /**
-   * Finds a LIKE call whose pattern contains a backslash followed by two
-   * percent signs.
-   */
-  private static class RexHasLikeEscapedWildcardVisitor
-      extends RexVisitorImpl<Void> {
-    public boolean hasLikeEscapedWildcardIssue_ = false;
-
-    private RexHasLikeEscapedWildcardVisitor() {
-      super(true);
-    }
-
-    @Override
-    public Void visitCall(RexCall rexCall) {
-      if (rexCall.getKind() == SqlKind.LIKE) {
-        if (rexCall.operands.get(1) instanceof RexLiteral) {
-          RexLiteral literal = (RexLiteral) rexCall.operands.get(1);
-          if (SqlTypeUtil.isString(literal.getType())) {
-            String value = literal.getValueAs(String.class);
-            if (value != null && value.contains("\\%%")) {
-              hasLikeEscapedWildcardIssue_ = true;
-            }
-          }
-        }
-      }
-      return super.visitCall(rexCall);
     }
   }
 }
