@@ -231,7 +231,8 @@ public class ImpalaRexExecutor implements RexExecutor {
       if (newString == null) {
         return constExp;
       }
-      newString = newString.replace("\\", "\\\\");
+      // The bytes are the decoded string. The RexLiteral stores that value and
+      // RexLiteralConverter does not unescape it again.
       return builder.makeLiteral(newString, returnType, true);
     }
     Preconditions.checkState(!colVal.isSetTimestamp_val(),
