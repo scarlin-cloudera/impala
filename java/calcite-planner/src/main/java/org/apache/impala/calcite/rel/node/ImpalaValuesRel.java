@@ -25,7 +25,6 @@ import org.apache.impala.analysis.Analyzer;
 import org.apache.impala.analysis.Expr;
 import org.apache.impala.analysis.LiteralExpr;
 import org.apache.impala.analysis.NullLiteral;
-import org.apache.impala.analysis.StringLiteral;
 import org.apache.impala.calcite.rel.util.ExprConjunctsConverter;
 import org.apache.impala.calcite.type.ImpalaTypeConverter;
 import org.apache.impala.calcite.functions.AnalyzedNullLiteral;
@@ -138,12 +137,7 @@ public class ImpalaValuesRel extends Values
       return expr;
     }
 
-    // ImpalaRexBuilder already decoded a SQL string. createFromStr must not
-    // decode it again, or '\\n' and a regex '\\d' lose their backslash.
-    boolean needsUnescaping = !(expr instanceof StringLiteral)
-        || ((StringLiteral) expr).needsUnescaping();
-    return LiteralExpr.createFromStr(expr.getStringValue(), impalaType,
-        needsUnescaping);
+    return LiteralExpr.createFromStr(expr.getStringValue(), impalaType, true);
   }
 
   @Override
