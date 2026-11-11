@@ -155,8 +155,6 @@ public class StringLiteral extends LiteralExpr {
    * once; values produced by constant folding are returned as stored.
    * Throws if the literal is not valid UTF-8.
    */
-  public boolean needsUnescaping() { return needsUnescaping_; }
-
   public String unescapeIfNeeded() {
     checkHasValidString();
     return needsUnescaping_ ? getUnescapedValue() : strValue_;

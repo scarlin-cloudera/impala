@@ -590,7 +590,7 @@ public class KuduScanNode extends ScanNode {
         StringLiteral strLit = (StringLiteral)literal;
         if (!strLit.isValidUtf8()) return false;
         kuduPredicate = KuduPredicate.newComparisonPredicate(column, op,
-            strLit.unescapeIfNeeded());
+            strLit.getUnescapedValue());
         break;
       }
       case BINARY: {
@@ -774,7 +774,7 @@ public class KuduScanNode extends ScanNode {
       case BIGINT: return ((NumericLiteral) e).getLongValue();
       case FLOAT: return (float) ((NumericLiteral) e).getDoubleValue();
       case DOUBLE: return ((NumericLiteral) e).getDoubleValue();
-      case STRING: return ((StringLiteral) e).unescapeIfNeeded();
+      case STRING: return ((StringLiteral) e).getUnescapedValue();
       case TIMESTAMP: {
         try {
           // TODO: Simplify when Impala supports a 64-bit TIMESTAMP type.

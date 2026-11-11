@@ -60,15 +60,7 @@ public class ImpalaRexBuilder extends RexBuilder {
   }
 
   public void setPostAnalysis() {
-    setPostAnalysis(true);
-  }
-
-  public void setPostAnalysis(boolean postAnalysis) {
-    postAnalysis_ = postAnalysis;
-  }
-
-  public boolean isPostAnalysis() {
-    return postAnalysis_;
+    postAnalysis_ = true;
   }
 
   @Override
