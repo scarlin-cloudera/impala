@@ -63,6 +63,7 @@ public class AnalyzedCastExpr extends CastExpr {
     return false;
   }
 
+  // The format keeps its SQL escapes. The backend format parser consumes them.
   private static String getFormat(List<Expr> paramsList) {
     return paramsList.size() == 1
         ? null

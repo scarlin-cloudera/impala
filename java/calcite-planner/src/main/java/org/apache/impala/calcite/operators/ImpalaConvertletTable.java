@@ -148,7 +148,7 @@ public class ImpalaConvertletTable extends ReflectiveConvertletTable {
           SqlTypeUtil.inCharFamily(returnType));
       SqlNode formatExpr = call.operand(2);
       operands = Lists.newArrayList(cx.convertExpression(expr),
-          cx.convertExpression(formatExpr));
+          convertCastFormat(cx, formatExpr));
     } else if (call.operandCount() == 2) {
       operands = Lists.newArrayList(cx.convertExpression(expr));
     } else {
@@ -156,6 +156,25 @@ public class ImpalaConvertletTable extends ReflectiveConvertletTable {
     }
 
     return rexBuilder.makeCall(returnType, ImpalaCastFunction.INSTANCE, operands);
+  }
+
+  /**
+   * The datetime format parser reads SQL escapes such as \" itself. Decoding
+   * this literal the way other strings are decoded removes those escapes.
+   */
+  private static RexNode convertCastFormat(SqlRexContext cx, SqlNode formatExpr) {
+    RexBuilder rexBuilder = cx.getRexBuilder();
+    if (!(rexBuilder instanceof ImpalaRexBuilder)) {
+      return cx.convertExpression(formatExpr);
+    }
+    ImpalaRexBuilder impalaRexBuilder = (ImpalaRexBuilder) rexBuilder;
+    boolean postAnalysis = impalaRexBuilder.isPostAnalysis();
+    impalaRexBuilder.setPostAnalysis(true);
+    try {
+      return cx.convertExpression(formatExpr);
+    } finally {
+      impalaRexBuilder.setPostAnalysis(postAnalysis);
+    }
   }
 
   /**
