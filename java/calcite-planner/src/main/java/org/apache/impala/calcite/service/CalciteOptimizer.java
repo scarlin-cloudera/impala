@@ -147,9 +147,6 @@ public class CalciteOptimizer implements CompilerStep {
         logPlan.getCluster(), reader_);
 
     ImpalaRexBuilder rexBuilder = (ImpalaRexBuilder) logPlan.getCluster().getRexBuilder();
-    // SQL literals are decoded while the plan is built. Everything created from
-    // here on is an already-decoded value.
-    rexBuilder.setPostAnalysis();
 
     ImpalaRexExecutor rexExecutor = new ImpalaRexExecutor(analyzer_, queryCtx_,
         new ImpalaRexExecutor.ReducerImpl());
@@ -161,6 +158,8 @@ public class CalciteOptimizer implements CompilerStep {
     RelNode expandedNodesPlan = runExpandNodesProgram(logPlan, simplifier);
     timeline_.markEvent("Expanded plan");
     LogUtil.logDebug(expandedNodesPlan, "Plan after expanded plan phase.");
+
+    rexBuilder.setPostAnalysis();
 
     // The initial parse and validate steps have some issues finding the correct
     // Impala datatypes for various functions and expressions. For instance,
