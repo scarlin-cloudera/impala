@@ -102,7 +102,7 @@ PLAN-ROOT SINK
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IN (CAST(715 AS INT), CAST(861 AS INT), CAST(928 AS INT), CAST(942 AS INT)), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(65.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(35.00 AS DECIMAL(7,2))
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IN (CAST(715 AS INT), CAST(861 AS INT), CAST(928 AS INT), CAST(942 AS INT)), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(65.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(35.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -118,7 +118,7 @@ PLAN-ROOT SINK
 |       table: rows=1.03G size=5.10GB
 |       partitions: 261/261 rows=1.03G
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=3.98M
+|     extrapolated-rows=disabled max-scan-range-rows=3.97M
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand <= CAST(500 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand >= CAST(100 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand <= CAST(500 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand >= CAST(100 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -301,7 +301,7 @@ max-parallelism=360 segment-costs=[3534159966, 424544066] cpu-comparison-result=
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IN (CAST(715 AS INT), CAST(861 AS INT), CAST(928 AS INT), CAST(942 AS INT)), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(65.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(35.00 AS DECIMAL(7,2))
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IN (CAST(715 AS INT), CAST(861 AS INT), CAST(928 AS INT), CAST(942 AS INT)), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(65.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(35.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -317,7 +317,7 @@ max-parallelism=360 segment-costs=[3534159966, 424544066] cpu-comparison-result=
 |       table: rows=1.03G size=5.10GB
 |       partitions: 261/261 rows=1.03G
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=3.98M
+|     extrapolated-rows=disabled max-scan-range-rows=3.97M
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand <= CAST(500 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand >= CAST(100 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand <= CAST(500 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand >= CAST(100 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0
@@ -500,7 +500,7 @@ max-parallelism=360 segment-costs=[3534159966, 424544066] cpu-comparison-result=
 |  |     stored statistics:
 |  |       table: rows=360.00K size=33.54MB
 |  |       columns: all
-|  |     extrapolated-rows=disabled max-scan-range-rows=101.54K
+|  |     extrapolated-rows=disabled max-scan-range-rows=101.53K
 |  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IN (CAST(715 AS INT), CAST(861 AS INT), CAST(928 AS INT), CAST(942 AS INT)), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(65.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(35.00 AS DECIMAL(7,2))
 |  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.item.i_manufact_id IN (CAST(715 AS INT), CAST(861 AS INT), CAST(928 AS INT), CAST(942 AS INT)), tpcds_partitioned_parquet_snap.item.i_current_price <= CAST(65.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_current_price >= CAST(35.00 AS DECIMAL(7,2)), tpcds_partitioned_parquet_snap.item.i_item_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
@@ -516,7 +516,7 @@ max-parallelism=360 segment-costs=[3534159966, 424544066] cpu-comparison-result=
 |       table: rows=1.03G size=5.10GB
 |       partitions: 261/261 rows=1.03G
 |       columns: all
-|     extrapolated-rows=disabled max-scan-range-rows=3.98M
+|     extrapolated-rows=disabled max-scan-range-rows=3.97M
 |     parquet statistics predicates: tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand <= CAST(500 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand >= CAST(100 AS INT)
 |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand <= CAST(500 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_quantity_on_hand >= CAST(100 AS INT), tpcds_partitioned_parquet_snap.inventory.inv_item_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=256.00KB thread-reservation=0

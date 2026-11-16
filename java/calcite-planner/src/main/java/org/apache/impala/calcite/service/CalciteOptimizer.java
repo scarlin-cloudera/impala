@@ -36,6 +36,7 @@ import org.apache.calcite.rel.RelCommonExpressionSuggester;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.HyperGraph;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.rex.RexBuilder;
@@ -85,6 +86,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 /**
  * CalciteOptimizer. Responsible for optimizing the plan into its final
  * Calcite form. The final Calcite form will be an ImpalaPlanRel node which
@@ -327,10 +329,51 @@ public class CalciteOptimizer implements CompilerStep {
     // ordering.
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleInstance(ImpalaCoreRules.JOIN_CONDITION_PUSH);
+
+    RelNode preJoinPlan = runProgram(plan, builder.build(), simplifier);
+
+    RelNode joinPlan = runHyperGraphJoin(preJoinPlan, simplifier);
+    return joinPlan != null
+        ? joinPlan
+        : runMultiJoin(preJoinPlan, simplifier);
+  }
+
+  private RelNode runHyperGraphJoin(RelNode plan,
+      ImpalaRexSimplify simplifier) throws ImpalaException {
+    try {
+      HepProgramBuilder builder = new HepProgramBuilder();
+      builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
+
+      builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_HYPER_GRAPH);
+      builder.addRuleInstance(ImpalaCoreRules.HYPER_GRAPH_OPTIMIZE);
+      builder.addRuleInstance(ImpalaCoreRules.JOIN_COST_ORDER);
+
+      RelNode joinPlan = runProgram(plan, builder.build(), simplifier);
+
+      // DPHyp leaves a HyperGraph in the tree when it cannot produce a join order.
+      return findAll(HyperGraph.class, joinPlan).isEmpty()
+          ? joinPlan
+          : null;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private RelNode runMultiJoin(RelNode plan,
+      ImpalaRexSimplify simplifier) throws ImpalaException {
+    LOG.info("SJC: GONNA RUN MULTI");
+   try {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
+
     builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_MULTI_JOIN);
     builder.addRuleInstance(ImpalaCoreRules.MULTI_JOIN_OPTIMIZE);
 
     return runProgram(plan, builder.build(), simplifier);
+   } catch (Exception e) {
+     LOG.info("SJC: THREW MULTI EXC: " + ExceptionUtils.getStackTrace(e));
+     throw e;
+   }
   }
 
   /**
