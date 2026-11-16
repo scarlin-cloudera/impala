@@ -27,6 +27,7 @@ import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategy;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
+import org.apache.calcite.rel.rules.DphypJoinReorderRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
@@ -36,6 +37,7 @@ import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.IntersectToDistinctRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushTransitivePredicatesRule;
+import org.apache.calcite.rel.rules.JoinToHyperGraphRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
@@ -201,6 +203,11 @@ public class ImpalaCoreRules {
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
            .as(JoinToMultiJoinRule.Config.class).toRule();
 
+  public static RelOptRule JOIN_TO_HYPER_GRAPH =
+      JoinToHyperGraphRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(JoinToHyperGraphRule.Config.class).toRule();
+
   public static SortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
       SortRemoveConstantKeysRule.Config.DEFAULT
           .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
@@ -226,24 +233,37 @@ public class ImpalaCoreRules {
   public static RelOptRule JOIN_PROJECT_TRANSPOSE_RIGHT_OUTER =
       ImpalaJoinProjectTransposeRule.RIGHT_OUTER;
 
+  // Orders LEFT, RIGHT, and FULL joins so the cheaper input is on the right.
+  public static final ImpalaJoinCostOrderRule JOIN_COST_ORDER =
+      ImpalaJoinCostOrderRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+          .as(ImpalaJoinCostOrderRule.Config.class)
+          .toRule();
+
+/*
   public static ImpalaLoptOptimizeJoinRule MULTI_JOIN_OPTIMIZE =
       ImpalaLoptOptimizeJoinRule.Config.DEFAULT
           .withSwapInputsFunction((mq, mj, left, right, sj, cond, rexB, adjust)
               -> ImpalaLoptOptimizeJoinRule.swapInputs(mq, mj, left, right, cond,
                   rexB, adjust))
           .toRule();
+          */
+  public static RelOptRule MULTI_JOIN_OPTIMIZE =
+      DphypJoinReorderRule.Config.DEFAULT
+          .withRelBuilderFactory(LOGICAL_BUILDER_NO_SIMPLIFY)
+           .as(DphypJoinReorderRule.Config.class).toRule();
 
   // If the straight join hint is seen, we exclude applying the JOIN_TO_MULTI_JOIN
   // rule which will ensure no join optimization is done on the join.
   public static HintStrategyTable HINT_STRATEGIES = HintStrategyTable.builder()
      .hintStrategy("straight_join", HintStrategy.builder(HintPredicates.JOIN)
-          .excludedRules(CoreRules.JOIN_TO_MULTI_JOIN)
+          .excludedRules(JOIN_TO_HYPER_GRAPH)
          .build())
      .hintStrategy("shuffle", HintStrategy.builder(HintPredicates.JOIN)
-          .excludedRules(CoreRules.JOIN_TO_MULTI_JOIN)
+          .excludedRules(JOIN_TO_HYPER_GRAPH)
          .build())
      .hintStrategy("broadcast", HintStrategy.builder(HintPredicates.JOIN)
-          .excludedRules(CoreRules.JOIN_TO_MULTI_JOIN)
+          .excludedRules(JOIN_TO_HYPER_GRAPH)
          .build())
      .build();
 }

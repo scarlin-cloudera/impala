@@ -327,8 +327,9 @@ public class CalciteOptimizer implements CompilerStep {
     // ordering.
     builder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     builder.addRuleInstance(ImpalaCoreRules.JOIN_CONDITION_PUSH);
-    builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_MULTI_JOIN);
+    builder.addRuleInstance(ImpalaCoreRules.JOIN_TO_HYPER_GRAPH);
     builder.addRuleInstance(ImpalaCoreRules.MULTI_JOIN_OPTIMIZE);
+    builder.addRuleInstance(ImpalaCoreRules.JOIN_COST_ORDER);
 
     return runProgram(plan, builder.build(), simplifier);
   }

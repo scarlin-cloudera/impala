@@ -25,27 +25,8 @@ select  cast(amc as decimal(15,4))/cast(pmc as decimal(15,4)) am_pm_ratio
 Max Per-Host Resource Reservation: Memory=19.03MB Threads=1
 Per-Host Resource Estimates: Memory=146MB
 ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
-  ImpalaProjectRel(AM_PM_RATIO=[/(EXPLICIT_CAST($0), EXPLICIT_CAST($1))])
+  ImpalaProjectRel(AM_PM_RATIO=[/(EXPLICIT_CAST($1), EXPLICIT_CAST($0))])
     ImpalaJoinRel(condition=[true], joinType=[inner])
-      ImpalaAggRel(group=[{}], AMC=[COUNT()])
-        ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
-          ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
-            ImpalaJoinRel(condition=[=($1, $3)], joinType=[inner])
-              ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($0))])
-                ImpalaProjectRel(ws_sold_time_sk=[$0], ws_ship_hdemo_sk=[$9], ws_web_page_sk=[$11])
-                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
-              ImpalaProjectRel(hd_demo_sk=[$0])
-                ImpalaFilterRel(condition=[AND(=($1, 4), IS NOT NULL($0))])
-                  ImpalaProjectRel(hd_demo_sk=[$0], hd_dep_count=[$3])
-                    ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, household_demographics]])
-            ImpalaProjectRel(wp_web_page_sk=[$0])
-              ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[5000..5200]]), IS NOT NULL($0))])
-                ImpalaProjectRel(wp_web_page_sk=[$0], wp_char_count=[$10])
-                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
-          ImpalaProjectRel(t_time_sk=[$0])
-            ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[8..9]]), IS NOT NULL($0))])
-              ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
-                ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
       ImpalaAggRel(group=[{}], PMC=[COUNT()])
         ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
           ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
@@ -63,6 +44,25 @@ ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
                   ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
           ImpalaProjectRel(t_time_sk=[$0])
             ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[19..20]]), IS NOT NULL($0))])
+              ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
+                ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
+      ImpalaAggRel(group=[{}], AMC=[COUNT()])
+        ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
+          ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
+            ImpalaJoinRel(condition=[=($1, $3)], joinType=[inner])
+              ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($0))])
+                ImpalaProjectRel(ws_sold_time_sk=[$0], ws_ship_hdemo_sk=[$9], ws_web_page_sk=[$11])
+                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
+              ImpalaProjectRel(hd_demo_sk=[$0])
+                ImpalaFilterRel(condition=[AND(=($1, 4), IS NOT NULL($0))])
+                  ImpalaProjectRel(hd_demo_sk=[$0], hd_dep_count=[$3])
+                    ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, household_demographics]])
+            ImpalaProjectRel(wp_web_page_sk=[$0])
+              ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[5000..5200]]), IS NOT NULL($0))])
+                ImpalaProjectRel(wp_web_page_sk=[$0], wp_char_count=[$10])
+                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
+          ImpalaProjectRel(t_time_sk=[$0])
+            ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[8..9]]), IS NOT NULL($0))])
               ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
                 ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
 F00:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
@@ -99,13 +99,13 @@ PLAN-ROOT SINK
 |  |
 |  |--13:SCAN HDFS [tpcds_partitioned_parquet_snap.time_dim]
 |  |     HDFS partitions=1/1 files=1 size=1.31MB
-|  |     predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
+|  |     predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
 |  |     stored statistics:
 |  |       table: rows=86.40K size=1.31MB
 |  |       columns: all
 |  |     extrapolated-rows=disabled max-scan-range-rows=86.40K
-|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT)
-|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
+|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT)
+|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=15 row-size=8B cardinality=8.64K cost=17236
 |  |     in pipelines: 13(GETNEXT)
@@ -182,13 +182,13 @@ PLAN-ROOT SINK
 |
 |--05:SCAN HDFS [tpcds_partitioned_parquet_snap.time_dim]
 |     HDFS partitions=1/1 files=1 size=1.31MB
-|     predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
+|     predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
 |     stored statistics:
 |       table: rows=86.40K size=1.31MB
 |       columns: all
 |     extrapolated-rows=disabled max-scan-range-rows=86.40K
-|     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT)
-|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
+|     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT)
+|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=8B cardinality=8.64K cost=17236
 |     in pipelines: 05(GETNEXT)
@@ -252,27 +252,8 @@ PLAN-ROOT SINK
 Max Per-Host Resource Reservation: Memory=112.16MB Threads=31
 Per-Host Resource Estimates: Memory=462MB
 ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
-  ImpalaProjectRel(AM_PM_RATIO=[/(EXPLICIT_CAST($0), EXPLICIT_CAST($1))])
+  ImpalaProjectRel(AM_PM_RATIO=[/(EXPLICIT_CAST($1), EXPLICIT_CAST($0))])
     ImpalaJoinRel(condition=[true], joinType=[inner])
-      ImpalaAggRel(group=[{}], AMC=[COUNT()])
-        ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
-          ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
-            ImpalaJoinRel(condition=[=($1, $3)], joinType=[inner])
-              ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($0))])
-                ImpalaProjectRel(ws_sold_time_sk=[$0], ws_ship_hdemo_sk=[$9], ws_web_page_sk=[$11])
-                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
-              ImpalaProjectRel(hd_demo_sk=[$0])
-                ImpalaFilterRel(condition=[AND(=($1, 4), IS NOT NULL($0))])
-                  ImpalaProjectRel(hd_demo_sk=[$0], hd_dep_count=[$3])
-                    ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, household_demographics]])
-            ImpalaProjectRel(wp_web_page_sk=[$0])
-              ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[5000..5200]]), IS NOT NULL($0))])
-                ImpalaProjectRel(wp_web_page_sk=[$0], wp_char_count=[$10])
-                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
-          ImpalaProjectRel(t_time_sk=[$0])
-            ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[8..9]]), IS NOT NULL($0))])
-              ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
-                ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
       ImpalaAggRel(group=[{}], PMC=[COUNT()])
         ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
           ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
@@ -290,6 +271,25 @@ ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
                   ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
           ImpalaProjectRel(t_time_sk=[$0])
             ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[19..20]]), IS NOT NULL($0))])
+              ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
+                ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
+      ImpalaAggRel(group=[{}], AMC=[COUNT()])
+        ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
+          ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
+            ImpalaJoinRel(condition=[=($1, $3)], joinType=[inner])
+              ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($0))])
+                ImpalaProjectRel(ws_sold_time_sk=[$0], ws_ship_hdemo_sk=[$9], ws_web_page_sk=[$11])
+                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
+              ImpalaProjectRel(hd_demo_sk=[$0])
+                ImpalaFilterRel(condition=[AND(=($1, 4), IS NOT NULL($0))])
+                  ImpalaProjectRel(hd_demo_sk=[$0], hd_dep_count=[$3])
+                    ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, household_demographics]])
+            ImpalaProjectRel(wp_web_page_sk=[$0])
+              ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[5000..5200]]), IS NOT NULL($0))])
+                ImpalaProjectRel(wp_web_page_sk=[$0], wp_char_count=[$10])
+                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
+          ImpalaProjectRel(t_time_sk=[$0])
+            ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[8..9]]), IS NOT NULL($0))])
               ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
                 ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
 F04:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
@@ -374,13 +374,13 @@ PLAN-ROOT SINK
 |  |  max-parallelism=1 segment-costs=[17609]
 |  |  13:SCAN HDFS [tpcds_partitioned_parquet_snap.time_dim, RANDOM]
 |  |     HDFS partitions=1/1 files=1 size=1.31MB
-|  |     predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
+|  |     predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
 |  |     stored statistics:
 |  |       table: rows=86.40K size=1.31MB
 |  |       columns: all
 |  |     extrapolated-rows=disabled max-scan-range-rows=86.40K
-|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT)
-|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
+|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT)
+|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=15 row-size=8B cardinality=8.64K cost=17236
 |  |     in pipelines: 13(GETNEXT)
@@ -523,13 +523,13 @@ max-parallelism=80 segment-costs=[711239660, 123] cpu-comparison-result=80 [max(
 |  max-parallelism=1 segment-costs=[17609]
 |  05:SCAN HDFS [tpcds_partitioned_parquet_snap.time_dim, RANDOM]
 |     HDFS partitions=1/1 files=1 size=1.31MB
-|     predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
+|     predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
 |     stored statistics:
 |       table: rows=86.40K size=1.31MB
 |       columns: all
 |     extrapolated-rows=disabled max-scan-range-rows=86.40K
-|     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT)
-|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
+|     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT)
+|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=8B cardinality=8.64K cost=17236
 |     in pipelines: 05(GETNEXT)
@@ -627,27 +627,8 @@ max-parallelism=80 segment-costs=[711239660, 123] cpu-comparison-result=80 [max(
 Max Per-Host Resource Reservation: Memory=112.16MB Threads=31
 Per-Host Resource Estimates: Memory=462MB
 ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
-  ImpalaProjectRel(AM_PM_RATIO=[/(EXPLICIT_CAST($0), EXPLICIT_CAST($1))])
+  ImpalaProjectRel(AM_PM_RATIO=[/(EXPLICIT_CAST($1), EXPLICIT_CAST($0))])
     ImpalaJoinRel(condition=[true], joinType=[inner])
-      ImpalaAggRel(group=[{}], AMC=[COUNT()])
-        ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
-          ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
-            ImpalaJoinRel(condition=[=($1, $3)], joinType=[inner])
-              ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($0))])
-                ImpalaProjectRel(ws_sold_time_sk=[$0], ws_ship_hdemo_sk=[$9], ws_web_page_sk=[$11])
-                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
-              ImpalaProjectRel(hd_demo_sk=[$0])
-                ImpalaFilterRel(condition=[AND(=($1, 4), IS NOT NULL($0))])
-                  ImpalaProjectRel(hd_demo_sk=[$0], hd_dep_count=[$3])
-                    ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, household_demographics]])
-            ImpalaProjectRel(wp_web_page_sk=[$0])
-              ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[5000..5200]]), IS NOT NULL($0))])
-                ImpalaProjectRel(wp_web_page_sk=[$0], wp_char_count=[$10])
-                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
-          ImpalaProjectRel(t_time_sk=[$0])
-            ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[8..9]]), IS NOT NULL($0))])
-              ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
-                ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
       ImpalaAggRel(group=[{}], PMC=[COUNT()])
         ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
           ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
@@ -665,6 +646,25 @@ ImpalaSortRel(sort0=[$0], dir0=[ASC], fetch=[100:TINYINT])
                   ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
           ImpalaProjectRel(t_time_sk=[$0])
             ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[19..20]]), IS NOT NULL($0))])
+              ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
+                ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
+      ImpalaAggRel(group=[{}], AMC=[COUNT()])
+        ImpalaJoinRel(condition=[=($0, $5)], joinType=[inner])
+          ImpalaJoinRel(condition=[=($2, $4)], joinType=[inner])
+            ImpalaJoinRel(condition=[=($1, $3)], joinType=[inner])
+              ImpalaFilterRel(condition=[AND(IS NOT NULL($1), IS NOT NULL($2), IS NOT NULL($0))])
+                ImpalaProjectRel(ws_sold_time_sk=[$0], ws_ship_hdemo_sk=[$9], ws_web_page_sk=[$11])
+                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_sales]])
+              ImpalaProjectRel(hd_demo_sk=[$0])
+                ImpalaFilterRel(condition=[AND(=($1, 4), IS NOT NULL($0))])
+                  ImpalaProjectRel(hd_demo_sk=[$0], hd_dep_count=[$3])
+                    ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, household_demographics]])
+            ImpalaProjectRel(wp_web_page_sk=[$0])
+              ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[5000..5200]]), IS NOT NULL($0))])
+                ImpalaProjectRel(wp_web_page_sk=[$0], wp_char_count=[$10])
+                  ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, web_page]])
+          ImpalaProjectRel(t_time_sk=[$0])
+            ImpalaFilterRel(condition=[AND(SEARCH($1, Sarg[[8..9]]), IS NOT NULL($0))])
               ImpalaProjectRel(t_time_sk=[$0], t_hour=[$3])
                 ImpalaHdfsScanRel(table=[[tpcds_partitioned_parquet_snap, time_dim]])
 F04:PLAN FRAGMENT [UNPARTITIONED] hosts=1 instances=1
@@ -749,13 +749,13 @@ PLAN-ROOT SINK
 |  |  max-parallelism=1 segment-costs=[17609]
 |  |  13:SCAN HDFS [tpcds_partitioned_parquet_snap.time_dim, RANDOM]
 |  |     HDFS partitions=1/1 files=1 size=1.31MB
-|  |     predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
+|  |     predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
 |  |     stored statistics:
 |  |       table: rows=86.40K size=1.31MB
 |  |       columns: all
 |  |     extrapolated-rows=disabled max-scan-range-rows=86.40K
-|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT)
-|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
+|  |     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT)
+|  |     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim_0.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim_0.t_time_sk IS NOT NULL
 |  |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |  |     tuple-ids=15 row-size=8B cardinality=8.64K cost=17236
 |  |     in pipelines: 13(GETNEXT)
@@ -898,13 +898,13 @@ max-parallelism=80 segment-costs=[711239660, 123] cpu-comparison-result=80 [max(
 |  max-parallelism=1 segment-costs=[17609]
 |  05:SCAN HDFS [tpcds_partitioned_parquet_snap.time_dim, RANDOM]
 |     HDFS partitions=1/1 files=1 size=1.31MB
-|     predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
+|     predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
 |     stored statistics:
 |       table: rows=86.40K size=1.31MB
 |       columns: all
 |     extrapolated-rows=disabled max-scan-range-rows=86.40K
-|     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT)
-|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(9 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(8 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
+|     parquet statistics predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT)
+|     parquet dictionary predicates: tpcds_partitioned_parquet_snap.time_dim.t_hour <= CAST(20 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_hour >= CAST(19 AS INT), tpcds_partitioned_parquet_snap.time_dim.t_time_sk IS NOT NULL
 |     mem-estimate=16.00MB mem-reservation=512.00KB thread-reservation=0
 |     tuple-ids=6 row-size=8B cardinality=8.64K cost=17236
 |     in pipelines: 05(GETNEXT)
